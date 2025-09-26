@@ -457,11 +457,12 @@ void FreeNode(ref *Node this) { ... }
 ```
 You can also specify a parameter to be deferred, as long as the type matches or convertible.
 
->   ![NOTE] Example
->   ```go
->   [defer(FreeNode(outNode))] 
->   void CreateNode(out *Node outNode) { ... }
->   ```
+> [!NOTE]
+> Example
+> ```go
+> [defer(FreeNode(outNode))] 
+> void CreateNode(out *Node outNode) { ... }
+> ```
 
 This is called defer binding because we are binding a defer function to a variable.
 Now, if the user does this, the code won't transpile.
