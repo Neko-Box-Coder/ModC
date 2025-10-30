@@ -11,28 +11,6 @@ When navigating this document, you might encounter the following syntax:
 
 ### Basic Structure And Types
 
-#### Header And Source Files
-ModC uses extension of `.modh` and `.modc` respectively for header and source files.
-Header files are optional if source file is available. 
-
-To include other source file, simply do
-```c
-#include "path/to/file.modc"    //Including a modc file
-#include "path/to/file2.modh"   //Including a modh file
-#include <library.modc>         //Including a standard library
-```
-
-While the syntax is the same, it works differently from C where it does not just copy and paste the
-file content to the current file.
-
-Rather, it will parse the included file first before continuing parsing the rest of this file.
-
-`.modh` files can be generated from `.modc` files or can be manually created as long as the 
-declarations in `.modh` match the ones in `.modc`. 
-
-`.modh` files are used when trying to use a compiled library where `.modc` files are not present
-
-
 #### Primitive Types And Conversions
 ```modc
 bool
@@ -265,6 +243,8 @@ When a function parameter is a reference, it can be one of these reference types
 - `ref`: Function can read and write to reference variable
 - `in`: Function can only read from reference variable. The equivalent is `const ref`.
 - `out`: Function can only write to reference variable
+- `out_init`: Function can only perform assignment to reference struct
+
 
 ```modc
 void MyFunc(ref int a, in int b, out int c)
@@ -1168,6 +1148,73 @@ void OtherStruct.ModifyNode(ref Node node) { ... }
 }
 ```
 
+### Uninitialized Data Check
+In ModC, any uninitialized variable cannot be read at all.
+```modc
+{
+    int myVar;              //Not initialized
+    //myVar = myVar + 5;    //Error: Reading uninitialized variable myVar
+}
+```
+
+For struct, it has to be either fully initialized or uninitialized.
+```modc
+struct Node 
+{ 
+    int ID;
+    int Val;
+}
+
+{
+    Node node;                  //Not initialized
+    //node.ID = 5;              //Error: Partial initialized is not allowed
+}
+```
+
+<!--
+#### Null Pointer Check
+In ModC, pointers (`*`) must be checked against `null` before accessing the member. This gets reset 
+when it got assigned again. 
+```modc
+*int GetIntegerPointer() { ... }
+
+{
+    *int myVarPtr = null;
+    //int myVar = *myVarPtr;            //Error: Trying to use a null pointer.
+    
+    myVarPtr = GetIntegerPointer();
+    //int myVar2 = *myVarPtr;           //Error: Pointer must be checked before accessing
+    
+    if(myVarPtr != null)
+        int myVar2 = *myVarPtr;         //Okay, we are checking `myVarPtr` is not `null`
+    
+    if(myVarPtr == null)
+        return;
+    int myVar2 = *myVarPtr;             //Okay, since `myVarPtr` must not be `null` after this point
+    
+    myVarPtr = GetIntegerPointer();     //`myVarPtr` must be check again after this line
+}
+
+//This applies to conditions as well
+{
+    myVarPtr = GetIntegerPointer();
+    bool someCondition = ...;
+    if(someCondition)
+    {
+        if(myVarPtr == null)
+            return;
+        ...
+        int myVar2 = *myVarPtr;         //Okay, since `myVarPtr` must not be `null` at this point
+    }
+    else
+    {
+        ...
+        //int myVar2 = *myVarPtr;       //Error: Pointer must be checked before accessing
+    }
+}
+```
+-->
+
 ### Pointer Type
 
 In ModC, you can obtain a pointer in two ways, either taking an address from existing object or 
@@ -1368,10 +1415,8 @@ void MyStructOnlyFunction(MyStruct myStruct) { ... }
 ### Function Attributes
 
 In ModC, a function can have a set of function attributes separated by comma (`,`) inside square 
-brackets (`[]`) before the function signature to describe different attributes of the function as 
-well as its parameters. 
-
-Function attributes have no effect on the function's local variables. 
+brackets (`[]`) before the function signature to describe different attributes of the function 
+that applies to the caller.
 
 ???+ Example
     ```modc
@@ -1572,7 +1617,7 @@ Similar to defer block, a `defer` call can be used for defer bindings.
 ```
 
 If the variable gets assigned to something else before its scope ends, the binded defer function 
-will be additionally called before each assignment.
+will be called additionally before each assignment,.
 ```modc
 {
     defer(FreeNode) *Node nodePtr = CreateNode();
@@ -1595,6 +1640,15 @@ If the type only has one deferred function, the `defer` call argument can be omi
 }
 ```
 
+However it will fail if there's more than 1 binded defer functions to avoid ambiguity of auto defer.
+```modc
+{
+    defer(FreeNode) *Node nodePtr = CreateNode();
+    defer(FreeNode) *Node nodePtr2 = CreateNode();
+    //defer;                        //Error: Cannot defer automatically due to multiple binded defer functions.
+}
+```
+
 Just like the `defer` call, if there's only 1 deferred function for the type, 
 the binded defer function can be omitted.
 
@@ -1602,15 +1656,6 @@ the binded defer function can be omitted.
 {
     defer *Node nodePtr = CreateNode();
     defer;
-}
-```
-
-However it will fail if there's more than 1 binded defer functions to avoid ambiguity of auto defer.
-```modc
-{
-    defer *Node nodePtr = CreateNode();
-    defer *Node nodePtr2 = CreateNode();
-    //defer;                        //Error: Cannot defer automatically due to multiple binded defer functions.
 }
 ```
 
@@ -1667,12 +1712,11 @@ void FreeNode(ref *Node this)
 }
 ```
 
+<!--
 Since `FreeNode()` can modify `this`, and we are setting it to `null`.
 
-<!--
 This allows the [Mandatory Null Pointer Check]() to work and prevent accessing freed node. 
 Which forces an if guard.
--->
 
 ```modc
 {
@@ -1687,8 +1731,9 @@ Which forces an if guard.
     }
 }
 ```
+-->
 
-However, it won't stop the user from doing this:
+It won't stop the user from doing this:
 ```modc
 {
     defer *Node nodePtr = CreateNode();
@@ -1724,78 +1769,14 @@ and the previous scenario would look like
 }
 ```
 
-
-### Uninitialized Data Check
-In ModC, any uninitialized variable cannot be read at all.
-```modc
-{
-    int myVar;              //Not initialized
-    //myVar = myVar + 5;    //Error: Reading uninitialized variable myVar
-}
-```
-
-For struct, it has to be either fully initialized or uninitialized.
-```modc
-struct Node 
-{ 
-    int ID;
-    int Val;
-}
-
-{
-    Node node;                  //Not initialized
-    //node.ID = 5;              //Error: Partial initialized is not allowed
-}
-```
-
-<!--
-#### Null Pointer Check
-In ModC, pointers (`*`) must be checked against `null` before accessing the member. This gets reset 
-when it got assigned again. 
-```modc
-*int GetIntegerPointer() { ... }
-
-{
-    *int myVarPtr = null;
-    //int myVar = *myVarPtr;            //Error: Trying to use a null pointer.
-    
-    myVarPtr = GetIntegerPointer();
-    //int myVar2 = *myVarPtr;           //Error: Pointer must be checked before accessing
-    
-    if(myVarPtr != null)
-        int myVar2 = *myVarPtr;         //Okay, we are checking `myVarPtr` is not `null`
-    
-    if(myVarPtr == null)
-        return;
-    int myVar2 = *myVarPtr;             //Okay, since `myVarPtr` must not be `null` after this point
-    
-    myVarPtr = GetIntegerPointer();     //`myVarPtr` must be check again after this line
-}
-
-//This applies to conditions as well
-{
-    myVarPtr = GetIntegerPointer();
-    bool someCondition = ...;
-    if(someCondition)
-    {
-        if(myVarPtr == null)
-            return;
-        ...
-        int myVar2 = *myVarPtr;         //Okay, since `myVarPtr` must not be `null` at this point
-    }
-    else
-    {
-        ...
-        //int myVar2 = *myVarPtr;       //Error: Pointer must be checked before accessing
-    }
-}
-```
--->
+<!-- TODO: Specify container that has defer member must have defer function that performs member defer  -->
 
 ### Lessee and Lessor
 
-In ModC, the `lease` keyword is used to denote a non owning pointer object. Therefore a pointer of 
-an existing object can be assigned by using the `lease` keyword.
+In ModC, the `lease` keyword is used to denote a non owning pointer object. This is similar to 
+reference except a `lease` pointer can be stored where a reference cannot.
+
+A pointer of an existing object can be assigned by using the `lease` keyword.
 
 The `lease` keyword can only be applied to pointer types. 
 
@@ -1892,7 +1873,7 @@ void UsingMyStruct2(ref MyStruct myStruct)
 }
 ```
 
-#### lease
+#### Lease
 
 When a function contains code that creates lease from a source variable, it can use the `lease` 
 keyword.
@@ -1931,42 +1912,84 @@ void CreateLocalNodeLease(out lease *Node nodeLease)
 ```
 
 
----
-
----
-
----
-
----
-
-### Reference And Pointers
-In ModC, there are reference (`ref`) and pointer (`*`) types. They are both the same thing, a type 
-that stores the address of another variable.
-
-The only difference between pointer and reference is that pointer can be `null` (where `null` can 
-only be assigned to pointer types) but reference cannot.
-
-Reference acts almost like C++ reference, it can only reference one variable for its whole lifetime. 
-
-Unlike in C, pointer arithmetic is not allowed, unless you are in direct context. `array` should be
-used instead.
-
 ```modc
+struct Node
 {
-    int myVar = 5;
-    *int myVarPtr = &myVar;
-    ref int myVarRef = ref myVar;
+    lease *Node ParentNode;
     ...
 }
+
+[lease(outRootNodesA, outChildNodes), lease(outRootNodesB, outChildNodes)]
+void ProcessNode(   out defer Std.List<unique defer *Node> outRootNodesA, 
+                    out defer Std.List<unique defer *Node> outRootNodesB, 
+                    out defer Std.List<unique defer *Node> outChildNodes)
+{
+    
+    for(int i = 0; i < ...; ++i)
+    {
+        unique defer *Node rootNode = ...;
+        unique defer *Node childNode = ...;
+        
+        childNode.ParentNode = lease rootNode;      //lease(rootNode, childNode.ParentNode)
+        
+        if(...)
+            outRootNodesA.Push(rootNode);           //lease(outRootNodesA.Objects, childNode.ParentNode)
+        else
+            outRootNodesB.Push(rootNode);           //lease(outRootNodesB.Objects, childNode.ParentNode)
+        
+        outChildNodes.Push(childNode);              //lease(outRootNodesA, outChildNodes)
+                                                    //lease(outRootNodesB, outChildNodes)
+    }
+}
+
+
 ```
 
 
 
 
+### Preprocessor Directives
 
-### Lease Type
+Similar to C, `#<preprocessing statement>` is used for telling the compiler for any compiling 
+information the compiler should be aware of. 
+
+However unlike C, the majority of preprocessing macro statements are not available in ModC. You can
+achieve the same outcome with prepile functions instead.
+
+#### Header And Source
+ModC uses extensions of `.modh` and `.modc` respectively for header and source files.
+Header files are optional if source file is available. 
+
+To include other source files, simply do
+```c
+#include "path/to/file.modc"    //Including a modc file
+#include "path/to/file2.modh"   //Including a modh file
+#include <library.modc>         //Including a standard library
+```
+
+While the syntax is the same, it works differently from C where it does not just copy and paste the
+file content to the current file.
+
+Rather, it will parse the included file first before continuing parsing the rest of this file.
+
+Any statements before the `#include` will not affect the parsing of the included file. Only the 
+included files can affect the current file.
+
+`.modh` is optional and the user can include `.modc` directly.
+
+However, `.modh` files can be generated from `.modc` files or can be manually created as long as the 
+declarations in `.modh` match the ones in `.modc`. 
+
+`.modh` files are used when trying to use a compiled library where `.modc` files are not present.
 
 
+---
+
+---
+
+---
+
+---
 
 
 ## Scratch buffer
