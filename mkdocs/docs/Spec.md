@@ -1217,17 +1217,23 @@ when it got assigned again.
 
 ### Pointer Type
 
-In ModC, you can obtain a pointer in two ways, either taking an address from existing object or 
-getting it externally (Library, libc, runtime, etc...). There's no concept of heap memory in ModC.
+In ModC, there's no concept of heap memory in ModC. 
+
+You can obtain a pointer in three ways: 
+
+1. Taking an address from existing object
+2. Making a copy from existing pointer
+3. Getting it externally (Library, libc, runtime, etc...). 
 
 Pointer (`*`) works just like in C, but there are a few differences unless you are in direct context.
 
 1. Instead of `NULL`, ModC uses `null` which is a language keyword that can only be used for pointer
 types.
-2. Creating a pointer with the address of existing object requires the `lease` type modifier, which 
+2. Pointer type conversion requires explicit casting
+3. Creating a pointer with the address of existing object requires the `lease` type modifier, which 
 allows ModC to prevent various misuse of the pointer. We will talk about this later in this spec.
-3. Pointer arithmetic is not allowed. Use `array` or the standard library containers instead.
-4. Struct pointer member can be accessed with `.` operator.
+4. Pointer arithmetic is not allowed. Use `array` or the standard library containers instead.
+5. Struct pointer member can be accessed with `.` operator.
 
 ```modc
 struct Node 
@@ -1241,8 +1247,6 @@ struct Node
     nodePtr.ID = 5;         //Okay
     (*nodePtr).ID = 5;      //Okay but not needed
 }
-
-
 ```
 
 Unlike in C, ModC reads from left to right and pointer is part of the variable type. 
@@ -1365,6 +1369,7 @@ struct MyStruct
 }
 ```
 
+<!--
 #### Passing As Parameter
 The `unique` pointer type property however, can be dropped when it is passed as a parameter to a 
 function call. As long as the same unique pointer is only accessible in one parameter.
@@ -1406,11 +1411,14 @@ void MyStructOnlyFunction(MyStruct myStruct) { ... }
     //MyStructOnlyFunction(myStruct);
 }
 ```
+-->
 
 ??? info "Rationale"
     A `unique` type basically enforces a single ownership for a variable and makes tracking ownership
     and expire references and tenants possible. It is also good practice to have a single ownership. 
     Shared ownership is possible via the standard library.
+
+
 
 ### Function Attributes
 
@@ -1567,7 +1575,7 @@ We can specify what the `FreeNode()` function should be called with.
 `return_value` can be used for indicating the return value.
 
 The syntax might seem a bit long and verbose, but it can be shorten by inferring which will be 
-explained in a moment.
+explained in [Infer Defer]() section.
 
 ```modc
 [deferred] 
@@ -1589,7 +1597,7 @@ This is called defer binding because we are binding a defer function to a variab
 Now, if the user does this, the code won't compile.
 ```modc
 {
-    defer(FreeNode) *Node nodePtr = CreateNode();
+    *Node nodePtr = CreateNode();
     ...
     FreeNode(null);
 }       //Error: nodePtr is binded with defer(FreeNode) but no defer function is called
@@ -1598,18 +1606,10 @@ Now, if the user does this, the code won't compile.
 Notice we are erroring when the scope ends, not when calling `FreeNode(null)` since we are 
 promising to call `FreeNode(nodePtr)`, not prohibiting the call of `FreeNode(null)`
 
-You might also notice the `defer(FreeNode)` type modifer is there as well. When binding a defer 
-function to a variable, it get promoted to its type.
-
-The long defer type is specified in this format: `defer(<function to defer>) <type> ...`.
-
-Again, the syntax might seem a bit long and verbose. But it can be shorten by inferring which will be 
-explained in a moment.
-
 Similar to defer block, a `defer` call can be used for defer bindings.
 ```modc
 {
-    defer(FreeNode) *Node nodePtr = CreateNode();
+    *Node nodePtr = CreateNode();
     defer(nodePtr.FreeNode());
     ...
     //nodePtr.FreeNode();   //Equivalent
@@ -1617,10 +1617,10 @@ Similar to defer block, a `defer` call can be used for defer bindings.
 ```
 
 If the variable gets assigned to something else before its scope ends, the binded defer function 
-will be called additionally before each assignment,.
+will be called additionally before each assignment.
 ```modc
 {
-    defer(FreeNode) *Node nodePtr = CreateNode();
+    *Node nodePtr = CreateNode();
     defer(nodePtr.FreeNode());
     ...
     //nodePtr.FreeNode();   //Equivalent
@@ -1630,12 +1630,40 @@ will be called additionally before each assignment,.
 }
 ```
 
-#### Infer Defer
+#### Defer Type
 
-If the type only has one deferred function, the `defer` call argument can be omitted.
+Following previous example, when binding a defer function to a variable, 
+it can get promoted to its type.
+
 ```modc
 {
     defer(FreeNode) *Node nodePtr = CreateNode();
+    ...
+    //nodePtr.FreeNode();   //Equivalent
+}
+```
+
+The long defer type is specified in this format: `defer(<function to defer>) <type> ...`.
+
+The syntax might seem a bit long and verbose. But it can be shorten by inferring which will be 
+explained in [Infer Defer]() section.
+
+
+#### Infer Defer
+
+If the type only has one deferred function, you don't need to specify the defer function in function 
+attributes.
+```modc
+//Assuming `*Node` only has one deferred function which is always `FreeNode()`
+//defer(<what to pass to defer>) 
+[defer(return_value)]
+*Node CreateNode() { ... }
+```
+
+Similarly, if the type only has one deferred function, the `defer` call argument can be omitted.
+```modc
+{
+    *Node nodePtr = CreateNode();
     defer;
 }
 ```
@@ -1643,8 +1671,8 @@ If the type only has one deferred function, the `defer` call argument can be omi
 However it will fail if there's more than 1 binded defer functions to avoid ambiguity of auto defer.
 ```modc
 {
-    defer(FreeNode) *Node nodePtr = CreateNode();
-    defer(FreeNode) *Node nodePtr2 = CreateNode();
+    *Node nodePtr = CreateNode();
+    *Node nodePtr2 = CreateNode();
     //defer;                        //Error: Cannot defer automatically due to multiple binded defer functions.
 }
 ```
@@ -1655,119 +1683,36 @@ the binded defer function can be omitted.
 ```modc
 {
     defer *Node nodePtr = CreateNode();
-    defer;
 }
 ```
 
-Similarly, you don't need to specify the defer function in function attributes if the type only has 
-one deferred function.
-```modc
-//Assuming `*Node` only has one deferred function which is always `FreeNode()`
-//defer(<what to pass to defer>) 
-[defer(return_value)]
-*Node CreateNode() { ... }
-```
-
-#### Assignment
+#### Defer Type Infers Unique Type
 
 It is possible to assign a defer type variable to a parent variable, as long as they are the same 
-type.
+type. 
+
+A `defer` type modifier infers the `unique` type modifier. Therefore all the conditions from `unique` 
+applies here to `defer` as well.
 
 ```modc
 {
     defer *Node outerNodePtr = null;
-    defer(outerNodePtr);
     
     {
-        defer *Node nodePtr2 = CreateNode();
+        defer *Node nodePtr = CreateNode();
         ...
         //defer function is called on `outerNodePtr` before assignment.
-        outerNodePtr = nodePtr2;
+        outerNodePtr = nodePtr;
+                                    //`nodePtr` is set to `null` and expired
     }
     
     //defer function for `outerNodePtr` will be called again
 }
 ```
 
-#### Unique And Defer
+This means that a struct containing a `defer` typed variable needs to have the `unique` type modifer
+as well.
 
-While `defer` prevents any missing cleanup, which can cause memory leaks, it doesn't prevent use 
-after free.
-
-Going back to the previous example:
-```modc
-[deferred, expire(this)]
-void FreeNode(ref *Node this)
-{
-    free(this);
-    this = null;
-}
-
-[defer(return_value)]
-*Node CreateNode() { ... }
-
-{
-    defer *Node nodePtr = CreateNode();
-    defer;
-}
-```
-
-<!--
-Since `FreeNode()` can modify `this`, and we are setting it to `null`.
-
-This allows the [Mandatory Null Pointer Check]() to work and prevent accessing freed node. 
-Which forces an if guard.
-
-```modc
-{
-    defer *Node nodePtr = CreateNode();
-    ...
-    nodePtr.FreeNode();
-    ...
-    if(nodePtr != null)
-    {
-        Node node = *nodePtr;       //Okay, `nodePtr` is not `null`
-        ...
-    }
-}
-```
--->
-
-It won't stop the user from doing this:
-```modc
-{
-    defer *Node nodePtr = CreateNode();
-    *Node nodePtr2 = nodePtr;
-    ...
-    nodePtr.FreeNode();             //`nodePtr` is now null, but `nodePtr2` is not.
-    ...
-    Node node = *nodePtr2;          //Oh no, `nodePtr2` is still pointing to stale/freed address
-}
-```
-
-There are a few ways to solve this. One of them is to limit the user from making a copy of the 
-pointer. This can be done with the `unique` keyword. 
-
-```modc
-[deferred, expire(this)]
-void FreeNode(ref unique *Node this) { ... }
-
-[defer(return_value)]
-unique *Node CreateNode() { ... }
-```
-
-and the previous scenario would look like
-
-```modc
-{
-    unique defer *Node nodePtr = CreateNode();
-    //*Node nodePtr2 = nodePtr;             //Error: Assigning unique type to non unique type is not allowed
-    ...
-    nodePtr.FreeNode();
-    ...
-    //Node node = *nodePtr2;                //`nodePtr2` doesn't exist now
-}
-```
 
 <!-- TODO: Specify container that has defer member must have defer function that performs member defer  -->
 
@@ -1812,7 +1757,7 @@ variable
 
 #### Expire
 
-When a function is invalidating a pointer, it can also invalidate its leases as well. When setting a 
+When a function is invalidating a pointer, it will also invalidate its leases as well. When setting a 
 reference to a non lease pointer to `null`, the `expire` function attribute is required.
 
 ```modc
@@ -1919,16 +1864,17 @@ struct Node
     ...
 }
 
-[lease(outRootNodesA, outChildNodes), lease(outRootNodesB, outChildNodes)]
-void ProcessNode(   out defer Std.List<unique defer *Node> outRootNodesA, 
-                    out defer Std.List<unique defer *Node> outRootNodesB, 
-                    out defer Std.List<unique defer *Node> outChildNodes)
+[   lease(outRootNodesA, outChildNodes), 
+    lease(outRootNodesB, outChildNodes)]
+void ProcessNode(   out defer Std.List<defer *Node> outRootNodesA, 
+                    out defer Std.List<defer *Node> outRootNodesB, 
+                    out defer Std.List<defer *Node> outChildNodes)
 {
     
     for(int i = 0; i < ...; ++i)
     {
-        unique defer *Node rootNode = ...;
-        unique defer *Node childNode = ...;
+        defer *Node rootNode = ...;
+        defer *Node childNode = ...;
         
         childNode.ParentNode = lease rootNode;      //lease(rootNode, childNode.ParentNode)
         
