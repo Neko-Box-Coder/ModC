@@ -1,3 +1,5 @@
 docs/pygments-plugin-modc/__pycache__
 docs/pygments-plugin-modc/build/lib
 docs/pygments-plugin-modc/pygments_plugin_modc.egg-info
+src/ModC/build
+src/ModC/Build

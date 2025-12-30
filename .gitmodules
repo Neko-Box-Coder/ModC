@@ -1,0 +1,12 @@
+[submodule "External/static_assert.h"]
+	path = External/static_assert.h
+	url = https://github.com/Marco-DG/static_assert.h.git
+[submodule "External/arena-allocator"]
+	path = External/arena-allocator
+	url = https://github.com/ccgargantua/arena-allocator.git
+[submodule "External/MacroPowerToys"]
+	path = External/MacroPowerToys
+	url = https://github.com/Neko-Box-Coder/MacroPowerToys.git
+[submodule "External/STC"]
+	path = External/STC
+	url = https://github.com/stclib/STC.git
