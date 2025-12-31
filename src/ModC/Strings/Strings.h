@@ -14,6 +14,8 @@ Just read the code
 #include <string.h>
 #include <limits.h>
 #include <assert.h>
+#include <stdio.h>
+#include <stdarg.h>
 
 typedef struct
 {
@@ -38,43 +40,118 @@ typedef struct
 } ModC_ConstStringView;
 
 //`cstr` is already allocated from allocator
+static inline ModC_String ModC_String_FromCStr(ModC_Allocator allocator, char* cstr);
+static inline ModC_String ModC_String_FromView( ModC_Allocator allocator, 
+                                                ModC_StringView view);
+static inline ModC_String ModC_String_FromConstView(ModC_Allocator allocator, 
+                                                    const ModC_ConstStringView view);
+static inline ModC_String* ModC_String_Reserve(ModC_String* this, uint32_t reserveBytes);
+static inline ModC_String* ModC_String_Resize(ModC_String* this, uint32_t resizeBytes);
+static inline ModC_String* ModC_String_AppendConstView( ModC_String* this, 
+                                                        const ModC_ConstStringView strToAppend);
+static inline ModC_String* ModC_String_AppendView(  ModC_String* this, 
+                                                    const ModC_StringView strToAppend);
+static inline ModC_String* ModC_String_AppendString(ModC_String* this, const ModC_String strToAppend);
+static inline ModC_String* ModC_String_AppendFormat(ModC_String* this, const char* format, ...);
+static inline ModC_String ModC_String_Create(ModC_Allocator allocator, uint32_t cap);
+static inline void ModC_String_Free(ModC_String* this);
+static inline ModC_StringView ModC_String_View(const ModC_String this);
+static inline ModC_ConstStringView ModC_String_ConstView(const ModC_String this);
+
+
+static inline ModC_ConstStringView ModC_StringView_ConstView(const ModC_StringView this);
+static inline ModC_StringView ModC_StringView_FromCStr(char* cstr);
+static inline ModC_ConstStringView ModC_ConstStringView_FromConstCStr(const char* cstr);
+#define ModC_FromConstCStr(...) ModC_ConstStringView_FromConstCStr(__VA_ARGS__)
+static inline ModC_StringView ModC_ConstStringView_RemoveConst(ModC_ConstStringView this);
+
+
+
+
+//`length` excludes null-terminator
+static inline ModC_StringView ModC_String_Subview(  const ModC_String this, 
+                                                    const uint32_t index, 
+                                                    uint32_t length);
+//`length` excludes null-terminator
+static inline ModC_ConstStringView ModC_String_ConstSubview(const ModC_String this, 
+                                                            const uint32_t index, 
+                                                            uint32_t length);
+//`length` excludes null-terminator
+static inline ModC_StringView ModC_StringView_Subview(  const ModC_StringView this, 
+                                                        const uint32_t index, 
+                                                        uint32_t length);
+//`length` excludes null-terminator
+static inline ModC_ConstStringView ModC_StringView_ConstSubview(const ModC_StringView this, 
+                                                                const uint32_t index, 
+                                                                uint32_t length);
+//`length` excludes null-terminator
+static inline ModC_ConstStringView 
+ModC_ConstStringView_ConstSubview(  const ModC_ConstStringView this, 
+                                    const uint32_t index, 
+                                    uint32_t length);
+
+
+
+//`cstr` is already allocated from allocator
 static inline ModC_String ModC_String_FromCStr(ModC_Allocator allocator, char* cstr)
 {
     uint32_t len = strlen(cstr);
     return (ModC_String){ .Allocator = allocator, .Data = cstr, .Length = len, .Cap = len + 1 };
 }
 
-static inline void ModC_String_Reserve(ModC_String* this, uint32_t reserveBytes)
+static inline ModC_String ModC_String_FromView( ModC_Allocator allocator, 
+                                                const ModC_StringView view)
+{
+    ModC_String retStr = ModC_String_Create(allocator, view.Length + 1);
+    ModC_String_Resize(&retStr, view.Length);
+    if(!retStr.Data)
+    {
+        ModC_String_Free(&retStr);
+        return (ModC_String){0};
+    }
+    memcpy(retStr.Data, view.Data, view.Length);
+    retStr.Data[view.Length] = '\0';
+    return retStr;
+}
+
+static inline ModC_String ModC_String_FromConstView(ModC_Allocator allocator, 
+                                                    const ModC_ConstStringView view)
+{
+    return ModC_String_FromView(allocator, ModC_ConstStringView_RemoveConst(view));
+}
+
+static inline ModC_String* ModC_String_Reserve(ModC_String* this, uint32_t reserveBytes)
 {
     if(!this || this->Cap >= reserveBytes)
-        return;
+        return this;
     
     bool emptyString = this->Cap == 0;
     void* dataPtr = emptyString ? 
                     ModC_Allocator_Malloc(this->Allocator, reserveBytes) :
                     ModC_Allocator_Realloc(this->Allocator, this->Data, reserveBytes);
     if(!dataPtr)
-        return;
+        return this;
     this->Data = dataPtr;
     this->Cap = reserveBytes;
+    return this;
 }
 
 //`resizeBytes` excludes null-terminator
-static inline void ModC_String_Resize(ModC_String* this, uint32_t resizeBytes)
+static inline ModC_String* ModC_String_Resize(ModC_String* this, uint32_t resizeBytes)
 {
     if(!this)
-        return;
+        return this;
     if(this->Length > resizeBytes)
     {
         this->Data[resizeBytes] = '\0';
         this->Length = resizeBytes;
-        return;
+        return this;
     }
     
     if(this->Cap > resizeBytes - 1)
     {
         this->Length = resizeBytes;
-        return;
+        return this;
     }
     
     bool emptyString = this->Cap == 0;
@@ -96,31 +173,75 @@ static inline void ModC_String_Resize(ModC_String* this, uint32_t resizeBytes)
                     ModC_Allocator_Malloc(this->Allocator, newCap) :
                     ModC_Allocator_Realloc(this->Allocator, this->Data, newCap);
     if(!dataPtr)
-        return;
+        return this;
     this->Data = dataPtr;
     this->Length = resizeBytes;
     this->Cap = newCap;
     assert(newCap > resizeBytes);
+    return this;
 }
 
 //TODO: Add version which accepts an array?
-//TODO: Return this to allow chaining?
-static inline void ModC_String_Append(ModC_String* this, ModC_ConstStringView strToAppend)
+static inline ModC_String* ModC_String_AppendConstView( ModC_String* this, 
+                                                        const ModC_ConstStringView strToAppend)
 {
     if(!this || !strToAppend.Data || strToAppend.Length == 0)
-        return;
+        return this;
     if(!this->Data || this->Cap == 0)
     {
         ModC_String_Resize(this, strToAppend.Length);
+        if(!this->Data)
+            return this;
         memcpy(this->Data, strToAppend.Data, strToAppend.Length);
     }
     else
     {
         uint32_t oldLen = this->Length;
         ModC_String_Resize(this, this->Length + strToAppend.Length);
+        if(!this->Data || this->Length == oldLen)
+            return this;
         memcpy(this->Data + oldLen, strToAppend.Data, strToAppend.Length);
     }
     this->Data[this->Length] = '\0';
+    return this;
+}
+
+static inline ModC_String* ModC_String_AppendView(  ModC_String* this, 
+                                                    const ModC_StringView strToAppend)
+{
+    return ModC_String_AppendConstView(this, ModC_StringView_ConstView(strToAppend));
+}
+static inline ModC_String* ModC_String_AppendString(ModC_String* this, const ModC_String strToAppend)
+{
+    return ModC_String_AppendConstView(this, ModC_String_ConstView(strToAppend));
+}
+
+static inline ModC_String* ModC_String_AppendFormat(ModC_String* this, const char* format, ...)
+{
+    if(!this)
+        return this;
+    
+    va_list args1;
+    va_list args2;
+    va_start(args1, format);
+    va_copy(args2, args1);
+    
+    int writeLen = vsnprintf(NULL, 0, format, args1);
+    if(writeLen < 0)
+        goto exitPoint;
+    
+    uint32_t oldLen = this->Length;
+    ModC_String_Resize(this, this->Length + writeLen);
+    if(!this->Data || this->Length == oldLen)
+        goto exitPoint;
+    
+    writeLen = vsnprintf(this->Data + oldLen, writeLen + 1, format, args2);
+    
+    exitPoint:;
+    va_end(args1);
+    va_end(args2);
+    
+    return this;
 }
 
 //`cap` includes null-terminator
@@ -166,37 +287,16 @@ static inline void ModC_String_Free(ModC_String* this)
                 }; \
     }
 
-//`length` excludes null-terminator
-static inline ModC_StringView ModC_String_Subview(  const ModC_String this, 
-                                                    const uint32_t index, 
-                                                    uint32_t length);
 INTERN_MODC_DEFINE_STRING_VIEW_TO_VIEW(ModC_StringView, ModC_String_Subview, ModC_String)
 
-//`length` excludes null-terminator
-static inline ModC_ConstStringView ModC_String_ConstSubview(const ModC_String this, 
-                                                            const uint32_t index, 
-                                                            uint32_t length);
 INTERN_MODC_DEFINE_STRING_VIEW_TO_VIEW(ModC_ConstStringView, ModC_String_ConstSubview, ModC_String)
 
-//`length` excludes null-terminator
-static inline ModC_StringView ModC_StringView_Subview(  const ModC_StringView this, 
-                                                        const uint32_t index, 
-                                                        uint32_t length);
 INTERN_MODC_DEFINE_STRING_VIEW_TO_VIEW(ModC_StringView, ModC_StringView_Subview, ModC_StringView)
 
-//`length` excludes null-terminator
-static inline ModC_ConstStringView ModC_StringView_ConstSubview(const ModC_StringView this, 
-                                                                const uint32_t index, 
-                                                                uint32_t length);
 INTERN_MODC_DEFINE_STRING_VIEW_TO_VIEW( ModC_ConstStringView, 
                                         ModC_StringView_ConstSubview, 
                                         ModC_StringView)
 
-//`length` excludes null-terminator
-static inline ModC_ConstStringView 
-ModC_ConstStringView_ConstSubview(  const ModC_ConstStringView this, 
-                                    const uint32_t index, 
-                                    uint32_t length);
 INTERN_MODC_DEFINE_STRING_VIEW_TO_VIEW( ModC_ConstStringView, 
                                         ModC_ConstStringView_ConstSubview,
                                         ModC_ConstStringView)

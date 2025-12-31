@@ -9,6 +9,16 @@ All template definitions are defined here.
 #include "ModC/Strings/Strings.h"
 #include "ModC/Result.h"
 
+typedef struct
+{
+    bool IsString;
+    union
+    {
+        ModC_String String;
+        ModC_ConstStringView View;
+    } Value;
+} ModC_StringOrConstView;
+
 MODC_DEFINE_RESULT_STRUCT(ModC_ResultInt32, int32_t)
 
 typedef struct

@@ -2,7 +2,7 @@
 #define MODC_DEFER_H
 
 /* Docs
-Use in a function like this. Might or might not work with nested scope, idk
+Use in a function like this. Will not work with nested defer scope.
 ```c
 MODC_DEFER_SCOPE_START
 {
@@ -18,6 +18,8 @@ MODC_DEFER_SCOPE_START
 }
 MODC_DEFER_SCOPE_END
 ```
+
+`MODC_RUN_DEFER_NOW_AND` will go to `MODC_DEFER_SCOPE_END` if it doesn't contain a return statement.
 */
 
 
@@ -35,11 +37,11 @@ MODC_DEFER_SCOPE_END
         /* We store a bunch of IDs for jumping with switch, but with -1 as normal executions and */ \
         /* 0 for just normal exit. Doing `__COUNTER__` here to make sure it starts from 1 */ \
         (void)__COUNTER__; \
-        int modcDeferIndex = 0; \
+        int modcDeferIndex = 0; (void)modcDeferIndex; \
         /* We store `MODC_MAX_DEFER_COUNT + 1` where we executes the defers from back to front */ \
         /* and index 0 will be our "exit" point which it could a return */ \
-        int modcDefers[MODC_MAX_DEFER_COUNT + 1] = {-1}; \
-        uint8_t modcDefersCount = 1; \
+        int modcDefers[MODC_MAX_DEFER_COUNT + 1] = {-1}; (void)modcDefers; \
+        uint8_t modcDefersCount = 1; (void)modcDefersCount; \
         modcDeferStart: \
         switch(modcDefers[modcDeferIndex]) \
         { \
@@ -53,7 +55,7 @@ MODC_DEFER_SCOPE_END
                 if(false) \
                 { \
                     /* Defer block */ \
-                    case counter: \
+                    case counter:; \
                     statements; \
                     /* Go to previous defer, we run defers in reverse order */ \
                     --modcDeferIndex; \
@@ -77,8 +79,9 @@ MODC_DEFER_SCOPE_END
                 if(false) \
                 { \
                     /* Return statement block */ \
-                    case counter: \
+                    case counter:; \
                     expr; \
+                    goto modcDeferScopeEnd; \
                 } \
             } \
             while(false)
@@ -88,6 +91,8 @@ MODC_DEFER_SCOPE_END
 #define INTERNAL_MODC_DEFER_SCOPE_END(counter) \
             goto modcDeferStart; \
         } /* switch(modcDefers[modcDeferIndex]) */ \
+        goto modcDeferScopeEnd; \
+        modcDeferScopeEnd:; \
     }
 
 #define MODC_DEFER_SCOPE_END INTERNAL_MODC_DEFER_SCOPE_END(__COUNTER__)

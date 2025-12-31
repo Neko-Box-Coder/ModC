@@ -50,33 +50,62 @@ Macro:
 `void MODC_ERROR_APPEND_TRACE(ModC_Error* ModC_ErrorPtr);`
 
 Macro:
-You can use `MODC_FAILED_RESULT` to get the result that contains the error in `failedAction`
+    `MODC_FAILED_RESULT` needs to be defined with `MDOC_DECLARE_FAILED_RESULT(ModC_ResultName)`.
+    You can use `MODC_FAILED_RESULT` to get the result that contains the error in `failedAction`.
 `valueType MODC_RESULT_UNWRAP(ModC_ResultName, expr, failedAction);`
 
+
 Macro:
-`allocated` is `true` if `msg` can be freed with `MODC_RESULT_FREE`
+    `allocated` is `true` if `msg` can be freed with `MODC_RESULT_FREE`
 ```c
 ModC_ResultName MODC_ERROR_MSG_EC(  ModC_ResultName, 
-                                    const char* msg, 
-                                    bool allocated, 
+                                    ModC_StringOrConstView msg,
+                                    const ModC_Allocator allocator,
                                     int32_t errorCode);
 ```
 
 Macro:
-`ModC_ResultName MODC_ERROR_MSG(ModC_ResultName, const char* msg, bool allocated);`
+```c
+ModC_ResultName MODC_ERROR_MSG( ModC_ResultName, 
+                                ModC_StringOrConstView msg, 
+                                const ModC_Allocator allocator);
+```
 
 Macro:
 `ModC_ResultName MODC_RESULT_VALUE(ModC_ResultName, valueType val);`
 
 Macro:
 `void MODC_RESULT_FREE_RESOURCE(ModC_ResultName, ModC_ResultName* result);`
+
+Macros:
+    `MODC_FAILED_RESULT` needs to be defined with `MDOC_DECLARE_FAILED_RESULT(ModC_ResultName)`.
+    You can use `MODC_FAILED_RESULT` to get the result that contains the error in `failedAction`.
+```c
+MODC_ASSERT_TRUE(expr, failedAction, ModC_ResultName, allocator)
+MODC_ASSERT_FALSE(expr, failedAction, ModC_ResultName, allocator)
+MODC_ASSERT_EQ(expr, val, failedAction, ModC_ResultName, allocator)
+MODC_ASSERT_NOT_EQ(expr, val, failedAction, ModC_ResultName, allocator)
+MODC_ASSERT_GT(expr, val, failedAction, ModC_ResultName, allocator)
+MODC_ASSERT_GT_EQ(expr, val, failedAction, ModC_ResultName, allocator)
+MODC_ASSERT_LT(expr, val, failedAction, ModC_ResultName, allocator)
+MODC_ASSERT_LT_EQ(expr, val, failedAction, ModC_ResultName, allocator)
+MODC_ASSERT_TRUE_EC(expr, errorCode, failedAction, ModC_ResultName, allocator)
+MODC_ASSERT_FALSE_EC(expr, errorCode, failedAction, ModC_ResultName, allocator)
+MODC_ASSERT_EQ_EC(expr, val, errorCode, failedAction, ModC_ResultName, allocator)
+MODC_ASSERT_NOT_EQ_EC(expr, val, errorCode, failedAction, ModC_ResultName, allocator)
+MODC_ASSERT_GT_EC(expr, val, errorCode, failedAction, ModC_ResultName, allocator)
+MODC_ASSERT_GT_EQ_EC(expr, val, errorCode, failedAction, ModC_ResultName, allocator)
+MODC_ASSERT_LT_EC(expr, val, errorCode, failedAction, ModC_ResultName, allocator)
+MODC_ASSERT_LT_EQ_EC(expr, val, errorCode, failedAction, ModC_ResultName, allocator)
+```
+
 */
 
 
 #include "ModC/Strings/Strings.h"
-#include "ModC/Defer.h"
 #include "ModC/Allocator.h"
 #include "ModC/ChainUtil.h"
+#include "ModC/Containers.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
@@ -151,8 +180,7 @@ static inline void ModC_VoidGlobalError(void) { (void)ModC_GlobalError; }
     } ModC_ResultName; \
     \
     static inline ModC_ResultName \
-    MPT_CONCAT(ModC_ResultName, _InternCreateErrorMsgEc)(   const char* msgPtr, \
-                                                            bool allocated, \
+    MPT_CONCAT(ModC_ResultName, _InternCreateErrorMsgEc)(   ModC_StringOrConstView msg, \
                                                             const char* file, \
                                                             const char* func, \
                                                             int32_t line, \
@@ -168,13 +196,12 @@ static inline void ModC_VoidGlobalError(void) { (void)ModC_GlobalError; }
             \
             /* ModC_Error.ErrorMsg */ \
             { \
-                if(allocated) \
-                    modcErrorPtr->ErrorMsg = ModC_String_FromCStr(allocator, (char*)msgPtr); \
+                if(msg.IsString) \
+                    modcErrorPtr->ErrorMsg = msg.Value.String; \
                 else \
                 { \
                     modcErrorPtr->ErrorMsg = ModC_String_Create(allocator, 256); \
-                    ModC_String_Append( &modcErrorPtr->ErrorMsg, \
-                                        ModC_ConstStringView_FromConstCStr(msgPtr)); \
+                    ModC_String_AppendConstView(&modcErrorPtr->ErrorMsg, msg.Value.View); \
                 } \
             } \
             \
@@ -219,74 +246,40 @@ static inline void ModC_VoidGlobalError(void) { (void)ModC_GlobalError; }
         if(!result.HasError) \
             return (ModC_String){0}; \
         \
-        ModC_String outputString; \
-        ModC_String tempString; \
-        MODC_DEFER_SCOPE_START \
+        ModC_Error* errorPtr = result.ValueOrError.Error; \
+        ModC_String outputString = ModC_String_Create(allocator, 512); \
+        \
+        /* TODO: snprintf the whole thing? */ \
+        MODC_CHAIN( ModC_String_AppendConstView, (&outputString, ModC_FromConstCStr("Error:\n  ")), \
+                    ModC_String_AppendString, (errorPtr->ErrorMsg)); \
+        if(errorPtr->ErrorCode != 0) \
         { \
-            ModC_Error* errorPtr = result.ValueOrError.Error; \
-            outputString = ModC_String_Create(allocator, 512); \
-            \
-            /* TODO: snprintf the whole thing? */ \
-            ModC_String_Append(&outputString, ModC_ConstStringView_FromConstCStr("Error:\n  ")); \
-            ModC_String_Append(&outputString, ModC_String_ConstView(errorPtr->ErrorMsg)); \
-            \
-            tempString = ModC_String_Create(allocator, 256); \
-            MODC_DEFER(ModC_String_Free(&tempString)); \
-            \
-            if(errorPtr->ErrorCode != 0) \
-            { \
-                ModC_String_Append( &outputString,  \
-                                    ModC_ConstStringView_FromConstCStr("\nError Code: ")); \
-                { \
-                    int writeLen = snprintf(NULL, 0, "%d", errorPtr->ErrorCode); \
-                    if(writeLen >= 0) \
-                    { \
-                        ModC_String_Resize(&tempString, writeLen); \
-                        snprintf(tempString.Data, writeLen + 1, "%d", errorPtr->ErrorCode); \
-                        ModC_String_Append(&outputString, ModC_String_ConstView(tempString)); \
-                        ModC_String_Resize(&tempString, 0); \
-                    } \
-                } \
-            } \
-            \
-            ModC_String_Append( &outputString,  \
-                                ModC_ConstStringView_FromConstCStr("\n\nStack trace:")); \
-            \
-            for(int i = 0; i < errorPtr->TracesSize; ++i) \
-            { \
-                /* TODO: snprintf? */ \
-                ModC_String_Append( &outputString,  \
-                                    ModC_ConstStringView_FromConstCStr("\n  at ")); \
-                /* Trace */ \
-                { \
-                    ModC_String_Append( &outputString,  \
-                                        ModC_StringView_ConstView(errorPtr->Traces[i].File)); \
-                    ModC_String_Append(&outputString, ModC_ConstStringView_FromConstCStr(":")); \
-                    { \
-                        int writeLen = snprintf(NULL, 0, "%d", errorPtr->Traces[i].Line); \
-                        if(writeLen >= 0) \
-                        { \
-                            ModC_String_Resize(&tempString, writeLen); \
-                            snprintf(tempString.Data, writeLen + 1, "%d", errorPtr->Traces[i].Line); \
-                            ModC_String_Append(&outputString, ModC_String_ConstView(tempString)); \
-                            ModC_String_Resize(&tempString, 0); \
-                        } \
-                    } \
-                    ModC_String_Append(&outputString, ModC_ConstStringView_FromConstCStr(" in ")); \
-                    ModC_String_Append( &outputString,  \
-                                        ModC_StringView_ConstView(errorPtr->Traces[i].Function)); \
-                    ModC_String_Append(&outputString, ModC_ConstStringView_FromConstCStr("()")); \
-                } \
-            } \
+            ModC_String_AppendConstView(&outputString, ModC_FromConstCStr("\nError Code: ")); \
+            ModC_String_AppendFormat(&outputString, "%d", errorPtr->ErrorCode); \
         } \
-        MODC_DEFER_SCOPE_END \
+        \
+        ModC_String_AppendConstView(&outputString, ModC_FromConstCStr("\n\nStack trace:")); \
+        for(int i = 0; i < errorPtr->TracesSize; ++i) \
+        { \
+            /* Trace */ \
+            MODC_CHAIN \
+            ( \
+                ModC_String_AppendConstView, (&outputString, ModC_FromConstCStr("\n  at ")), \
+                ModC_String_AppendView, (errorPtr->Traces[i].File), \
+                ModC_String_AppendConstView, (ModC_FromConstCStr(":")), \
+                ModC_String_AppendFormat, ("%d", errorPtr->Traces[i].Line), \
+                ModC_String_AppendConstView, (ModC_FromConstCStr(" in ")),  \
+                ModC_String_AppendView, (errorPtr->Traces[i].Function), \
+                ModC_String_AppendConstView, (ModC_FromConstCStr("()")) \
+            ); \
+        } \
         return outputString; \
     }
     
 #define MODC_ERROR_APPEND_TRACE(ModC_ErrorPtr) \
     do \
     { \
-        if(ModC_ErrorPtr && ModC_ErrorPtr->TracesSize < MODC_MAX_TRACES) \
+        if((ModC_ErrorPtr) && ModC_ErrorPtr->TracesSize < MODC_MAX_TRACES) \
         { \
             ModC_Trace_Create(  __FILE__, \
                                 __func__, \
@@ -297,19 +290,21 @@ static inline void ModC_VoidGlobalError(void) { (void)ModC_GlobalError; }
 
 //Failed reuslt name
 #define MODC_FAILED_RESULT tempResult
+#define MDOC_DECLARE_FAILED_RESULT(ModC_ResultName) \
+    ModC_ResultName MODC_FAILED_RESULT; (void)MODC_FAILED_RESULT
 
 #define INTERN_MODC_RESULT_UNWRAP(ModC_ResultName, expr, failedAction, counter) \
     MPT_CONCAT(ModC_ResultName, _ValueOrDefault)(expr); \
     if(ModC_GlobalError) \
     { \
-        ModC_ResultName MODC_FAILED_RESULT =    (ModC_ResultName) \
-                                                { \
-                                                    .HasError = true, \
-                                                    .ValueOrError.Error = ModC_GlobalError \
-                                                }; \
+        MODC_FAILED_RESULT =    (ModC_ResultName) \
+                                { \
+                                    .HasError = true, \
+                                    .ValueOrError.Error = ModC_GlobalError \
+                                }; \
         ModC_GlobalError = NULL; \
         MODC_ERROR_APPEND_TRACE(MODC_FAILED_RESULT.ValueOrError.Error); \
-        failedAction; \
+        MPT_REMOVE_PARENTHESIS(failedAction); \
     }
 
 
@@ -317,17 +312,16 @@ static inline void ModC_VoidGlobalError(void) { (void)ModC_GlobalError; }
     INTERN_MODC_RESULT_UNWRAP(ModC_ResultName, expr, failedAction, __COUNTER__)
 
 
-#define MODC_ERROR_MSG_EC(ModC_ResultName, msg, allocated, allocator, errorCode) \
-    MPT_CONCAT(ModC_ResultName, _InternCreateErrorMsgEc)(   msg, \
-                                                            allocated, \
+#define MODC_ERROR_MSG_EC(ModC_ResultName, msg, allocator, errorCode) \
+    MPT_CONCAT(ModC_ResultName, _InternCreateErrorMsgEc)(   (msg), \
                                                             __FILE__, \
                                                             __func__, \
                                                             __LINE__, \
-                                                            errorCode, \
-                                                            allocator)
+                                                            (errorCode), \
+                                                            (allocator))
 
-#define MODC_ERROR_MSG(ModC_ResultName, msg, allocated, allocator) \
-    MODC_ERROR_MSG_EC(ModC_ResultName, msg, allocated, allocator, 0)
+#define MODC_ERROR_MSG(ModC_ResultName, msg, allocator) \
+    MODC_ERROR_MSG_EC(ModC_ResultName, msg, allocator, 0)
 
 #define MODC_RESULT_VALUE(ModC_ResultName, val) \
     ((ModC_ResultName) \
@@ -338,6 +332,81 @@ static inline void ModC_VoidGlobalError(void) { (void)ModC_GlobalError; }
 
 #define MODC_RESULT_FREE_RESOURCE(ModC_ResultName, resultPtr) \
     MPT_CONCAT(ModC_ResultName, _Free)(resultPtr)
+
+
+#define INTERNAL_MODC_ASSERT_EC(left, op, right, errorCode, failedAction, ModC_ResultName, allocator) \
+    do \
+    { \
+        if(!((left) op (right))) \
+        { \
+            MODC_FAILED_RESULT = MODC_ERROR_MSG_EC \
+                                ( \
+                                    ModC_ResultName,  \
+                                    ((ModC_StringOrConstView) \
+                                    { \
+                                        .IsString = false, \
+                                        .Value.View = ModC_FromConstCStr(   "Expression \"" \
+                                                                            #left " " \
+                                                                            #op " " \
+                                                                            #right "\" has failed.") \
+                                    }),  \
+                                    allocator, \
+                                    errorCode \
+                                ); \
+            MPT_REMOVE_PARENTHESIS(failedAction); \
+        } \
+    } \
+    while(false)
+
+#define MODC_ASSERT_TRUE(expr, failedAction, ModC_ResultName, allocator) \
+    INTERNAL_MODC_ASSERT_EC((expr), ==, true, 0, failedAction, ModC_ResultName, (allocator))
+
+#define MODC_ASSERT_FALSE(expr, failedAction, ModC_ResultName, allocator) \
+    INTERNAL_MODC_ASSERT_EC((expr), ==, false, 0, failedAction, ModC_ResultName, (allocator))
+
+#define MODC_ASSERT_EQ(expr, val, failedAction, ModC_ResultName, allocator) \
+    INTERNAL_MODC_ASSERT_EC((expr), ==, (val), 0, failedAction, ModC_ResultName, (allocator))
+
+#define MODC_ASSERT_NOT_EQ(expr, val, failedAction, ModC_ResultName, allocator) \
+    INTERNAL_MODC_ASSERT_EC((expr), !=, (val), 0, failedAction, ModC_ResultName, (allocator))
+
+#define MODC_ASSERT_GT(expr, val, failedAction, ModC_ResultName, allocator) \
+    INTERNAL_MODC_ASSERT_EC((expr), >, (val), 0, failedAction, ModC_ResultName, (allocator))
+
+#define MODC_ASSERT_GT_EQ(expr, val, failedAction, ModC_ResultName, allocator) \
+    INTERNAL_MODC_ASSERT_EC((expr), >=, (val), 0, failedAction, ModC_ResultName, (allocator))
+
+#define MODC_ASSERT_LT(expr, val, failedAction, ModC_ResultName, allocator) \
+    INTERNAL_MODC_ASSERT_EC((expr), <, (val), 0, failedAction, ModC_ResultName, (allocator))
+
+#define MODC_ASSERT_LT_EQ(expr, val, failedAction, ModC_ResultName, allocator) \
+    INTERNAL_MODC_ASSERT_EC((expr), <=, (val), 0, failedAction, ModC_ResultName, (allocator))
+
+
+
+#define MODC_ASSERT_TRUE_EC(expr, errorCode, failedAction, ModC_ResultName, allocator) \
+    INTERNAL_MODC_ASSERT_EC((expr), ==, true, (errorCode), failedAction, ModC_ResultName, (allocator))
+
+#define MODC_ASSERT_FALSE_EC(expr, errorCode, failedAction, ModC_ResultName, allocator) \
+    INTERNAL_MODC_ASSERT_EC((expr), ==, false, (errorCode), failedAction, ModC_ResultName, (allocator))
+
+#define MODC_ASSERT_EQ_EC(expr, val, errorCode, failedAction, ModC_ResultName, allocator) \
+    INTERNAL_MODC_ASSERT_EC((expr), ==, (val), (errorCode), failedAction, ModC_ResultName, (allocator))
+
+#define MODC_ASSERT_NOT_EQ_EC(expr, val, errorCode, failedAction, ModC_ResultName, allocator) \
+    INTERNAL_MODC_ASSERT_EC((expr), !=, (val), (errorCode), failedAction, ModC_ResultName, (allocator))
+
+#define MODC_ASSERT_GT_EC(expr, val, errorCode, failedAction, ModC_ResultName, allocator) \
+    INTERNAL_MODC_ASSERT_EC((expr), >, (val), (errorCode), failedAction, ModC_ResultName, (allocator))
+
+#define MODC_ASSERT_GT_EQ_EC(expr, val, errorCode, failedAction, ModC_ResultName, allocator) \
+    INTERNAL_MODC_ASSERT_EC((expr), >=, (val), (errorCode), failedAction, ModC_ResultName, (allocator))
+
+#define MODC_ASSERT_LT_EC(expr, val, errorCode, failedAction, ModC_ResultName, allocator) \
+    INTERNAL_MODC_ASSERT_EC((expr), <, (val), (errorCode), failedAction, ModC_ResultName, (allocator))
+
+#define MODC_ASSERT_LT_EQ_EC(expr, val, errorCode, failedAction, ModC_ResultName, allocator) \
+    INTERNAL_MODC_ASSERT_EC((expr), <=, (val), (errorCode), failedAction, ModC_ResultName, (allocator))
 
 
 

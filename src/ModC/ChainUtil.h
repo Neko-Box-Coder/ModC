@@ -28,6 +28,15 @@ Equivalent to
 #define INTERN_MODC_CHAIN_8(a, aArgs, b, bArgs, c, cArgs, d, dArgs) \
     INTERN_MODC_WRAP_EXPR( INTERN_MODC_CHAIN_6(a, aArgs, b, bArgs, c, cArgs), d, dArgs )
 
+#define INTERN_MODC_CHAIN_10(a, aArgs, b, bArgs, c, cArgs, d, dArgs, e, eArgs) \
+    INTERN_MODC_WRAP_EXPR( INTERN_MODC_CHAIN_8(a, aArgs, b, bArgs, c, cArgs, d, dArgs), e, eArgs )
+
+#define INTERN_MODC_CHAIN_12(a, aArgs, b, bArgs, c, cArgs, d, dArgs, e, eArgs, f, fArgs) \
+    INTERN_MODC_WRAP_EXPR( INTERN_MODC_CHAIN_10(a, aArgs, b, bArgs, c, cArgs, d, dArgs, e, eArgs), f, fArgs )
+
+#define INTERN_MODC_CHAIN_14(a, aArgs, b, bArgs, c, cArgs, d, dArgs, e, eArgs, f, fArgs, g, gArgs) \
+    INTERN_MODC_WRAP_EXPR( INTERN_MODC_CHAIN_12(a, aArgs, b, bArgs, c, cArgs, d, dArgs, e, eArgs, f, fArgs), g, gArgs )
+
 
 #define MODC_CHAIN( ... ) MPT_OVERLOAD_MACRO(INTERN_MODC_CHAIN, __VA_ARGS__)
 

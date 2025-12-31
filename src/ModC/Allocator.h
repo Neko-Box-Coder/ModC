@@ -87,17 +87,14 @@ static inline void ModC_Allocator_Destroy(ModC_Allocator* this)
     *this = (ModC_Allocator){0};
 }
 
-
-
-
-void* ModC_ArenaMalloc(void* allocator, uint64_t size) 
+static inline void* ModC_ArenaMalloc(void* allocator, uint64_t size) 
 {
     if(!allocator)
         return NULL;
     return arena_alloc(allocator, size); 
 }
 
-void ModC_ArenaDestroy(void* allocator) 
+static inline void ModC_ArenaDestroy(void* allocator) 
 {
     if(!allocator)
         return;
@@ -113,19 +110,37 @@ static inline ModC_Allocator ModC_CreateOwnedArenaAllocator(uint64_t allocateSiz
                 .Malloc = &ModC_ArenaMalloc,
                 .Realloc = NULL,
                 .Free = NULL,
+                .Destroy = &ModC_ArenaDestroy,
+            };
+}
+
+static inline ModC_Allocator ModC_CreateSharedArenaAllocator(Arena* arena)
+{
+    return  (ModC_Allocator)
+            {
+                .Type = ModC_AllocatorTypeSharedArena,
+                .Allocator = arena,
+                .Malloc = &ModC_ArenaMalloc,
+                .Realloc = NULL,
+                .Free = NULL,
                 .Destroy = NULL,
             };
 }
 
-//Heap allocator?
 
-void* ModC_HeapMalloc(void* allocator, uint64_t size) { (void)allocator; return malloc(size); }
-void* ModC_HeapRealloc(void* allocator, void* data, uint64_t size) 
+static inline void* ModC_HeapMalloc(void* allocator, uint64_t size) 
+{ 
+    (void)allocator; 
+    return malloc(size); 
+}
+
+static inline void* ModC_HeapRealloc(void* allocator, void* data, uint64_t size) 
 {
     (void)allocator;
     return realloc(data, size); 
 }
-void ModC_HeapFree(void* allocator, void* data) { (void)allocator; free(data); }
+
+static inline void ModC_HeapFree(void* allocator, void* data) { (void)allocator; free(data); }
 
 static inline ModC_Allocator ModC_CreateHeapAllocator(void)
 {
