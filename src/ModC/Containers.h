@@ -1,8 +1,12 @@
 #ifndef MODC_CONTAINERS_H
 #define MODC_CONTAINERS_H
 
-#include "ModC/Strings/Strings.h"
+/* Docs
+Header containing different container types.
+All template definitions are defined here.
+*/
 
+#include "ModC/Strings/Strings.h"
 #include "ModC/Result.h"
 
 MODC_DEFINE_RESULT_STRUCT(ModC_ResultInt32, int32_t)

@@ -1,12 +1,12 @@
+#define ARENA_IMPLEMENTATION
+
 
 #include "ModC/Allocator.h"
 #include "ModC/Defer.h"
 #include "ModC/Containers.h"
 
-
 //Dependencies
 #include "static_assert.h/assert.h"
-#define ARENA_IMPLEMENTATION
 #include "arena-allocator/arena.h"
 
 //System includes
@@ -103,14 +103,27 @@ int main(int argc, char* argv[])
 {
     (void)argc;
     (void)argv;
-    #if 0
+    //TODO: free result
+    #if 1
+    {
         ModC_ResultVoid result = Main(argc, argv);
         if(result.HasError)
+        {
+            MODC_ERROR_APPEND_TRACE(result.ValueOrError.Error);
             printf("%s\n", ModC_ResultVoid_ToString(result, ModC_CreateHeapAllocator()).Data);
+        }
+        MODC_RESULT_FREE_RESOURCE(ModC_ResultVoid, &result);
+    }
     #else
+    {
         ModC_ResultInt32 result = TestResult2();
         if(result.HasError)
+        {
+            MODC_ERROR_APPEND_TRACE(result.ValueOrError.Error);
             printf("%s\n", ModC_ResultInt32_ToString(result, ModC_CreateHeapAllocator()).Data);
+        }
+        MODC_RESULT_FREE_RESOURCE(ModC_ResultInt32, &result);
+    }
     #endif
     
     

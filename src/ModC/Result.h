@@ -69,7 +69,7 @@ Macro:
 `ModC_ResultName MODC_RESULT_VALUE(ModC_ResultName, valueType val);`
 
 Macro:
-`void MODC_RESULT_FREE_RESOURCE(ModC_ResultName* result);`
+`void MODC_RESULT_FREE_RESOURCE(ModC_ResultName, ModC_ResultName* result);`
 */
 
 
@@ -113,9 +113,9 @@ static inline void ModC_Trace_Create(   const char* file,
         return;
     
     ModC_ConstStringView constFileView = 
-        MODC_CHAIN( ModC_ConstStringView_CreateFromConstCStr, (file),
+        MODC_CHAIN( ModC_ConstStringView_FromConstCStr, (file),
                     ModC_GetFileName, ());
-    ModC_ConstStringView constFuncView = ModC_ConstStringView_CreateFromConstCStr(function);
+    ModC_ConstStringView constFuncView = ModC_ConstStringView_FromConstCStr(function);
     *outTrace = (ModC_Trace)
                 {
                     .File = ModC_ConstStringView_RemoveConst(constFileView),
@@ -151,7 +151,7 @@ static inline void ModC_VoidGlobalError(void) { (void)ModC_GlobalError; }
     } ModC_ResultName; \
     \
     static inline ModC_ResultName \
-    MPT_CONCAT(ModC_ResultName, _InternCreateErrorMsgEc)(   const char* msg, \
+    MPT_CONCAT(ModC_ResultName, _InternCreateErrorMsgEc)(   const char* msgPtr, \
                                                             bool allocated, \
                                                             const char* file, \
                                                             const char* func, \
@@ -168,23 +168,13 @@ static inline void ModC_VoidGlobalError(void) { (void)ModC_GlobalError; }
             \
             /* ModC_Error.ErrorMsg */ \
             { \
-                modcErrorPtr->ErrorMsg =  (ModC_String){0}; \
-                const char* msgPtr = (msg); \
-                uint32_t msgLen = strlen(msgPtr); \
                 if(allocated) \
-                { \
-                    modcErrorPtr->ErrorMsg = \
-                        ModC_String_Create(allocator, (char*)msgPtr, msgLen, msgLen + 1); \
-                } \
+                    modcErrorPtr->ErrorMsg = ModC_String_FromCStr(allocator, (char*)msgPtr); \
                 else \
                 { \
-                    void* allocatedPtr = ModC_Allocator_Malloc(allocator, msgLen + 1); \
-                    if(allocatedPtr) \
-                    { \
-                        modcErrorPtr->ErrorMsg = \
-                            ModC_String_Create(allocator, allocatedPtr, msgLen, msgLen + 1); \
-                        memcpy(modcErrorPtr->ErrorMsg.Data, msgPtr, msgLen + 1); \
-                    } \
+                    modcErrorPtr->ErrorMsg = ModC_String_Create(allocator, 256); \
+                    ModC_String_Append( &modcErrorPtr->ErrorMsg, \
+                                        ModC_ConstStringView_FromConstCStr(msgPtr)); \
                 } \
             } \
             \
@@ -218,8 +208,7 @@ static inline void ModC_VoidGlobalError(void) { (void)ModC_GlobalError; }
             *resultPtr = (ModC_ResultName){0}; \
             return; \
         } \
-        ModC_Allocator_Free(resultPtr->ValueOrError.Error->ErrorMsg.Allocator, \
-                            resultPtr->ValueOrError.Error->ErrorMsg.Data); \
+        ModC_String_Free(&resultPtr->ValueOrError.Error->ErrorMsg); \
         *resultPtr = (ModC_ResultName){0}; \
         return; \
     } \
@@ -235,70 +224,58 @@ static inline void ModC_VoidGlobalError(void) { (void)ModC_GlobalError; }
         MODC_DEFER_SCOPE_START \
         { \
             ModC_Error* errorPtr = result.ValueOrError.Error; \
-            outputString = ModC_String_Create(allocator, NULL, 0, 0); \
+            outputString = ModC_String_Create(allocator, 512); \
             \
             /* TODO: snprintf the whole thing? */ \
-            ModC_String_Append(&outputString, ModC_ConstStringView_CreateFromConstCStr("Error:\n  ")); \
-            ModC_String_Append( &outputString,  \
-                                ModC_String_ConstSubview(errorPtr->ErrorMsg, 0, MODC_FULL_STRING)); \
+            ModC_String_Append(&outputString, ModC_ConstStringView_FromConstCStr("Error:\n  ")); \
+            ModC_String_Append(&outputString, ModC_String_ConstView(errorPtr->ErrorMsg)); \
             \
-            tempString = ModC_String_Create(allocator, NULL, 0, 0); \
+            tempString = ModC_String_Create(allocator, 256); \
             MODC_DEFER(ModC_String_Free(&tempString)); \
             \
             if(errorPtr->ErrorCode != 0) \
             { \
                 ModC_String_Append( &outputString,  \
-                                    ModC_ConstStringView_CreateFromConstCStr("\nError Code: ")); \
+                                    ModC_ConstStringView_FromConstCStr("\nError Code: ")); \
                 { \
                     int writeLen = snprintf(NULL, 0, "%d", errorPtr->ErrorCode); \
                     if(writeLen >= 0) \
                     { \
                         ModC_String_Resize(&tempString, writeLen); \
                         snprintf(tempString.Data, writeLen + 1, "%d", errorPtr->ErrorCode); \
-                        ModC_String_Append( &outputString,  \
-                                            ModC_String_ConstSubview(tempString, 0, MODC_FULL_STRING)); \
+                        ModC_String_Append(&outputString, ModC_String_ConstView(tempString)); \
                         ModC_String_Resize(&tempString, 0); \
                     } \
                 } \
             } \
             \
             ModC_String_Append( &outputString,  \
-                                ModC_ConstStringView_CreateFromConstCStr("\n\nStack trace:")); \
+                                ModC_ConstStringView_FromConstCStr("\n\nStack trace:")); \
             \
             for(int i = 0; i < errorPtr->TracesSize; ++i) \
             { \
                 /* TODO: snprintf? */ \
                 ModC_String_Append( &outputString,  \
-                                    ModC_ConstStringView_CreateFromConstCStr("\n  at ")); \
+                                    ModC_ConstStringView_FromConstCStr("\n  at ")); \
                 /* Trace */ \
                 { \
                     ModC_String_Append( &outputString,  \
-                                        ModC_StringView_ConstSubview(   errorPtr->Traces[i].File,  \
-                                                                        0,  \
-                                                                        MODC_FULL_STRING)); \
-                    ModC_String_Append( &outputString,  \
-                                        ModC_ConstStringView_CreateFromConstCStr(":")); \
+                                        ModC_StringView_ConstView(errorPtr->Traces[i].File)); \
+                    ModC_String_Append(&outputString, ModC_ConstStringView_FromConstCStr(":")); \
                     { \
                         int writeLen = snprintf(NULL, 0, "%d", errorPtr->Traces[i].Line); \
                         if(writeLen >= 0) \
                         { \
                             ModC_String_Resize(&tempString, writeLen); \
                             snprintf(tempString.Data, writeLen + 1, "%d", errorPtr->Traces[i].Line); \
-                            ModC_String_Append( &outputString,  \
-                                                ModC_String_ConstSubview(   tempString,  \
-                                                                            0,  \
-                                                                            MODC_FULL_STRING)); \
+                            ModC_String_Append(&outputString, ModC_String_ConstView(tempString)); \
                             ModC_String_Resize(&tempString, 0); \
                         } \
                     } \
+                    ModC_String_Append(&outputString, ModC_ConstStringView_FromConstCStr(" in ")); \
                     ModC_String_Append( &outputString,  \
-                                        ModC_ConstStringView_CreateFromConstCStr(" in ")); \
-                    ModC_String_Append( &outputString,  \
-                                        ModC_StringView_ConstSubview(   errorPtr->Traces[i].Function,  \
-                                                                        0,  \
-                                                                        MODC_FULL_STRING)); \
-                    ModC_String_Append( &outputString,  \
-                                        ModC_ConstStringView_CreateFromConstCStr("()")); \
+                                        ModC_StringView_ConstView(errorPtr->Traces[i].Function)); \
+                    ModC_String_Append(&outputString, ModC_ConstStringView_FromConstCStr("()")); \
                 } \
             } \
         } \
