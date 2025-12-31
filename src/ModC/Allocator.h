@@ -29,48 +29,43 @@ typedef struct
     void (*Destroy)(void* allocator);
 } ModC_Allocator;
 
-#define INTERN_MODC_DEBUG_PRINT_ALLOC 0
+#define INTERN_MODC_DEBUG_PRINT_ALLOC 1
 #if INTERN_MODC_DEBUG_PRINT_ALLOC
     #include <stdio.h>
     #include <inttypes.h>
+    
+    #ifndef INTERN_PRINT_MODC_PRINT_TRACE
+        #define INTERN_PRINT_MODC_PRINT_TRACE(data) \
+            do \
+            { \
+                printf("%s: %p\n", __func__, (void*)data); \
+                fflush(stdout); \
+            } while(0)
+    #endif
+#else
+    #ifndef INTERN_PRINT_MODC_PRINT_TRACE
+        #define INTERN_PRINT_MODC_PRINT_TRACE(data) do {(void)data;} while(0)
+    #endif
 #endif
 
 static inline void* ModC_Allocator_Malloc(const ModC_Allocator this, uint64_t size)
 {
     if(!this.Malloc)
         return NULL;
-    void* retPtr = this.Malloc(this.Allocator, size);
-    #if INTERN_MODC_DEBUG_PRINT_ALLOC
-        printf("ModC_Allocator_Malloc out: %p\n", retPtr);
-        fflush(stdout);
-    #endif
-    return retPtr;
+    return this.Malloc(this.Allocator, size);
 }
 
 static inline void* ModC_Allocator_Realloc(const ModC_Allocator this, void* data, uint64_t size)
 {
     if(!this.Realloc)
         return NULL;
-    #if INTERN_MODC_DEBUG_PRINT_ALLOC
-        printf("ModC_Allocator_Realloc in: %p with size %" PRIu64 "\n", data, size);
-    #endif
-    void* retPtr = this.Realloc(this.Allocator, data, size);
-    
-    #if INTERN_MODC_DEBUG_PRINT_ALLOC
-        printf("ModC_Allocator_Realloc out: %p\n", retPtr);
-        fflush(stdout);
-    #endif
-    return retPtr;
+    return this.Realloc(this.Allocator, data, size);
 }
 
 static inline void ModC_Allocator_Free(const ModC_Allocator this, void* data)
 {
     if(!this.Free)
         return;
-    #if INTERN_MODC_DEBUG_PRINT_ALLOC
-        printf("ModC_Allocator_Free in: %p\n", data);
-        fflush(stdout);
-    #endif
     this.Free(this.Allocator, data);
 }
 
@@ -78,32 +73,30 @@ static inline void ModC_Allocator_Destroy(ModC_Allocator* this)
 {
     if(!this || !this->Destroy)
         return;
-    #if INTERN_MODC_DEBUG_PRINT_ALLOC
-        printf("ModC_Allocator_Destroy in: %p\n", this);
-        fflush(stdout);
-    #endif
     if(this->Type == ModC_AllocatorTypeOwnedArena)
         this->Destroy(this->Allocator);
     *this = (ModC_Allocator){0};
 }
 
+//Arena
 static inline void* ModC_ArenaMalloc(void* allocator, uint64_t size) 
 {
     if(!allocator)
         return NULL;
-    return arena_alloc(allocator, size); 
+    return arena_alloc(allocator, size);
 }
 
 static inline void ModC_ArenaDestroy(void* allocator) 
 {
     if(!allocator)
         return;
+    INTERN_PRINT_MODC_PRINT_TRACE(allocator);
     arena_destroy(allocator);
 }
 
 static inline ModC_Allocator ModC_CreateOwnedArenaAllocator(uint64_t allocateSize)
 {
-    return  (ModC_Allocator)
+    ModC_Allocator retAlloc =
             {
                 .Type = ModC_AllocatorTypeOwnedArena,
                 .Allocator = arena_create(allocateSize),
@@ -112,6 +105,8 @@ static inline ModC_Allocator ModC_CreateOwnedArenaAllocator(uint64_t allocateSiz
                 .Free = NULL,
                 .Destroy = &ModC_ArenaDestroy,
             };
+    INTERN_PRINT_MODC_PRINT_TRACE(retAlloc.Allocator);
+    return retAlloc;
 }
 
 static inline ModC_Allocator ModC_CreateSharedArenaAllocator(Arena* arena)
@@ -127,20 +122,29 @@ static inline ModC_Allocator ModC_CreateSharedArenaAllocator(Arena* arena)
             };
 }
 
-
+//Heap
 static inline void* ModC_HeapMalloc(void* allocator, uint64_t size) 
 { 
     (void)allocator; 
-    return malloc(size); 
+    void* retPtr = malloc(size); 
+    INTERN_PRINT_MODC_PRINT_TRACE(retPtr);
+    return retPtr;
 }
 
 static inline void* ModC_HeapRealloc(void* allocator, void* data, uint64_t size) 
 {
     (void)allocator;
-    return realloc(data, size); 
+    void* retPtr = realloc(data, size);
+    INTERN_PRINT_MODC_PRINT_TRACE(retPtr);
+    return retPtr;
 }
 
-static inline void ModC_HeapFree(void* allocator, void* data) { (void)allocator; free(data); }
+static inline void ModC_HeapFree(void* allocator, void* data) 
+{
+    (void)allocator; 
+    INTERN_PRINT_MODC_PRINT_TRACE(data);
+    free(data); 
+}
 
 static inline ModC_Allocator ModC_CreateHeapAllocator(void)
 {

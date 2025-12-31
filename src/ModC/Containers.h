@@ -4,20 +4,12 @@
 /* Docs
 Header containing different container types.
 All template definitions are defined here.
+
+Define `MODC_DEFAULT_ALLOC` and `MODC_DEFAULT_ALLOC_ARGS` to use non `_ALLOC` macro variants
 */
 
 #include "ModC/Strings/Strings.h"
 #include "ModC/Result.h"
-
-typedef struct
-{
-    bool IsString;
-    union
-    {
-        ModC_String String;
-        ModC_ConstStringView View;
-    } Value;
-} ModC_StringOrConstView;
 
 MODC_DEFINE_RESULT_STRUCT(ModC_ResultInt32, int32_t)
 

@@ -39,11 +39,25 @@ typedef struct
     const bool NullEnd;
 } ModC_ConstStringView;
 
+typedef struct
+{
+    bool IsString;
+    union
+    {
+        ModC_String String;
+        ModC_ConstStringView View;
+    } Value;
+} ModC_StringOrConstView;
+
+static inline ModC_StringOrConstView ModC_StringOrConstView_String(const ModC_String str);
+static inline ModC_StringOrConstView ModC_StringOrConstView_View(const ModC_ConstStringView view);
+
+
 //`cstr` is already allocated from allocator
-static inline ModC_String ModC_String_FromCStr(ModC_Allocator allocator, char* cstr);
-static inline ModC_String ModC_String_FromView( ModC_Allocator allocator, 
-                                                ModC_StringView view);
-static inline ModC_String ModC_String_FromConstView(ModC_Allocator allocator, 
+static inline ModC_String ModC_String_FromCStr(const ModC_Allocator allocator, char* cstr);
+static inline ModC_String ModC_String_FromView( const ModC_Allocator allocator, 
+                                                const ModC_StringView view);
+static inline ModC_String ModC_String_FromConstView(const ModC_Allocator allocator, 
                                                     const ModC_ConstStringView view);
 static inline ModC_String* ModC_String_Reserve(ModC_String* this, uint32_t reserveBytes);
 static inline ModC_String* ModC_String_Resize(ModC_String* this, uint32_t resizeBytes);
@@ -52,8 +66,10 @@ static inline ModC_String* ModC_String_AppendConstView( ModC_String* this,
 static inline ModC_String* ModC_String_AppendView(  ModC_String* this, 
                                                     const ModC_StringView strToAppend);
 static inline ModC_String* ModC_String_AppendString(ModC_String* this, const ModC_String strToAppend);
+#define ModC_AppendString(...) ModC_AppendString(__VA_ARGS__)
 static inline ModC_String* ModC_String_AppendFormat(ModC_String* this, const char* format, ...);
-static inline ModC_String ModC_String_Create(ModC_Allocator allocator, uint32_t cap);
+#define ModC_AppendFormat(...) ModC_String_AppendFormat(__VA_ARGS__)
+static inline ModC_String ModC_String_Create(const ModC_Allocator allocator, uint32_t cap);
 static inline void ModC_String_Free(ModC_String* this);
 static inline ModC_StringView ModC_String_View(const ModC_String this);
 static inline ModC_ConstStringView ModC_String_ConstView(const ModC_String this);
@@ -63,10 +79,7 @@ static inline ModC_ConstStringView ModC_StringView_ConstView(const ModC_StringVi
 static inline ModC_StringView ModC_StringView_FromCStr(char* cstr);
 static inline ModC_ConstStringView ModC_ConstStringView_FromConstCStr(const char* cstr);
 #define ModC_FromConstCStr(...) ModC_ConstStringView_FromConstCStr(__VA_ARGS__)
-static inline ModC_StringView ModC_ConstStringView_RemoveConst(ModC_ConstStringView this);
-
-
-
+static inline ModC_StringView ModC_ConstStringView_RemoveConst(const ModC_ConstStringView this);
 
 //`length` excludes null-terminator
 static inline ModC_StringView ModC_String_Subview(  const ModC_String this, 
@@ -92,14 +105,27 @@ ModC_ConstStringView_ConstSubview(  const ModC_ConstStringView this,
 
 
 
+
+
+
+static inline ModC_StringOrConstView ModC_StringOrConstView_String(const ModC_String str)
+{
+    return (ModC_StringOrConstView){ .IsString = true, .Value.String = str };
+}
+
+static inline ModC_StringOrConstView ModC_StringOrConstView_View(const ModC_ConstStringView view)
+{
+    return (ModC_StringOrConstView){ .IsString = false, .Value.View = view };
+}
+
 //`cstr` is already allocated from allocator
-static inline ModC_String ModC_String_FromCStr(ModC_Allocator allocator, char* cstr)
+static inline ModC_String ModC_String_FromCStr(const ModC_Allocator allocator, char* cstr)
 {
     uint32_t len = strlen(cstr);
     return (ModC_String){ .Allocator = allocator, .Data = cstr, .Length = len, .Cap = len + 1 };
 }
 
-static inline ModC_String ModC_String_FromView( ModC_Allocator allocator, 
+static inline ModC_String ModC_String_FromView( const ModC_Allocator allocator, 
                                                 const ModC_StringView view)
 {
     ModC_String retStr = ModC_String_Create(allocator, view.Length + 1);
@@ -114,7 +140,7 @@ static inline ModC_String ModC_String_FromView( ModC_Allocator allocator,
     return retStr;
 }
 
-static inline ModC_String ModC_String_FromConstView(ModC_Allocator allocator, 
+static inline ModC_String ModC_String_FromConstView(const ModC_Allocator allocator, 
                                                     const ModC_ConstStringView view)
 {
     return ModC_String_FromView(allocator, ModC_ConstStringView_RemoveConst(view));
@@ -245,7 +271,7 @@ static inline ModC_String* ModC_String_AppendFormat(ModC_String* this, const cha
 }
 
 //`cap` includes null-terminator
-static inline ModC_String ModC_String_Create(ModC_Allocator allocator, uint32_t cap)
+static inline ModC_String ModC_String_Create(const ModC_Allocator allocator, uint32_t cap)
 {
     ModC_String retStr = { .Allocator = allocator };
     ModC_String_Reserve(&retStr, cap);
@@ -326,7 +352,7 @@ static inline ModC_ConstStringView ModC_ConstStringView_FromConstCStr(const char
     return (ModC_ConstStringView){ .Data = cstr, .Length = strlen(cstr), .NullEnd = true };
 }
 
-static inline ModC_StringView ModC_ConstStringView_RemoveConst(ModC_ConstStringView this)
+static inline ModC_StringView ModC_ConstStringView_RemoveConst(const ModC_ConstStringView this)
 {
     return  (ModC_StringView)
             { 
