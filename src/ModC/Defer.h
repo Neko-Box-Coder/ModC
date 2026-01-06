@@ -5,17 +5,15 @@
 Use in a function like this. Will not work with nested defer scope.
 ```c
 MODC_DEFER_SCOPE_START
+...
+MODC_DEFER(statements);     //Runs second
+...
+MODC_DEFER(statements);     //Runs first
+if(...)
 {
-    ...
-    MODC_DEFER(statements);     //Runs second
-    ...
-    MODC_DEFER(statements);     //Runs first
-    if(...)
-    {
-        MODC_RUN_DEFER_NOW_AND(return ...);
-    }
-    ...
+    MODC_RUN_DEFER_NOW_AND(return ...);
 }
+...
 MODC_DEFER_SCOPE_END
 ```
 

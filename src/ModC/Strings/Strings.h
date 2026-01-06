@@ -81,23 +81,25 @@ static inline ModC_ConstStringView ModC_ConstStringView_FromConstCStr(const char
 #define ModC_FromConstCStr(...) ModC_ConstStringView_FromConstCStr(__VA_ARGS__)
 static inline ModC_StringView ModC_ConstStringView_RemoveConst(const ModC_ConstStringView this);
 
-//`length` excludes null-terminator
+#define MODC_FULL_STRING UINT32_MAX
+
+//`length` excludes null-terminator. Use `MODC_FULL_STRING` for `length` to reach the end.
 static inline ModC_StringView ModC_String_Subview(  const ModC_String this, 
                                                     const uint32_t index, 
                                                     uint32_t length);
-//`length` excludes null-terminator
+//`length` excludes null-terminator. Use `MODC_FULL_STRING` for `length` to reach the end.
 static inline ModC_ConstStringView ModC_String_ConstSubview(const ModC_String this, 
                                                             const uint32_t index, 
                                                             uint32_t length);
-//`length` excludes null-terminator
+//`length` excludes null-terminator. Use `MODC_FULL_STRING` for `length` to reach the end.
 static inline ModC_StringView ModC_StringView_Subview(  const ModC_StringView this, 
                                                         const uint32_t index, 
                                                         uint32_t length);
-//`length` excludes null-terminator
+//`length` excludes null-terminator. Use `MODC_FULL_STRING` for `length` to reach the end.
 static inline ModC_ConstStringView ModC_StringView_ConstSubview(const ModC_StringView this, 
                                                                 const uint32_t index, 
                                                                 uint32_t length);
-//`length` excludes null-terminator
+//`length` excludes null-terminator. Use `MODC_FULL_STRING` for `length` to reach the end.
 static inline ModC_ConstStringView 
 ModC_ConstStringView_ConstSubview(  const ModC_ConstStringView this, 
                                     const uint32_t index, 
@@ -292,8 +294,6 @@ static inline void ModC_String_Free(ModC_String* this)
     *this = (ModC_String){0};
     return;
 }
-
-#define MODC_FULL_STRING UINT32_MAX
 
 //Returns `ModC_StringView` from `src`, starting from `index` that spans `length` long.
 #define INTERN_MODC_DEFINE_STRING_VIEW_TO_VIEW(ModC_StringViewDst, funcName, ModC_StringViewSrc) \

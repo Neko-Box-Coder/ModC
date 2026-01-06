@@ -21,7 +21,7 @@ typedef struct
 ...
 ```
 
-Define `MODC_DEFAULT_ALLOC` and `MODC_DEFAULT_ALLOC_ARGS` to use non `_ALLOC` macro variants
+Define `MODC_DEFAULT_ALLOC_FUNC` and `MODC_DEFAULT_ALLOC_ARGS` to use non `_ALLOC` macro variants
 
 
 #### Functions:
@@ -93,9 +93,11 @@ Macro:
 
 Macro:
 ```c
+ModC_String MODC_RESULT_TO_STRING_ALLOC(ModC_ResultName, 
+                                        ModC_ResultName resultVal, 
+                                        ModC_Allocator allocator);
 ModC_String MODC_RESULT_TO_STRING(  ModC_ResultName, 
-                                    ModC_ResultName resultVal, 
-                                    ModC_Allocator allocator);
+                                    ModC_ResultName resultVal);
 ```
 
 Macros:
@@ -117,6 +119,9 @@ MODC_ASSERT_EC(expr, errorCode, failedAction, ModC_ResultName);
 #include "ModC/Strings/Strings.h"
 #include "ModC/Allocator.h"
 #include "ModC/ChainUtil.h"
+
+#include "MacroPowerToys/MacroPowerToys.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
@@ -141,7 +146,7 @@ static inline ModC_ConstStringView ModC_GetFileName(const ModC_ConstStringView p
         ++curr;
     }
     
-    return ModC_ConstStringView_ConstSubview(path, lastSlash, -1);
+    return ModC_ConstStringView_ConstSubview(path, lastSlash, MODC_FULL_STRING);
 }
 
 static inline void ModC_Trace_Create(   const char* file, 
@@ -168,7 +173,7 @@ static inline void ModC_Trace_Create(   const char* file,
 #define MODC_MAX_TRACES 64
 
 #ifndef MODC_PERFORM_ALLOC
-    #define MODC_PERFORM_ALLOC() MODC_DEFAULT_ALLOC(MODC_DEFAULT_ALLOC_ARGS)
+    #define MODC_PERFORM_ALLOC() MODC_DEFAULT_ALLOC_FUNC(MODC_DEFAULT_ALLOC_ARGS)
 #endif
 
 typedef struct
@@ -362,8 +367,11 @@ static inline void ModC_VoidGlobalError(void) { (void)ModC_GlobalError; }
 #define MODC_RESULT_FREE_RESOURCE(ModC_ResultName, resultPtr) \
     MPT_CONCAT(ModC_ResultName, _Free)(resultPtr)
 
-#define MODC_RESULT_TO_STRING(ModC_ResultName, resultVal, allocator) \
+#define MODC_RESULT_TO_STRING_ALLOC(ModC_ResultName, resultVal, allocator) \
     MPT_CONCAT(ModC_ResultName, _ToString)(resultVal, allocator)
+
+#define MODC_RESULT_TO_STRING(ModC_ResultName, resultVal) \
+    MPT_CONCAT(ModC_ResultName, _ToString)(resultVal, MODC_PERFORM_ALLOC())
 
 #define INTERNAL_MODC_ASSERT_EC_ALLOC(expr, errorCode, failedAction, ModC_ResultName, allocator) \
     do \
