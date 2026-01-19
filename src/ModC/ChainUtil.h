@@ -9,7 +9,10 @@ Equivalent to
 `funcC( funcB( funcA(argsA), argsB ), argsC )`
 */
 
-#include "MacroPowerToys/MacroPowerToys.h"
+#include "MacroPowerToys/Miscellaneous.h"
+#include "MacroPowerToys/AreArgsEmpty.h"
+#include "MacroPowerToys/RemoveParenthesisInList.h"
+#include "MacroPowerToys/Overload.h"
 
 #define INTERN_MODC_ARGS_EMPTY
 #define INTERN_MODC_ARGS_NOT_EMPTY ,
@@ -20,7 +23,7 @@ Equivalent to
         MPT_REMOVE_PARENTHESIS(bArgs))
 
 #define INTERN_MODC_CHAIN_4(a, aArgs, b, bArgs) \
-    INTERN_MODC_WRAP_EXPR( a(MPT_REMOVE_PARENTHESIS(aArgs)), b, bArgs )
+    INTERN_MODC_WRAP_EXPR( MPT_COMPOSE3(a, (MPT_REMOVE_PARENTHESIS(aArgs))), b, bArgs )
 
 #define INTERN_MODC_CHAIN_6(a, aArgs, b, bArgs, c, cArgs) \
     INTERN_MODC_WRAP_EXPR( INTERN_MODC_CHAIN_4(a, aArgs, b, bArgs), c, cArgs )

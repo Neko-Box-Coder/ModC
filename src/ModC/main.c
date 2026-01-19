@@ -1,11 +1,10 @@
 #define ARENA_IMPLEMENTATION
-#define MODC_DEFAULT_ALLOC_FUNC ModC_CreateHeapAllocator
-#define MODC_DEFAULT_ALLOC_ARGS
-
 
 #include "ModC/Allocator.h"
 #include "ModC/Defer.h"
-#include "ModC/Containers.h"
+#include "ModC/GenericContainers.h"
+#include "ModC/Strings/Strings.h"
+#include "ModC/Tokenization.h"
 
 //Dependencies
 #include "static_assert.h/assert.h"
@@ -27,58 +26,63 @@ static_assert(sizeof(int) == sizeof(int32_t), "");
     #error "__COUNTER__ needs to be supported"
 #endif
 
+#ifndef MODC_PERFORM_ALLOC
+    #define MODC_PERFORM_ALLOC() ModC_CreateHeapAllocator()
+#endif
 
-static inline ModC_ResultInt32 TestResult()
+#undef ModC_ResultName
+#define ModC_ResultName ModC_Result_Int32
+
+static inline ModC_Result_Int32 TestResult()
 {
     if(true)
     {
-        return MODC_ERROR_MSG(  ModC_ResultInt32, 
-                                ModC_StringOrConstView_View(ModC_FromConstCStr("Failed to seek file")));
+        ModC_ConstStringView view = ModC_ConstStringView_FromCStr("Failed to seek file");
+        return MODC_ERROR_MSG(ModC_StringOrConstView_View(view));
     }
     else
-        return MODC_RESULT_VALUE(ModC_ResultInt32, 5);
+        return MODC_RESULT_VALUE(5);
 }
 
-static inline ModC_ResultInt32 TestResult2()
+static inline ModC_Result_Int32 TestResult2()
 {
-    MDOC_DECLARE_LAST_RESULT(ModC_ResultInt32);
-    int32_t unwrappedVal = MODC_RESULT_TRY(ModC_ResultInt32, TestResult(), return MODC_LAST_RESULT);
-    return MODC_RESULT_VALUE(ModC_ResultInt32, unwrappedVal);
+    int32_t unwrappedVal = MODC_RESULT_TRY(ModC_Result_Int32, TestResult(), MODC_RET_ERROR());
+    return MODC_RESULT_VALUE(unwrappedVal);
 }
 
-static inline ModC_ResultVoid Tokenization(ModC_String fileContent)
-{
-    //TODO(NOW)
-}
+#undef ModC_ResultName
+#define ModC_ResultName ModC_Result_Void
 
-ModC_ResultVoid Main(int argc, char* argv[])
+ModC_Result_Void Main(int argc, char* argv[])
 {
     FILE* modcFile = NULL;
     ModC_Allocator mainArena;
-    ModC_String msgStr;
     ModC_String fileContent;
-    MDOC_DECLARE_LAST_RESULT(ModC_ResultVoid);
     
-    #define RUN_DEFER_AND_RET() MODC_RUN_DEFER_NOW_AND(return MODC_LAST_RESULT)
+    #define RUN_DEFER_AND_RET() MODC_RUN_DEFER_NOW_AND( MODC_RET_ERROR() )
     
     MODC_DEFER_SCOPE_START
     {
         if(argc == 1)
         {
             printf("Usage: %s <path>\n", argv[0]);
-            MODC_RUN_DEFER_NOW_AND(return MODC_RESULT_VALUE(ModC_ResultVoid, {0}));
+            MODC_RUN_DEFER_NOW_AND(return MODC_RESULT_VALUE(0));
         }
         
-        ModC_StringView filePath = { .Data = argv[1], .Length = strlen(argv[1]), .NullEnd = true };
+        ModC_StringView filePath = ModC_StringView_Create(argv[1], strlen(argv[1]));
         printf("Compiling %s\n", filePath.Data);
         
         modcFile = fopen(filePath.Data, "r");
         if(!modcFile)
         {
-            msgStr = ModC_String_Create(ModC_CreateHeapAllocator(), 64);
-            ModC_String_AppendFormat(&msgStr, "%s %s", "Failed to open file: ", strerror(errno));
-            MODC_RUN_DEFER_NOW_AND(return MODC_ERROR_MSG(   ModC_ResultVoid, 
-                                                            ModC_StringOrConstView_String(msgStr)));
+            MODC_RUN_DEFER_NOW_AND
+            (
+                ModC_String msgStr = ModC_String_FromFormat(ModC_CreateHeapAllocator(), 
+                                                            "Failed to open file: %s", 
+                                                            strerror(errno));
+                return MODC_ERROR_MSG(ModC_StringOrConstView_String(msgStr))
+            );
+            
         }
         MODC_DEFER({ fclose(modcFile); modcFile = NULL; });
         
@@ -86,42 +90,28 @@ ModC_ResultVoid Main(int argc, char* argv[])
         int64_t fileSize;
         {
             int fseekResult = fseek(modcFile, 0, SEEK_END);
-            MODC_ASSERT(fseekResult == 0, 
-                        ModC_AppendFormat(&MODC_LAST_ERROR_MSG, " fseekResult: %i.", fseekResult);
-                        RUN_DEFER_AND_RET(),
-                        ModC_ResultVoid);
+            MODC_ASSERT(fseekResult == 0, (" fseekResult: %i.", fseekResult), RUN_DEFER_AND_RET());
             fileSize = ftell(modcFile);
-            MODC_ASSERT(fileSize >= 0,
-                        ModC_AppendFormat(&MODC_LAST_ERROR_MSG, " fileSize: %"PRIi64".", fileSize);
-                        RUN_DEFER_AND_RET(),
-                        ModC_ResultVoid);
+            MODC_ASSERT(fileSize >= 0, (" fileSize: "PRIi64".", fileSize), RUN_DEFER_AND_RET());
         }
         
         fseek(modcFile, 0, 0);
-        mainArena = ModC_CreateOwnedArenaAllocator(fileSize + 8192);
+        mainArena = ModC_CreateArenaAllocator(fileSize + 8192);
         MODC_DEFER(ModC_Allocator_Destroy(&mainArena));
         
-        fileContent = ModC_String_Create(   ModC_CreateSharedArenaAllocator(mainArena.Allocator), 
-                                            fileSize);
+        fileContent = ModC_String_Create(ModC_ShareArenaAllocator(mainArena.Allocator), fileSize);
         ModC_String_Resize(&fileContent, fileSize);
-        MODC_ASSERT(fileContent.Length == fileSize, RUN_DEFER_AND_RET(), ModC_ResultVoid);
+        MODC_ASSERT(fileContent.Length == fileSize, "", RUN_DEFER_AND_RET());
         
         uint32_t actuallyRead = fread(fileContent.Data, 1, fileSize, modcFile);
         MODC_ASSERT(actuallyRead == fileSize, 
-                    ModC_AppendFormat(  &MODC_LAST_ERROR_MSG, 
-                                        " actuallyRead: %"PRIu64", fileSize: %"PRIi64, 
-                                        actuallyRead,
-                                        fileSize);
-                    RUN_DEFER_AND_RET(), 
-                    ModC_ResultVoid);
-        
-        
-        
+                    (" actuallyRead: %"PRIu64", fileSize: %"PRIi64, actuallyRead, fileSize),
+                    RUN_DEFER_AND_RET());
     }
     MODC_DEFER_SCOPE_END
     #undef RUN_DEFER_AND_RET
     
-    return MODC_RESULT_VALUE(ModC_ResultVoid, {0});
+    return MODC_RESULT_VALUE(0);
 }
 
 int main(int argc, char* argv[])
@@ -130,26 +120,33 @@ int main(int argc, char* argv[])
     (void)argv;
     #if 1
     {
-        ModC_ResultVoid result = Main(argc, argv);
+        #undef ModC_ResultName
+        #define ModC_ResultName ModC_Result_Void
+        
+        ModC_Result_Void result = Main(argc, argv);
         if(result.HasError)
         {
             MODC_ERROR_APPEND_TRACE(result.ValueOrError.Error);
-            ModC_String resultStr = MODC_RESULT_TO_STRING(ModC_ResultVoid, result);
+            ModC_String resultStr = MODC_RESULT_TO_STRING(result);
             printf("%s\n", resultStr.Data);
             ModC_String_Free(&resultStr);
         }
-        MODC_RESULT_FREE_RESOURCE(ModC_ResultVoid, &result);
+        MODC_RESULT_FREE_RESOURCE(&result);
     }
     #else
     {
-        ModC_ResultInt32 result = TestResult2();
+        #undef ModC_ResultName
+        #define ModC_ResultName ModC_Result_Int32
+        
+        ModC_Result_Int32 result = TestResult2();
         if(result.HasError)
         {
             MODC_ERROR_APPEND_TRACE(result.ValueOrError.Error);
-            ModC_String resultStr = MODC_RESULT_TO_STRING(ModC_ResultInt32, result);
+            ModC_String resultStr = MODC_RESULT_TO_STRING(result);
+            printf("%s\n", resultStr.Data);
             ModC_String_Free(&resultStr);
         }
-        MODC_RESULT_FREE_RESOURCE(ModC_ResultInt32, &result);
+        MODC_RESULT_FREE_RESOURCE(&result);
     }
     #endif
     

@@ -1,58 +1,76 @@
-#ifndef MODC_LIST_H
-#define MODC_LIST_H
-
 #include "ModC/Allocator.h"
+#include "MacroPowerToys/Miscellaneous.h"
 
-#include "MacroPowerToys/MacroPowerToys.h"
+/* Docs
+Define `MODC_LIST_NAME` for the name of the list.
+Define `MODC_VALUE_TYPE` for the element type stored in the list
+
+Just read the code for the functions
+*/
+
+#ifndef MODC_LIST_NAME
+    #error "MODC_LIST_NAME is not defined"
+#endif
+
+#ifndef MODC_VALUE_TYPE
+    #error "MODC_VALUE_TYPE is not defined"
+#endif
+
 
 #include <string.h>
 #include <assert.h>
 #include <stddef.h>
-
-//#define MODC_DEFINE_LIST_STRUCT(ModC_ListName, valueType) 
+#include <stdint.h>
 
 typedef struct
 {
     ModC_Allocator Allocator;
-    valueType* Data;
+    MODC_VALUE_TYPE* Data;
     uint64_t Length;
     uint64_t Cap;
-} ModC_ListName
+} MODC_LIST_NAME;
 
-
-static inline ModC_ListName 
-MPT_CONCAT(ModC_ListName, _Create)(const ModC_Allocator allocator, uint32_t cap)
+static inline MODC_LIST_NAME*
+MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Reserve)(MODC_LIST_NAME* this, uint32_t reserveBytes)
 {
-    ModC_ListName retList = { .Allocator = allocator };
-    MPT_CONCAT(ModC_ListName, _Reserve)(&retList, cap);
+    if(!this || this->Cap >= reserveBytes)
+        return this;
+    
+    void* dataPtr = this->Cap == 0 ? 
+                    ModC_Allocator_Malloc(&this->Allocator, reserveBytes) :
+                    ModC_Allocator_Realloc(&this->Allocator, this->Data, reserveBytes);
+    if(!dataPtr)
+        return this;
+    this->Data = dataPtr;
+    this->Cap = reserveBytes;
+    return this;
+}
+
+static inline MODC_LIST_NAME 
+MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Create)(ModC_Allocator allocator, uint64_t cap)
+{
+    MODC_LIST_NAME retList = { .Allocator = allocator };
+    MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Reserve)(&retList, cap);
     return retList;
 }
 
-static inline void MPT_CONCAT(ModC_ListName, _Free)(ModC_ListName* this)
+static inline void MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Free)(MODC_LIST_NAME* this)
 {
     if(!this)
         return;
     if(!this->Data)
     {
-        *this = (ModC_ListName){0};
+        *this = (MODC_LIST_NAME){0};
         return;
     }
-    ModC_Allocator_Free(this->Allocator, this->Data);
+    ModC_Allocator_Free(&this->Allocator, this->Data);
     ModC_Allocator_Destroy(&this->Allocator);
-    *this = (ModC_ListName){0};
+    *this = (MODC_LIST_NAME){0};
     return;
 }
 
-static inline ModC_ListName 
-MPT_CONCAT(ModC_ListName, _Free)(const ModC_Allocator allocator, uint32_t cap)
-{
-    ModC_ListName retList = { .Allocator = allocator };
-    MPT_CONCAT(ModC_ListName, _Reserve)(&retList, cap);
-    return retList;
-}
-
-static inline ModC_ListName* 
-MPT_CONCAT(ModC_ListName, _Resize)(ModC_ListName* this, uint64_t resizeLength)
+static inline MODC_LIST_NAME* 
+MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Resize)(MODC_LIST_NAME* this, uint64_t resizeLength)
 {
     if(!this)
         return this;
@@ -78,8 +96,8 @@ MPT_CONCAT(ModC_ListName, _Resize)(ModC_ListName* this, uint64_t resizeLength)
                                 )
                             );
     void* dataPtr = empty ? 
-                    ModC_Allocator_Malloc(this->Allocator, newCap) :
-                    ModC_Allocator_Realloc(this->Allocator, this->Data, newCap);
+                    ModC_Allocator_Malloc(&this->Allocator, newCap) :
+                    ModC_Allocator_Realloc(&this->Allocator, this->Data, newCap);
     if(!dataPtr)
         return this;
     this->Data = dataPtr;
@@ -89,46 +107,65 @@ MPT_CONCAT(ModC_ListName, _Resize)(ModC_ListName* this, uint64_t resizeLength)
     return this;
 }
 
-static inline ModC_ListName* 
-MPT_CONCAT(ModC_ListName, _AddValue)(ModC_ListName* this, const valueType val)
+static inline MODC_LIST_NAME* 
+MPT_DELAYED_CONCAT(MODC_LIST_NAME, _AddValue)(MODC_LIST_NAME* this, const MODC_VALUE_TYPE val)
 {
     if(!this)
         return this;
     uint64_t oldLength = this->Length;
-    MPT_CONCAT(ModC_ListName, _Resize)(oldLength + 1);
+    MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Resize)(this, oldLength + 1);
     if(this->Length != oldLength + 1)
         return this;
     this->Data[oldLength] = val;
     return this;
 }
 
-static inline ModC_ListName* 
-MPT_CONCAT(ModC_ListName, _Add)(ModC_ListName* this, const valueType* val)
+#if 0
+static inline MODC_LIST_NAME* 
+MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Add)(MODC_LIST_NAME* this, const MODC_VALUE_TYPE* val)
 {
     if(!this || !val)
         return this;
     uint64_t oldLength = this->Length;
-    MPT_CONCAT(ModC_ListName, _Resize)(oldLength + 1);
+    MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Resize)(this, oldLength + 1);
     if(this->Length != oldLength + 1)
         return this;
-    memcpy(this->Data + oldLength, val, sizeof(valueType));
+    memcpy(this->Data + oldLength, val, sizeof(MODC_VALUE_TYPE));
+    return this;
+}
+#endif
+
+static inline MODC_LIST_NAME* 
+MPT_DELAYED_CONCAT(MODC_LIST_NAME, _AddRange)(  MODC_LIST_NAME* this, 
+                                                const MODC_VALUE_TYPE* data, 
+                                                uint64_t dataLength)
+{
+    if(!this || !dataLength || !data)
+        return this;
+    uint64_t oldLength = this->Length;
+    MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Resize)(this, oldLength + dataLength);
+    if(this->Length != oldLength + dataLength)
+        return this;
+    memcpy(this->Data + oldLength, data, sizeof(MODC_VALUE_TYPE) * dataLength);
     return this;
 }
 
-static inline ModC_ListName* MPT_CONCAT(ModC_ListName, _AddEmpty)(ModC_ListName* this, bool zeroInit)
+static inline MODC_LIST_NAME* MPT_DELAYED_CONCAT(MODC_LIST_NAME, _AddEmpty)(MODC_LIST_NAME* this, 
+                                                                            bool zeroInit)
 {
-    if(!this || !val)
+    if(!this)
         return this;
     uint64_t oldLength = this->Length;
-    MPT_CONCAT(ModC_ListName, _Resize)(oldLength + 1);
+    MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Resize)(this, oldLength + 1);
     if(this->Length != oldLength + 1)
         return this;
     if(zeroInit)
-        memset(this->Data + oldLength, 0, sizeof(valueType));
+        memset(this->Data + oldLength, 0, sizeof(MODC_VALUE_TYPE));
     return this;
 }
 
-static inline ModC_ListName* MPT_CONCAT(ModC_ListName, _Remove)(ModC_ListName* this, uint64_t index)
+static inline MODC_LIST_NAME* MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Remove)(  MODC_LIST_NAME* this, 
+                                                                            uint64_t index)
 {
     if(!this || index >= this->Length)
         return this;
@@ -137,36 +174,60 @@ static inline ModC_ListName* MPT_CONCAT(ModC_ListName, _Remove)(ModC_ListName* t
         --(this->Length);
         return this;
     }
-    memmove(this->Data + index, this->Data + index + 1, (this->Length - index - 1) * sizeof(valueType));
+    memmove(this->Data + index, 
+            this->Data + index + 1, 
+            (this->Length - index - 1) * sizeof(MODC_VALUE_TYPE));
     --(this->Length);
     return this;
 }
 
-static inline ModC_ListName*
-MPT_CONCAT(ModC_ListName, _RemoveRange)(ModC_ListName* this, uint64_t startIndex, uint64_t endIndex)
+static inline MODC_LIST_NAME*
+MPT_DELAYED_CONCAT(MODC_LIST_NAME, _RemoveRange)(   MODC_LIST_NAME* this, 
+                                                    uint64_t startIndex, 
+                                                    uint64_t endExclusiveIndex)
 {
-    if(!this || startIndex >= this->Length || startIndex >= this->Length || startIndex > endIndex)
+    if(!this || startIndex >= this->Length || startIndex >= endExclusiveIndex)
         return this;
-    if(endIndex == this->Length - 1)
+    if(endExclusiveIndex >= this->Length)
     {
-        this->Length -= endIndex - startIndex + 1;
+        endExclusiveIndex = this->Length;
+        this->Length -= endExclusiveIndex - startIndex;
         return this;
     }
     memmove(this->Data + startIndex, 
-            this->Data + endIndex + 1, 
-            (this->Length - endIndex - 1) * sizeof(valueType));
-    this->Length -= endIndex - startIndex + 1;
+            this->Data + endExclusiveIndex, 
+            (this->Length - endExclusiveIndex) * sizeof(MODC_VALUE_TYPE));
+    this->Length -= endExclusiveIndex - startIndex;
     return this;
 }
 
-static inline valueType* MPT_CONCAT(ModC_ListName, _At)(ModC_ListName* this, uint64_t index)
+static inline MODC_VALUE_TYPE* MPT_DELAYED_CONCAT(MODC_LIST_NAME, _At)( MODC_LIST_NAME* this, 
+                                                                        uint64_t index)
 {
     if(!this || index >= this->Length)
         return NULL;
-    return this->data + index;
+    return this->Data + index;
 }
 
+//Returns the index of the found element. Otherwise return `this->Length`
+static inline uint64_t
+MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Find)(const MODC_LIST_NAME* this, const MODC_VALUE_TYPE* data)
+{
+    if(!this || !data)
+        return this->Length;
+    
+    uint64_t i;
+    for(i = 0; i < this->Length; ++i)
+    {
+        if(memcmp(&this->Data[i], data, sizeof(MODC_VALUE_TYPE)) == 0)
+            return i;
+    }
+    return i;
+}
 
-#endif
+#define MODC_DATA_LENGTH(obj) (obj).Data, (obj).Length
+#define MODC_LENGTH_DATA(obj) (obj).Length, (obj).Data
 
+#undef MODC_LIST_NAME
+#undef MODC_VALUE_TYPE
 

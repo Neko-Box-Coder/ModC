@@ -35,7 +35,7 @@ MODC_DEFER_SCOPE_END
         /* We store a bunch of IDs for jumping with switch, but with -1 as normal executions and */ \
         /* 0 for just normal exit. Doing `__COUNTER__` here to make sure it starts from 1 */ \
         (void)__COUNTER__; \
-        int modcDeferIndex = 0; (void)modcDeferIndex; \
+        int modcDeferIndex = 0; \
         /* We store `MODC_MAX_DEFER_COUNT + 1` where we executes the defers from back to front */ \
         /* and index 0 will be our "exit" point which it could a return */ \
         int modcDefers[MODC_MAX_DEFER_COUNT + 1] = {-1}; (void)modcDefers; \
@@ -44,8 +44,8 @@ MODC_DEFER_SCOPE_END
         switch(modcDefers[modcDeferIndex]) \
         { \
             case -1: \
-            /* Sets the final execution to 0 for normal exit */ \
-            modcDefers[0] = 0;
+                /* Sets the final execution to 0 for normal exit */ \
+                modcDefers[0] = 0;
 
 #define INTERNAL_MODC_DEFER(counter, statements) \
             do \
