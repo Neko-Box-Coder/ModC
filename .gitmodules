@@ -1,6 +1,6 @@
 [submodule "External/static_assert.h"]
 	path = External/static_assert.h
-	url = https://github.com/Marco-DG/static_assert.h.git
+	url = https://github.com/Neko-Box-Coder/static_assert.h.git
 [submodule "External/arena-allocator"]
 	path = External/arena-allocator
 	url = https://github.com/ccgargantua/arena-allocator.git
