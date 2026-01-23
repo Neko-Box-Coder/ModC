@@ -26,8 +26,8 @@ static_assert(sizeof(int) == sizeof(int32_t), "");
     #error "__COUNTER__ needs to be supported"
 #endif
 
-#ifndef MODC_PERFORM_ALLOC
-    #define MODC_PERFORM_ALLOC() ModC_CreateHeapAllocator()
+#ifndef MODC_DEFAULT_ALLOC
+    #define MODC_DEFAULT_ALLOC() ModC_CreateHeapAllocator()
 #endif
 
 #undef ModC_ResultName
@@ -36,17 +36,15 @@ static_assert(sizeof(int) == sizeof(int32_t), "");
 static inline ModC_Result_Int32 TestResult()
 {
     if(true)
-    {
-        ModC_ConstStringView view = ModC_ConstStringView_FromCStr("Failed to seek file");
-        return MODC_ERROR_MSG(ModC_StringOrConstView_View(view));
-    }
+        return MODC_ERROR_CSTR("Failed to seek file");
     else
         return MODC_RESULT_VALUE(5);
 }
 
 static inline ModC_Result_Int32 TestResult2()
 {
-    int32_t unwrappedVal = MODC_RESULT_TRY(ModC_Result_Int32, TestResult(), MODC_RET_ERROR());
+    ModC_Result_Int32 intResult = TestResult();
+    int32_t unwrappedVal = MODC_RESULT_TRY(intResult, MODC_RET_ERROR());
     return MODC_RESULT_VALUE(unwrappedVal);
 }
 

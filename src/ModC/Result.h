@@ -21,7 +21,7 @@ typedef struct
 ...
 ```
 
-Define `MODC_PERFORM_ALLOC()` to use non `_ALLOC` macro variants
+Define `MODC_DEFAULT_ALLOC()` to use non `_ALLOC` macro variants
 
 
 #### Functions:
@@ -55,11 +55,10 @@ Macro:
 `void MODC_ERROR_APPEND_TRACE(ModC_Error* ModC_ErrorPtr);`
 
 Macro:
-    `ModC_ResultName` needs to be defined first
     You can use `MODC_LAST_ERROR` which points to the error used to return.
     You can use `MODC_LAST_ERROR_MSG` which points to the error message used to return.
     Use `MODC_RET_ERROR()` inside `failedAction` to return the error.
-`valueType MODC_RESULT_TRY(ModC_ExprResultName, expr, failedAction);`
+`valueType MODC_RESULT_TRY(result, failedAction);`
 
 
 Macro:
@@ -79,6 +78,23 @@ Macro:
 ModC_ResultName MODC_ERROR_MSG_ALLOC(ModC_StringOrConstView msg, ModC_Allocator allocator);
 
 ModC_ResultName MODC_ERROR_MSG(ModC_StringOrConstView msg);
+```
+
+
+Macro:
+    `ModC_ResultName` needs to be defined first
+```c
+ModC_ResultName MODC_ERROR_STR_FMT((format, ...));
+ModC_ResultName MODC_ERROR_STR_FMT((format, ...), int32_t errorCode);
+
+ModC_ResultName MODC_ERROR_STR_FMT_ALLOC(ModC_Allocator allocator, (format, ...));
+ModC_ResultName MODC_ERROR_STR_FMT_ALLOC(ModC_Allocator allocator, (format, ...), int32_t errorCode);
+
+ModC_ResultName MODC_ERROR_CSTR(cstr);
+ModC_ResultName MODC_ERROR_CSTR(cstr, int32_t errorCode);
+
+ModC_ResultName MODC_ERROR_CSTR_ALLOC(ModC_Allocator allocator, cstr);
+ModC_ResultName MODC_ERROR_CSTR_ALLOC(ModC_Allocator allocator, cstr, int32_t errorCode);
 ```
 
 Macro:
@@ -118,6 +134,7 @@ MODC_ASSERT_EC(expr, errorCode, (formatAppend), failedAction);
 
 #include "MacroPowerToys/Miscellaneous.h"
 #include "MacroPowerToys/RemoveParenthesisInList.h"
+#include "MacroPowerToys/Overload.h"
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -298,41 +315,107 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView msg,
         return MPT_DELAYED_CONCAT(ModC_ResultName, _CreateError) (ModC_GlobalRetError); \
     } while(0)
 
-#define INTERN_MODC_RESULT_TRY(ModC_ExprResultName, expr, failedAction, counter) \
-    MPT_DELAYED_CONCAT(ModC_ExprResultName, _ValueOrDefault)(expr); \
-    do \
-    { \
-        if(ModC_GlobalError) \
+#if 0
+    #define INTERN_MODC_RESULT_TRY(ModC_ExprResultName, expr, failedAction, counter) \
+        MPT_DELAYED_CONCAT(ModC_ExprResultName, _ValueOrDefault)(expr); \
+        do \
         { \
-            MODC_ERROR_APPEND_TRACE(ModC_GlobalError); \
-            MPT_REMOVE_PARENTHESIS(failedAction); \
-        } \
-    } while(0)
+            if(ModC_GlobalError) \
+            { \
+                MODC_ERROR_APPEND_TRACE(ModC_GlobalError); \
+                MPT_REMOVE_PARENTHESIS(failedAction); \
+            } \
+        } while(0)
 
 
-#define MODC_RESULT_TRY(ModC_ExprResultName, expr, failedAction) \
-    INTERN_MODC_RESULT_TRY(ModC_ExprResultName, expr, failedAction, __COUNTER__)
+    #define MODC_RESULT_TRY(ModC_ExprResultName, expr, failedAction) \
+        INTERN_MODC_RESULT_TRY(ModC_ExprResultName, expr, failedAction, __COUNTER__)
+#else
+    #define MODC_RESULT_TRY(result, failedAction) \
+        result.ValueOrError.Value; \
+        do \
+        { \
+            if(result.HasError) \
+            { \
+                MODC_ERROR_APPEND_TRACE(result.ValueOrError.Error); \
+                MPT_REMOVE_PARENTHESIS(failedAction); \
+            } \
+        } while(0)
+#endif
 
 
 #define MODC_ERROR_MSG_EC_ALLOC(msg, allocator, errorCode) \
     MPT_DELAYED_CONCAT2(ModC_ResultName, _CreateError) \
     ( \
         ModC_Error_InternCreateErrorMsgEc(  (msg), \
-        __FILE__, \
-        __func__, \
-        __LINE__, \
-        (errorCode), \
-        (allocator)) \
+                                            __FILE__, \
+                                            __func__, \
+                                            __LINE__, \
+                                            (errorCode), \
+                                            (allocator)) \
     )
 
 #define MODC_ERROR_MSG_ALLOC(msg, allocator) \
     MODC_ERROR_MSG_EC_ALLOC(msg, allocator, 0)
 
 #define MODC_ERROR_MSG(msg) \
-    MODC_ERROR_MSG_EC_ALLOC(msg, MODC_PERFORM_ALLOC(), 0)
+    MODC_ERROR_MSG_EC_ALLOC(msg, MODC_DEFAULT_ALLOC(), 0)
 
 #define MODC_ERROR_MSG_EC(msg, errorCode) \
-    MODC_ERROR_MSG_EC_ALLOC(msg, MODC_PERFORM_ALLOC(), errorCode)
+    MODC_ERROR_MSG_EC_ALLOC(msg, MODC_DEFAULT_ALLOC(), errorCode)
+
+
+
+
+#define INTERN_MODC_STR_VIEW_FROM_STR_FMT(allocator, strfmts) \
+    ModC_StringOrConstView_String(ModC_String_FromFormat(allocator, MPT_REMOVE_PARENTHESIS(strfmts)))
+
+#define INTERN_MODC_ERROR_STR_FMT_ALLOC_3(allocator, strfmts, errorCode) \
+    MPT_DELAYED_CONCAT2(ModC_ResultName, _CreateError) \
+    ( \
+        ModC_Error_InternCreateErrorMsgEc(  INTERN_MODC_STR_VIEW_FROM_STR_FMT(allocator, strfmts), \
+                                            __FILE__, \
+                                            __func__, \
+                                            __LINE__, \
+                                            (errorCode), \
+                                            (allocator)) \
+    )
+
+#define INTERN_MODC_ERROR_STR_FMT_ALLOC_2(allocator, strfmts) \
+    INTERN_MODC_ERROR_STR_FMT_ALLOC_3(allocator, strfmts, 0)
+
+//ModC_ResultName MODC_ERROR_STR_FMT_ALLOC(ModC_Allocator allocator, (format, ...));
+//ModC_ResultName MODC_ERROR_STR_FMT_ALLOC(ModC_Allocator allocator, (format, ...), int32_t errorCode);
+#define MODC_ERROR_STR_FMT_ALLOC(...) MPT_OVERLOAD_MACRO(INTERN_MODC_ERROR_STR_FMT_ALLOC, __VA_ARGS__)
+
+//ModC_ResultName MODC_ERROR_STR_FMT((format, ...));
+//ModC_ResultName MODC_ERROR_STR_FMT((format, ...), int32_t errorCode);
+#define MODC_ERROR_STR_FMT(...) MODC_ERROR_STR_FMT_ALLOC(MODC_DEFAULT_ALLOC(), __VA_ARGS__)
+
+#define INTERN_MODC_ERROR_CSTR_ALLOC_3(allocator, cstr, errorCode) \
+    MPT_DELAYED_CONCAT2(ModC_ResultName, _CreateError) \
+    ( \
+        ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView_ViewFromCStr(cstr), \
+                                            __FILE__, \
+                                            __func__, \
+                                            __LINE__, \
+                                            (errorCode), \
+                                            (allocator)) \
+    )
+
+#define INTERN_MODC_ERROR_CSTR_ALLOC_2(allocator, cstr) \
+    INTERN_MODC_ERROR_CSTR_ALLOC_3(allocator, cstr, 0)
+
+//ModC_ResultName MODC_ERROR_CSTR_ALLOC(ModC_Allocator allocator, cstr);
+//ModC_ResultName MODC_ERROR_CSTR_ALLOC(ModC_Allocator allocator, cstr, int32_t errorCode);
+#define MODC_ERROR_CSTR_ALLOC(...) MPT_OVERLOAD_MACRO(INTERN_MODC_ERROR_CSTR_ALLOC, __VA_ARGS__)
+
+//ModC_ResultName MODC_ERROR_CSTR(cstr);
+//ModC_ResultName MODC_ERROR_CSTR(cstr, int32_t errorCode);
+#define MODC_ERROR_CSTR(...) MODC_ERROR_CSTR_ALLOC(MODC_DEFAULT_ALLOC(), __VA_ARGS__)
+
+
+
 
 
 #define MODC_RESULT_VALUE(val) MPT_DELAYED_CONCAT(ModC_ResultName, _CreateValue)(val)
@@ -360,7 +443,7 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView msg,
     MPT_DELAYED_CONCAT(ModC_ResultName, _ToString)(resultVal, allocator)
 
 #define MODC_RESULT_TO_STRING(resultVal) \
-    MPT_DELAYED_CONCAT(ModC_ResultName, _ToString)(resultVal, MODC_PERFORM_ALLOC())
+    MPT_DELAYED_CONCAT(ModC_ResultName, _ToString)(resultVal, MODC_DEFAULT_ALLOC())
 
 #define INTERNAL_MODC_ASSERT_EC_ALLOC(expr, errorCode, formatAppend, failedAction, allocator) \
     do \
@@ -387,12 +470,12 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView msg,
     INTERNAL_MODC_ASSERT_EC_ALLOC(expr, 0, formatAppend, failedAction, allocator)
 
 #define MODC_ASSERT(expr, formatAppend, failedAction) \
-    INTERNAL_MODC_ASSERT_EC_ALLOC(expr, 0, formatAppend, failedAction, (MODC_PERFORM_ALLOC()))
+    INTERNAL_MODC_ASSERT_EC_ALLOC(expr, 0, formatAppend, failedAction, (MODC_DEFAULT_ALLOC()))
 
 #define MODC_ASSERT_EC_ALLOC(expr, errorCode, formatAppend, failedAction, allocator) \
     INTERNAL_MODC_ASSERT_EC_ALLOC(expr, errorCode, formatAppend, failedAction, allocator)
 
 #define MODC_ASSERT_EC(expr, errorCode, formatAppend, failedAction) \
-    INTERNAL_MODC_ASSERT_EC_ALLOC(expr, errorCode, formatAppend, failedAction, (MODC_PERFORM_ALLOC()))
+    INTERNAL_MODC_ASSERT_EC_ALLOC(expr, errorCode, formatAppend, failedAction, (MODC_DEFAULT_ALLOC()))
 
 #endif

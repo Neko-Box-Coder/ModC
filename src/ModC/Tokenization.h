@@ -1,8 +1,8 @@
 #ifndef MODC_TOKENIZATION_H
 #define MODC_TOKENIZATION_H
 
-#ifndef MODC_PERFORM_ALLOC
-    #define MODC_PERFORM_ALLOC() ModC_CreateHeapAllocator()
+#ifndef MODC_DEFAULT_ALLOC
+    #define MODC_DEFAULT_ALLOC() ModC_CreateHeapAllocator()
 #endif
 
 #include "ModC/Strings/Strings.h"
@@ -418,7 +418,7 @@ static inline ModC_Result_Bool ModC_Token_IsCharExpandable( ModC_Token* this,
             return MODC_RESULT_VALUE(cType == ModC_CharTokenType_Undef);
         case ModC_TokenType_Count:
         default:
-            return MODC_ERROR_MSG(ModC_StringOrConstView_ViewFromCStr("Huh?"));
+            return MODC_ERROR_CSTR("Huh?");
     } //switch(this->TokenType)
     
     return MODC_RESULT_VALUE(false);
@@ -450,19 +450,25 @@ static inline ModC_Result_TokenList Tokenization(   const ModC_ConstStringView f
     for(int i = 1; i < fileContent.Length - 1; ++i)
     {
         ModC_CharTokenType charTokenType = ModC_CharType_ToCharTokenType(fileContent.Data[i]);
-        (void)charTokenType;
-        
-        
-        //MODC_RESULT_TRY(ModC_Result_Void, 
-        //                        ModC_Token_AppendChar(this, source, c, allocator, false), 
-        //                        MODC_RET_ERROR());
-        
-        //MODC_ASSERT(source.Length > 0, (""), MODC_RET_ERROR());
+        ModC_Result_Bool boolResult = ModC_Token_IsCharExpandable(  &currentToken, 
+                                                                    fileContent.Data[i], 
+                                                                    charTokenType);
+        bool appendable = MODC_RESULT_TRY(boolResult, MODC_RET_ERROR());
+        if(!appendable)
+        {
+            
+        }
+        else
+        {
+            ModC_Result_Void voidResult = ModC_Token_AppendChar(&currentToken, 
+                                                                fileContent, 
+                                                                fileContent.Data[i], 
+                                                                allocator, 
+                                                                false);
+            (void)MODC_RESULT_TRY(voidResult, MODC_RET_ERROR());
+        }
     }
     
-    
-    //TODO(NOW)
-    (void) fileContent;
     return MODC_RESULT_VALUE(tokenList);
 }
 
