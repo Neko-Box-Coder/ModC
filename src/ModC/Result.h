@@ -119,10 +119,10 @@ Macros:
     You can specify the error code with the `_EC` macro variants.
     Use `MODC_RET_ERROR()` inside `failedAction` to return the error.
 ```c
-MODC_ASSERT_ALLOC(expr, failedAction, (formatAppend), allocator);
+MODC_ASSERT_ALLOC(expr, (formatAppend), allocator, failedAction);
 MODC_ASSERT(expr, (formatAppend), failedAction);
 
-MODC_ASSERT_EC_ALLOC(expr, errorCode, (formatAppend), failedAction, allocator);
+MODC_ASSERT_EC_ALLOC(expr, errorCode, (formatAppend), allocator, failedAction);
 MODC_ASSERT_EC(expr, errorCode, (formatAppend), failedAction);
 ```
 */
@@ -331,14 +331,14 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView msg,
     #define MODC_RESULT_TRY(ModC_ExprResultName, expr, failedAction) \
         INTERN_MODC_RESULT_TRY(ModC_ExprResultName, expr, failedAction, __COUNTER__)
 #else
-    #define MODC_RESULT_TRY(result, failedAction) \
+    #define MODC_RESULT_TRY(result, ... /* failedAction */) \
         result.ValueOrError.Value; \
         do \
         { \
             if(result.HasError) \
             { \
                 MODC_ERROR_APPEND_TRACE(result.ValueOrError.Error); \
-                MPT_REMOVE_PARENTHESIS(failedAction); \
+                __VA_ARGS__; \
             } \
         } while(0)
 #endif
@@ -445,7 +445,7 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView msg,
 #define MODC_RESULT_TO_STRING(resultVal) \
     MPT_DELAYED_CONCAT(ModC_ResultName, _ToString)(resultVal, MODC_DEFAULT_ALLOC())
 
-#define INTERNAL_MODC_ASSERT_EC_ALLOC(expr, errorCode, formatAppend, failedAction, allocator) \
+#define INTERNAL_MODC_ASSERT_EC_ALLOC(expr, errorCode, formatAppend, allocator, ... /* failedAction */) \
     do \
     { \
         if(!(expr)) \
@@ -461,21 +461,21 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView msg,
                                                                     (allocator)); \
             ModC_String_AppendFormat(   &ModC_GlobalError->ErrorMsg, \
                                         MPT_REMOVE_PARENTHESIS(formatAppend)); \
-            MPT_REMOVE_PARENTHESIS(failedAction); \
+            __VA_ARGS__; \
         } \
     } \
     while(false)
 
-#define MODC_ASSERT_ALLOC(expr, formatAppend, failedAction, allocator) \
-    INTERNAL_MODC_ASSERT_EC_ALLOC(expr, 0, formatAppend, failedAction, allocator)
+#define MODC_ASSERT(expr, formatAppend, ... /* failedAction */) \
+    INTERNAL_MODC_ASSERT_EC_ALLOC(expr, 0, formatAppend, (MODC_DEFAULT_ALLOC()), __VA_ARGS__)
 
-#define MODC_ASSERT(expr, formatAppend, failedAction) \
-    INTERNAL_MODC_ASSERT_EC_ALLOC(expr, 0, formatAppend, failedAction, (MODC_DEFAULT_ALLOC()))
+#define MODC_ASSERT_ALLOC(expr, formatAppend, allocator, ... /* failedAction */) \
+    INTERNAL_MODC_ASSERT_EC_ALLOC(expr, 0, formatAppend, allocator, __VA_ARGS__)
 
-#define MODC_ASSERT_EC_ALLOC(expr, errorCode, formatAppend, failedAction, allocator) \
-    INTERNAL_MODC_ASSERT_EC_ALLOC(expr, errorCode, formatAppend, failedAction, allocator)
+#define MODC_ASSERT_EC_ALLOC(expr, errorCode, formatAppend, allocator, ... /* failedAction */) \
+    INTERNAL_MODC_ASSERT_EC_ALLOC(expr, errorCode, formatAppend, allocator, __VA_ARGS__)
 
-#define MODC_ASSERT_EC(expr, errorCode, formatAppend, failedAction) \
-    INTERNAL_MODC_ASSERT_EC_ALLOC(expr, errorCode, formatAppend, failedAction, (MODC_DEFAULT_ALLOC()))
+#define MODC_ASSERT_EC(expr, errorCode, formatAppend, ... /* failedAction */) \
+    INTERNAL_MODC_ASSERT_EC_ALLOC(expr, errorCode, formatAppend, (MODC_DEFAULT_ALLOC()), __VA_ARGS__)
 
 #endif

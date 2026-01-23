@@ -47,14 +47,14 @@ MODC_DEFER_SCOPE_END
                 /* Sets the final execution to 0 for normal exit */ \
                 modcDefers[0] = 0;
 
-#define INTERNAL_MODC_DEFER(counter, statements) \
+#define INTERNAL_MODC_DEFER(counter, ... /* statements */) \
             do \
             { \
                 if(false) \
                 { \
                     /* Defer block */ \
                     case counter:; \
-                    statements; \
+                    __VA_ARGS__; \
                     /* Go to previous defer, we run defers in reverse order */ \
                     --modcDeferIndex; \
                     goto modcDeferStart; \
@@ -66,9 +66,9 @@ MODC_DEFER_SCOPE_END
             } \
             while(false)
 
-#define MODC_DEFER(statements) INTERNAL_MODC_DEFER(__COUNTER__, statements)
+#define MODC_DEFER(... /* statements */) INTERNAL_MODC_DEFER(__COUNTER__, __VA_ARGS__)
 
-#define INTERN_MODC_DEFER_BREAK(counter, expr) \
+#define INTERN_MODC_DEFER_BREAK(counter, ... /* statements */) \
             do \
             { \
                 /* Register return */ \
@@ -78,22 +78,20 @@ MODC_DEFER_SCOPE_END
                 { \
                     /* Return statement block */ \
                     case counter:; \
-                    expr; \
+                    __VA_ARGS__; \
                     goto modcDeferScopeEnd; \
                 } \
             } \
             while(false)
 
-#define MODC_DEFER_BREAK(expr) INTERN_MODC_DEFER_BREAK(__COUNTER__, expr)
+#define MODC_DEFER_BREAK(... /* statements */) INTERN_MODC_DEFER_BREAK(__COUNTER__, __VA_ARGS__)
 
-#define INTERNAL_MODC_DEFER_SCOPE_END(counter) \
+#define MODC_DEFER_SCOPE_END \
             goto modcDeferStart; \
         } /* switch(modcDefers[modcDeferIndex]) */ \
         goto modcDeferScopeEnd; \
         modcDeferScopeEnd:; \
     }
-
-#define MODC_DEFER_SCOPE_END INTERNAL_MODC_DEFER_SCOPE_END(__COUNTER__)
 
 
 #endif
