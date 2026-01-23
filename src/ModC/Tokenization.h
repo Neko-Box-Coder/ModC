@@ -119,173 +119,63 @@ static inline ModC_Result_Void ModC_Token_AppendChar(   ModC_Token* this,
     return MODC_RESULT_VALUE(0);
 }
 
-
 #define MODC_LIST_NAME ModC_TokenList
 #define MODC_VALUE_TYPE ModC_Token
 #include "ModC/List.h"
 
-typedef enum 
+static inline ModC_CharTokenType ModC_CharTokenType_FromChar(char c)
 {
-    ModC_CharType_Alpha,    //Including underscore
-    ModC_CharType_Numeric,
-    ModC_CharType_Space,
-    ModC_CharType_Newline,
-    ModC_CharType_Hash,
-    ModC_CharType_LParen,
-    ModC_CharType_RParen,
-    ModC_CharType_LCurlyBrace,
-    ModC_CharType_RCurlyBrace,
-    ModC_CharType_LSquareBrace,
-    ModC_CharType_RSquareBrace,
-    ModC_CharType_Semicolon,
-    ModC_CharType_Assign,
-    ModC_CharType_Comma,
-    ModC_CharType_Dot,
-    ModC_CharType_Slash,
-    ModC_CharType_BackSlash,
-    ModC_CharType_Plus,
-    ModC_CharType_Minus,
-    ModC_CharType_Multi,
-    ModC_CharType_Modulo,
-    ModC_CharType_BitXor,
-    ModC_CharType_StringQuote,
-    ModC_CharType_CharQuote,
-    ModC_CharType_LogicalNot,
-    ModC_CharType_BitOr,
-    ModC_CharType_BitAnd,
-    ModC_CharType_BitNot,
-    ModC_CharType_TernaryCondition,
-    ModC_CharType_TernaryColon,
-    ModC_CharType_Undef,
-    ModC_CharType_Count,    //31
-} ModC_CharType;
-
-
-//TODO: Use TokenType instead
-static inline ModC_CharType GetCharType(char c)
-{
+    static_assert((int)ModC_TokenType_Count == 18, "");
     if(isalpha(c) || c == '_')
-        return ModC_CharType_Alpha;
+        return ModC_CharTokenType_Identifier;
     else if(isdigit(c))
-        return ModC_CharType_Numeric;
+        return ModC_CharTokenType_IntLiteral;
     else if(c == ' ' || c == '\t' || c == '\r')
-        return ModC_CharType_Space;
+        return ModC_CharTokenType_Space;
     
-    static_assert((int)ModC_CharType_Count == 31, "");
     switch(c)
     {
         case '\n':
-            return ModC_CharType_Newline;
-        case '#':
-            return ModC_CharType_Hash;
-        case '(':
-            return ModC_CharType_LParen;
-        case ')':
-            return ModC_CharType_RParen;
-        case '{':
-            return ModC_CharType_LCurlyBrace;
-        case '}':
-            return ModC_CharType_RCurlyBrace;
-        case '[':
-            return ModC_CharType_LSquareBrace;
-        case ']':
-            return ModC_CharType_RSquareBrace;
-        case ';':
-            return ModC_CharType_Semicolon;
-        case '=':
-            return ModC_CharType_Assign;
-        case ',':
-            return ModC_CharType_Comma;
-        case '.':
-            return ModC_CharType_Dot;
-        case '/':
-            return ModC_CharType_Slash;
-        case '\\':
-            return ModC_CharType_BackSlash;
-        case '+':
-            return ModC_CharType_Plus;
-        case '-':
-            return ModC_CharType_Minus;
-        case '*':
-            return ModC_CharType_Multi;
-        case '%':
-            return ModC_CharType_Modulo;
-        case '^':
-            return ModC_CharType_BitXor;
-        case '"':
-            return ModC_CharType_StringQuote;
-        case '\'':
-            return ModC_CharType_CharQuote;
-        case '!':
-            return ModC_CharType_LogicalNot;
-        case '|':
-            return ModC_CharType_BitOr;
-        case '&':
-            return ModC_CharType_BitAnd;
-        case '~':
-            return ModC_CharType_BitNot;
-        case '?':
-            return ModC_CharType_TernaryCondition;
-        case ':':
-            return ModC_CharType_TernaryColon;
-        default:
-            return ModC_CharType_Undef;
-    }
-}
-
-static inline ModC_CharTokenType ModC_CharType_ToCharTokenType(ModC_CharType type)
-{
-    static_assert((int)ModC_CharType_Count == 31, "");
-    static_assert((int)ModC_TokenType_Count == 18, "");
-    switch(type)
-    {
-        case ModC_CharType_Alpha:
-            return ModC_CharTokenType_Identifier;
-        case ModC_CharType_Numeric:
-            return ModC_CharTokenType_IntLiteral;
-        case ModC_CharType_Space:
-            return ModC_CharTokenType_Space;
-        case ModC_CharType_Newline:
             return ModC_CharTokenType_Newline;
-        case ModC_CharType_LParen:
+        case '(':
             return ModC_CharTokenType_InvokeStart;
-        case ModC_CharType_RParen:
+        case ')':
             return ModC_CharTokenType_InvokeEnd;
-        case ModC_CharType_LCurlyBrace:
+        case '{':
             return ModC_CharTokenType_BlockStart;
-        case ModC_CharType_RCurlyBrace:
+        case '}':
             return ModC_CharTokenType_BlockEnd;
-        case ModC_CharType_StringQuote:
+        case '"':
             return ModC_CharTokenType_StringLiteral;
-        case ModC_CharType_CharQuote:
+        case '\'':
             return ModC_CharTokenType_CharLiteral;
-        case ModC_CharType_Semicolon:
+        case ';':
             return ModC_CharTokenType_Semicolon;
-        case ModC_CharType_Hash:
-        case ModC_CharType_LSquareBrace:
-        case ModC_CharType_RSquareBrace:
-        case ModC_CharType_Assign:
-        case ModC_CharType_Comma:
-        case ModC_CharType_Dot:
-        case ModC_CharType_Slash:
-        case ModC_CharType_BackSlash:
-        case ModC_CharType_Plus:
-        case ModC_CharType_Minus:
-        case ModC_CharType_Multi:
-        case ModC_CharType_Modulo:
-        case ModC_CharType_BitXor:
-        case ModC_CharType_LogicalNot:
-        case ModC_CharType_BitOr:
-        case ModC_CharType_BitAnd:
-        case ModC_CharType_BitNot:
-        case ModC_CharType_TernaryCondition:
-        case ModC_CharType_TernaryColon:
+        case '#':
+        case '[':
+        case ']':
+        case '=':
+        case ',':
+        case '.':
+        case '/':
+        case '\\':
+        case '+':
+        case '-':
+        case '*':
+        case '%':
+        case '^':
+        case '!':
+        case '|':
+        case '&':
+        case '~':
+        case '?':
+        case ':':
             return ModC_CharTokenType_Operator;
-        case ModC_CharType_Undef:
-        case ModC_CharType_Count:
+        default:
             return ModC_CharTokenType_Undef;
     }
 }
+
 
 #undef ModC_ResultName
 #define ModC_ResultName ModC_Result_Bool
@@ -437,9 +327,8 @@ static inline ModC_Result_TokenList Tokenization(   const ModC_ConstStringView f
         return MODC_RESULT_VALUE( (ModC_TokenList){0} );
     
     ModC_TokenList tokenList = ModC_TokenList_Create(ModC_Allocator_Share(&allocator), 128);
-    ModC_CharType firstCharType = GetCharType(fileContent.Data[0]);
     ModC_Token currentToken = 
-        ModC_Token_CreateView(  (ModC_TokenType)ModC_CharType_ToCharTokenType(firstCharType), 
+        ModC_Token_CreateView(  (ModC_TokenType)ModC_CharTokenType_FromChar(fileContent.Data[0]), 
                                 ModC_ConstStringView_Create(&fileContent.Data[0], 1));
     if(fileContent.Length == 1)
     {
@@ -449,7 +338,7 @@ static inline ModC_Result_TokenList Tokenization(   const ModC_ConstStringView f
     
     for(int i = 1; i < fileContent.Length - 1; ++i)
     {
-        ModC_CharTokenType charTokenType = ModC_CharType_ToCharTokenType(fileContent.Data[i]);
+        ModC_CharTokenType charTokenType = ModC_CharTokenType_FromChar(fileContent.Data[i]);
         ModC_Result_Bool boolResult = ModC_Token_IsCharExpandable(  &currentToken, 
                                                                     fileContent.Data[i], 
                                                                     charTokenType);
