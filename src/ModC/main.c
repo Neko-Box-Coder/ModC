@@ -57,14 +57,14 @@ ModC_Result_Void Main(int argc, char* argv[])
     ModC_Allocator mainArena;
     ModC_String fileContent;
     
-    #define RUN_DEFER_AND_RET() MODC_RUN_DEFER_NOW_AND( MODC_RET_ERROR() )
+    #define RUN_DEFER_RET_ERR() MODC_DEFER_BREAK( MODC_RET_ERROR() )
     
     MODC_DEFER_SCOPE_START
     {
         if(argc == 1)
         {
             printf("Usage: %s <path>\n", argv[0]);
-            MODC_RUN_DEFER_NOW_AND(return MODC_RESULT_VALUE(0));
+            MODC_DEFER_BREAK(return MODC_RESULT_VALUE(0));
         }
         
         ModC_StringView filePath = ModC_StringView_Create(argv[1], strlen(argv[1]));
@@ -72,25 +72,17 @@ ModC_Result_Void Main(int argc, char* argv[])
         
         modcFile = fopen(filePath.Data, "r");
         if(!modcFile)
-        {
-            MODC_RUN_DEFER_NOW_AND
-            (
-                ModC_String msgStr = ModC_String_FromFormat(ModC_CreateHeapAllocator(), 
-                                                            "Failed to open file: %s", 
-                                                            strerror(errno));
-                return MODC_ERROR_MSG(ModC_StringOrConstView_String(msgStr))
-            );
-            
-        }
+            MODC_DEFER_BREAK( return MODC_ERROR_STR_FMT(("Failed to open file: %s", strerror(errno))) );
+        
         MODC_DEFER({ fclose(modcFile); modcFile = NULL; });
         
         //Get file size
         int64_t fileSize;
         {
             int fseekResult = fseek(modcFile, 0, SEEK_END);
-            MODC_ASSERT(fseekResult == 0, (" fseekResult: %i.", fseekResult), RUN_DEFER_AND_RET());
+            MODC_ASSERT(fseekResult == 0, (" fseekResult: %i.", fseekResult), RUN_DEFER_RET_ERR());
             fileSize = ftell(modcFile);
-            MODC_ASSERT(fileSize >= 0, (" fileSize: "PRIi64".", fileSize), RUN_DEFER_AND_RET());
+            MODC_ASSERT(fileSize >= 0, (" fileSize: "PRIi64".", fileSize), RUN_DEFER_RET_ERR());
         }
         
         fseek(modcFile, 0, 0);
@@ -99,15 +91,15 @@ ModC_Result_Void Main(int argc, char* argv[])
         
         fileContent = ModC_String_Create(ModC_ShareArenaAllocator(mainArena.Allocator), fileSize);
         ModC_String_Resize(&fileContent, fileSize);
-        MODC_ASSERT(fileContent.Length == fileSize, "", RUN_DEFER_AND_RET());
+        MODC_ASSERT(fileContent.Length == fileSize, "", RUN_DEFER_RET_ERR());
         
         uint32_t actuallyRead = fread(fileContent.Data, 1, fileSize, modcFile);
         MODC_ASSERT(actuallyRead == fileSize, 
                     (" actuallyRead: %"PRIu64", fileSize: %"PRIi64, actuallyRead, fileSize),
-                    RUN_DEFER_AND_RET());
+                    RUN_DEFER_RET_ERR());
     }
     MODC_DEFER_SCOPE_END
-    #undef RUN_DEFER_AND_RET
+    #undef RUN_DEFER_RET_ERR
     
     return MODC_RESULT_VALUE(0);
 }

@@ -11,13 +11,13 @@ MODC_DEFER(statements);     //Runs second
 MODC_DEFER(statements);     //Runs first
 if(...)
 {
-    MODC_RUN_DEFER_NOW_AND(return ...);
+    MODC_DEFER_BREAK(return ...);
 }
 ...
 MODC_DEFER_SCOPE_END
 ```
 
-`MODC_RUN_DEFER_NOW_AND` will go to `MODC_DEFER_SCOPE_END` if it doesn't contain a return statement.
+`MODC_DEFER_BREAK` will go to `MODC_DEFER_SCOPE_END` if it doesn't contain a return statement.
 */
 
 
@@ -68,7 +68,7 @@ MODC_DEFER_SCOPE_END
 
 #define MODC_DEFER(statements) INTERNAL_MODC_DEFER(__COUNTER__, statements)
 
-#define INTERN_MODC_RUN_DEFER_NOW_AND(counter, expr) \
+#define INTERN_MODC_DEFER_BREAK(counter, expr) \
             do \
             { \
                 /* Register return */ \
@@ -84,7 +84,7 @@ MODC_DEFER_SCOPE_END
             } \
             while(false)
 
-#define MODC_RUN_DEFER_NOW_AND(expr) INTERN_MODC_RUN_DEFER_NOW_AND(__COUNTER__, expr)
+#define MODC_DEFER_BREAK(expr) INTERN_MODC_DEFER_BREAK(__COUNTER__, expr)
 
 #define INTERNAL_MODC_DEFER_SCOPE_END(counter) \
             goto modcDeferStart; \
