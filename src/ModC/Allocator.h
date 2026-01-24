@@ -10,6 +10,7 @@ Just read the code
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 typedef enum
 {
@@ -31,16 +32,17 @@ typedef struct
     #include <inttypes.h>
     
     #ifndef INTERN_PRINT_MODC_PRINT_TRACE
-        #define INTERN_PRINT_MODC_PRINT_TRACE(data) \
+        #define INTERN_PRINT_MODC_PRINT_TRACE(...) \
             do \
             { \
-                printf("%s: %p\n", __func__, (void*)data); \
+                printf("%s: \n", __func__); \
+                printf("    " __VA_ARGS__); \
                 fflush(stdout); \
             } while(0)
     #endif
 #else
     #ifndef INTERN_PRINT_MODC_PRINT_TRACE
-        #define INTERN_PRINT_MODC_PRINT_TRACE(data) do {(void)data;} while(0)
+        #define INTERN_PRINT_MODC_PRINT_TRACE(...) do {} while(0)
     #endif
 #endif
 
@@ -55,7 +57,7 @@ static inline void* ModC_Allocator_Malloc(const ModC_Allocator* this, uint64_t s
     {
         case ModC_AllocatorType_Heap:
             retPtr = malloc(size);
-            INTERN_PRINT_MODC_PRINT_TRACE(retPtr);
+            INTERN_PRINT_MODC_PRINT_TRACE("retPtr: %p, %" PRIu64 "\n", retPtr, size);
             break;
         case ModC_AllocatorType_SharedArena:
         case ModC_AllocatorType_OwnedArena:
@@ -71,9 +73,9 @@ static inline void* ModC_Allocator_Malloc(const ModC_Allocator* this, uint64_t s
     return retPtr;
 }
 
-static inline void* ModC_Allocator_Realloc(   const ModC_Allocator* this, 
-                                                    void* data, 
-                                                    uint64_t size)
+static inline void* ModC_Allocator_Realloc( const ModC_Allocator* this, 
+                                            void* data, 
+                                            uint64_t size)
 {
     void* retPtr = NULL;
     if(!this)
@@ -84,7 +86,7 @@ static inline void* ModC_Allocator_Realloc(   const ModC_Allocator* this,
     {
         case ModC_AllocatorType_Heap:
             retPtr = realloc(data, size);
-            INTERN_PRINT_MODC_PRINT_TRACE(retPtr);
+            INTERN_PRINT_MODC_PRINT_TRACE("retPtr: %p, %" PRIu64 "\n", retPtr, size);
             break;
         case ModC_AllocatorType_SharedArena:
         case ModC_AllocatorType_OwnedArena:
@@ -106,7 +108,7 @@ static inline void ModC_Allocator_Free(const ModC_Allocator* this, void* data)
     switch(this->Type)
     {
         case ModC_AllocatorType_Heap:
-            INTERN_PRINT_MODC_PRINT_TRACE(data);
+            INTERN_PRINT_MODC_PRINT_TRACE("Free: %p\n", data);
             free(data);
             break;
         case ModC_AllocatorType_SharedArena:
@@ -131,7 +133,7 @@ static inline void ModC_Allocator_Destroy(ModC_Allocator* this)
         case ModC_AllocatorType_OwnedArena:
             if(!this->Allocator)
                 return;
-            INTERN_PRINT_MODC_PRINT_TRACE(this);
+            INTERN_PRINT_MODC_PRINT_TRACE("this->Allocator: %p\n", this->Allocator);
             arena_destroy(this->Allocator);
             break;
         default:
@@ -172,7 +174,7 @@ static inline ModC_Allocator ModC_CreateArenaAllocator(uint64_t allocateSize)
         .Type = ModC_AllocatorType_OwnedArena,
         .Allocator = arena_create(allocateSize),
     };
-    INTERN_PRINT_MODC_PRINT_TRACE(retAlloc.Allocator);
+    INTERN_PRINT_MODC_PRINT_TRACE("retAlloc.Allocator: %p\n", retAlloc.Allocator);
     return retAlloc;
 }
 
