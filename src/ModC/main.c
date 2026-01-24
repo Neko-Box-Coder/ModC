@@ -44,8 +44,8 @@ static inline ModC_Result_Int32 TestResult()
 static inline ModC_Result_Int32 TestResult2()
 {
     ModC_Result_Int32 intResult = TestResult();
-    int32_t unwrappedVal = MODC_RESULT_TRY(intResult, MODC_RET_ERROR());
-    return MODC_RESULT_VALUE(unwrappedVal);
+    int32_t* unwrappedVal = MODC_RESULT_TRY(intResult, MODC_RET_ERROR());
+    return MODC_RESULT_VALUE(*unwrappedVal);
 }
 
 #undef ModC_ResultName
@@ -104,14 +104,15 @@ ModC_Result_Void Main(int argc, char* argv[])
         ModC_Result_TokenList tokenListResult = 
             ModC_Tokenization(  ModC_ConstStringView_Create(fileContent.Data, fileContent.Length),
                                 ModC_ShareArenaAllocator(mainArena.Allocator));
-        ModC_TokenList tokenList = MODC_RESULT_TRY( tokenListResult, 
+        ModC_TokenList* tokenList = MODC_RESULT_TRY(tokenListResult, 
                                                     MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
-        MODC_DEFER(0, ModC_TokenList_Free(&tokenList));
         
-        for(int i = 0; i < tokenList.Length; ++i)
+        MODC_DEFER(0, ModC_TokenList_Free(tokenList));
+        
+        for(int i = 0; i < tokenList->Length; ++i)
         {
-            ModC_ConstStringView typeStr = ModC_TokenType_ToCStr(tokenList.Data[i].TokenType);
-            ModC_ConstStringView tokenTextView = ModC_Token_TokenTextView(&tokenList.Data[i]);
+            ModC_ConstStringView typeStr = ModC_TokenType_ToCStr(tokenList->Data[i].TokenType);
+            ModC_ConstStringView tokenTextView = ModC_Token_TokenTextView(&tokenList->Data[i]);
             printf( "Token: \"%.*s\", Token Type[%i]: %.*s\n", 
                     (int)tokenTextView.Length, tokenTextView.Data,
                     i, 

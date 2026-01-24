@@ -58,7 +58,7 @@ Macro:
     You can use `MODC_LAST_ERROR` which points to the error used to return.
     You can use `MODC_LAST_ERROR_MSG` which points to the error message used to return.
     Use `MODC_RET_ERROR()` inside `failedAction` to return the error.
-`valueType MODC_RESULT_TRY(result, failedAction);`
+`valueType* MODC_RESULT_TRY(result, failedAction);`
 
 
 Macro:
@@ -332,11 +332,12 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView msg,
         INTERN_MODC_RESULT_TRY(ModC_ExprResultName, expr, failedAction, __COUNTER__)
 #else
     #define MODC_RESULT_TRY(result, ... /* failedAction */) \
-        result.ValueOrError.Value; \
+        &result.ValueOrError.Value; \
         do \
         { \
             if(result.HasError) \
             { \
+                ModC_GlobalError = result.ValueOrError.Error; \
                 MODC_ERROR_APPEND_TRACE(result.ValueOrError.Error); \
                 __VA_ARGS__; \
             } \

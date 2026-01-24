@@ -377,8 +377,8 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ModC_ConstStringVi
             ModC_Result_Bool boolResult = ModC_Token_IsCharPossible(&currentToken, 
                                                                     fileContent.Data[i], 
                                                                     charTokenType);
-            bool possible = MODC_RESULT_TRY(boolResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
-            if(!possible)
+            bool* possible = MODC_RESULT_TRY(boolResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
+            if(!(*possible))
             {
                 ModC_TokenList_AddValue(&tokenList, currentToken);
                 currentToken = 
