@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
         {
             MODC_ERROR_APPEND_TRACE(result.ValueOrError.Error);
             ModC_String resultStr = MODC_RESULT_TO_STRING(result);
-            printf("%s\n", resultStr.Data);
+            printf("%.*s\n", (int)resultStr.Length, resultStr.Data);
             ModC_String_Free(&resultStr);
         }
         MODC_RESULT_FREE_RESOURCE(&result);
@@ -135,7 +135,7 @@ int main(int argc, char* argv[])
         {
             MODC_ERROR_APPEND_TRACE(result.ValueOrError.Error);
             ModC_String resultStr = MODC_RESULT_TO_STRING(result);
-            printf("%s\n", resultStr.Data);
+            printf("%.*s\n", (int)resultStr.Length, resultStr.Data);
             ModC_String_Free(&resultStr);
         }
         MODC_RESULT_FREE_RESOURCE(&result);
