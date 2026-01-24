@@ -59,6 +59,11 @@ static inline MODC_VIEW_NAME* MPT_DELAYED_CONCAT(MODC_VIEW_NAME, _Remove)(  MODC
 {
     if(!this || index >= this->Length)
         return this;
+    
+    #ifdef MODC_VALUE_FREE
+        MODC_VALUE_FREE(&this->Data[index]);
+    #endif
+    
     if(index == this->Length - 1)
     {
         --(this->Length);
@@ -78,7 +83,17 @@ MPT_DELAYED_CONCAT(MODC_VIEW_NAME, _RemoveRange)(   MODC_VIEW_NAME* this,
 {
     if(!this || startIndex >= this->Length || startIndex >= endExclusiveIndex)
         return this;
-    if(endExclusiveIndex >= this->Length)
+    
+    endExclusiveIndex = endExclusiveIndex > this->Length ? this->Length : endExclusiveIndex;
+    
+    #ifdef MODC_VALUE_FREE
+        for(uint64_t i = startIndex; i < endExclusiveIndex; ++i)
+        {
+            MODC_VALUE_FREE(&this->Data[i]);
+        }
+    #endif
+    
+    if(endExclusiveIndex == this->Length)
     {
         endExclusiveIndex = this->Length;
         this->Length -= endExclusiveIndex - startIndex;

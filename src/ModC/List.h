@@ -17,10 +17,6 @@ Just read the code for the functions
     #error "MODC_VALUE_TYPE is not defined"
 #endif
 
-#ifndef MODC_VALUE_FREE
-    #define MODC_VALUE_FREE(valPtr)
-#endif
-
 #include <string.h>
 #include <assert.h>
 #include <stddef.h>
@@ -35,18 +31,20 @@ typedef struct
 } MODC_LIST_NAME;
 
 static inline MODC_LIST_NAME*
-MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Reserve)(MODC_LIST_NAME* this, uint32_t reserveBytes)
+MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Reserve)(MODC_LIST_NAME* this, uint32_t reserveSize)
 {
-    if(!this || this->Cap >= reserveBytes)
+    if(!this || this->Cap >= reserveSize)
         return this;
     
     void* dataPtr = this->Cap == 0 ? 
-                    ModC_Allocator_Malloc(&this->Allocator, reserveBytes) :
-                    ModC_Allocator_Realloc(&this->Allocator, this->Data, reserveBytes);
+                    ModC_Allocator_Malloc(&this->Allocator, sizeof(MODC_VALUE_TYPE) * reserveSize) :
+                    ModC_Allocator_Realloc( &this->Allocator, 
+                                            this->Data, 
+                                            sizeof(MODC_VALUE_TYPE) * reserveSize);
     if(!dataPtr)
         return this;
     this->Data = dataPtr;
-    this->Cap = reserveBytes;
+    this->Cap = reserveSize;
     return this;
 }
 
@@ -62,10 +60,14 @@ static inline void MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Free)(MODC_LIST_NAME* thi
 {
     if(!this)
         return;
-    for(uint64_t i = 0; i < this->Length; ++i)
-    {
-        MODC_VALUE_FREE(&this->Data[i]);
-    }
+    
+    #ifdef MODC_VALUE_FREE
+        for(uint64_t i = 0; i < this->Length; ++i)
+        {
+            MODC_VALUE_FREE(&this->Data[i]);
+        }
+    #endif
+    
     if(!this->Data)
     {
         *this = (MODC_LIST_NAME){0};
@@ -82,7 +84,22 @@ MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Resize)(MODC_LIST_NAME* this, uint64_t resiz
 {
     if(!this)
         return this;
-    if(this->Length >= resizeLength || this->Cap >= resizeLength)
+    
+    //Shrinking
+    if(this->Length >= resizeLength)
+    {
+        #ifdef MODC_VALUE_FREE
+            for(uint64_t i = resizeLength; i < this->Length; ++i)
+            {
+                MODC_VALUE_FREE(&this->Data[i]);
+            }
+        #endif
+        
+        this->Length = resizeLength;
+        return this;
+    }
+    
+    if(this->Cap >= resizeLength)
     {
         this->Length = resizeLength;
         return this;
@@ -93,9 +110,9 @@ MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Resize)(MODC_LIST_NAME* this, uint64_t resiz
                             //Use requested count if we are empty
                             resizeLength : 
                             (
-                                UINT64_MAX / 2 < this->Cap ?
+                                UINT64_MAX / 2 < this->Cap * sizeof(MODC_VALUE_TYPE)?
                                 //If doubling our cap reaches max, use max
-                                UINT64_MAX :
+                                UINT64_MAX / sizeof(MODC_VALUE_TYPE):
                                 (
                                     //Does doubling the cap sufficient?
                                     this->Cap * 2 < resizeLength ?
@@ -104,8 +121,10 @@ MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Resize)(MODC_LIST_NAME* this, uint64_t resiz
                                 )
                             );
     void* dataPtr = empty ? 
-                    ModC_Allocator_Malloc(&this->Allocator, newCap) :
-                    ModC_Allocator_Realloc(&this->Allocator, this->Data, newCap);
+                    ModC_Allocator_Malloc(  &this->Allocator, 
+                                            newCap * sizeof(MODC_VALUE_TYPE)) :
+                    ModC_Allocator_Realloc( &this->Allocator, 
+                                            this->Data, newCap * sizeof(MODC_VALUE_TYPE));
     if(!dataPtr)
         return this;
     this->Data = dataPtr;
@@ -177,6 +196,11 @@ static inline MODC_LIST_NAME* MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Remove)(  MODC
 {
     if(!this || index >= this->Length)
         return this;
+    
+    #ifdef MODC_VALUE_FREE
+        MODC_VALUE_FREE(&this->Data[index]);
+    #endif
+    
     if(index == this->Length - 1)
     {
         --(this->Length);
@@ -196,7 +220,17 @@ MPT_DELAYED_CONCAT(MODC_LIST_NAME, _RemoveRange)(   MODC_LIST_NAME* this,
 {
     if(!this || startIndex >= this->Length || startIndex >= endExclusiveIndex)
         return this;
-    if(endExclusiveIndex >= this->Length)
+    
+    endExclusiveIndex = endExclusiveIndex > this->Length ? this->Length : endExclusiveIndex;
+    
+    #ifdef MODC_VALUE_FREE
+        for(uint64_t i = startIndex; i < endExclusiveIndex; ++i)
+        {
+            MODC_VALUE_FREE(&this->Data[i]);
+        }
+    #endif
+    
+    if(endExclusiveIndex == this->Length)
     {
         endExclusiveIndex = this->Length;
         this->Length -= endExclusiveIndex - startIndex;
