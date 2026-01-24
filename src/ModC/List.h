@@ -4,6 +4,7 @@
 /* Docs
 Define `MODC_LIST_NAME` for the name of the list.
 Define `MODC_VALUE_TYPE` for the element type stored in the list
+Define `MODC_VALUE_FREE` which will be called as `MODC_ITEM_FREE(MODC_VALUE_TYPE* val)`
 
 Just read the code for the functions
 */
@@ -16,6 +17,9 @@ Just read the code for the functions
     #error "MODC_VALUE_TYPE is not defined"
 #endif
 
+#ifndef MODC_VALUE_FREE
+    #define MODC_VALUE_FREE(valPtr)
+#endif
 
 #include <string.h>
 #include <assert.h>
@@ -58,6 +62,10 @@ static inline void MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Free)(MODC_LIST_NAME* thi
 {
     if(!this)
         return;
+    for(uint64_t i = 0; i < this->Length; ++i)
+    {
+        MODC_VALUE_FREE(&this->Data[i]);
+    }
     if(!this->Data)
     {
         *this = (MODC_LIST_NAME){0};
@@ -230,4 +238,4 @@ MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Find)(const MODC_LIST_NAME* this, const MODC
 
 #undef MODC_LIST_NAME
 #undef MODC_VALUE_TYPE
-
+#undef MODC_VALUE_FREE
