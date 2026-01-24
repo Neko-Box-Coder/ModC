@@ -40,10 +40,15 @@ typedef struct
                 fflush(stdout); \
             } while(0)
     #endif
+    
+    #define INTERN_PRINT_CALL(callFunc, ...) \
+        (printf("Calling " #callFunc " from %s()\n", __func__), fflush(stdout), callFunc(__VA_ARGS__))
 #else
     #ifndef INTERN_PRINT_MODC_PRINT_TRACE
         #define INTERN_PRINT_MODC_PRINT_TRACE(...) do {} while(0)
     #endif
+    
+    #define INTERN_PRINT_CALL(callFunc, ...) callFunc(__VA_ARGS__)
 #endif
 
 static inline void* ModC_Allocator_Malloc(const ModC_Allocator* this, uint64_t size)
@@ -62,7 +67,10 @@ static inline void* ModC_Allocator_Malloc(const ModC_Allocator* this, uint64_t s
         case ModC_AllocatorType_SharedArena:
         case ModC_AllocatorType_OwnedArena:
             if(!this->Allocator)
+            {
+                INTERN_PRINT_MODC_PRINT_TRACE("Trying to allocate with NULL arena");
                 goto ret;
+            }
             retPtr = arena_alloc(this->Allocator, size);
             break;
         default:
@@ -70,8 +78,15 @@ static inline void* ModC_Allocator_Malloc(const ModC_Allocator* this, uint64_t s
     }
     
     ret:;
+    if(!retPtr)
+    {
+        INTERN_PRINT_MODC_PRINT_TRACE(  "Allocation failed for allocator: %p, "
+                                        "with size %" PRIu64 "\n", this->Allocator, size);
+    }
     return retPtr;
 }
+
+#define ModC_Allocator_Malloc(...) INTERN_PRINT_CALL(ModC_Allocator_Malloc, __VA_ARGS__)
 
 static inline void* ModC_Allocator_Realloc( const ModC_Allocator* this, 
                                             void* data, 
@@ -90,14 +105,22 @@ static inline void* ModC_Allocator_Realloc( const ModC_Allocator* this,
             break;
         case ModC_AllocatorType_SharedArena:
         case ModC_AllocatorType_OwnedArena:
+            INTERN_PRINT_MODC_PRINT_TRACE("Arena realloc: %p, %" PRIu64 "\n", this->Allocator, size);
             break;
         default:
             break;
     }
     
     ret:;
+    if(!retPtr)
+    {
+        INTERN_PRINT_MODC_PRINT_TRACE(  "Reallocation failed for allocator: %p, "
+                                        "with size %" PRIu64 "\n", this->Allocator, size);
+    }
     return retPtr;
 }
+
+#define ModC_Allocator_Realloc(...) INTERN_PRINT_CALL(ModC_Allocator_Realloc, __VA_ARGS__)
 
 static inline void ModC_Allocator_Free(const ModC_Allocator* this, void* data)
 {
@@ -118,6 +141,8 @@ static inline void ModC_Allocator_Free(const ModC_Allocator* this, void* data)
             break;
     }
 }
+
+#define ModC_Allocator_Free(...) INTERN_PRINT_CALL(ModC_Allocator_Free, __VA_ARGS__)
 
 static inline void ModC_Allocator_Destroy(ModC_Allocator* this)
 {
@@ -141,6 +166,8 @@ static inline void ModC_Allocator_Destroy(ModC_Allocator* this)
     }
     *this = (ModC_Allocator){0};
 }
+
+#define ModC_Allocator_Destroy(...) INTERN_PRINT_CALL(ModC_Allocator_Destroy, __VA_ARGS__)
 
 static inline ModC_Allocator ModC_Allocator_Share(ModC_Allocator* this)
 {
@@ -167,6 +194,8 @@ static inline ModC_Allocator ModC_Allocator_Share(ModC_Allocator* this)
     }
 }
 
+#define ModC_Allocator_Share(...) INTERN_PRINT_CALL(ModC_Allocator_Share, __VA_ARGS__)
+
 static inline ModC_Allocator ModC_CreateArenaAllocator(uint64_t allocateSize)
 {
     ModC_Allocator retAlloc =
@@ -178,6 +207,8 @@ static inline ModC_Allocator ModC_CreateArenaAllocator(uint64_t allocateSize)
     return retAlloc;
 }
 
+#define ModC_CreateArenaAllocator(...) INTERN_PRINT_CALL(ModC_CreateArenaAllocator, __VA_ARGS__)
+
 static inline ModC_Allocator ModC_ShareArenaAllocator(Arena* arena)
 {
     //INTERN_PRINT_MODC_PRINT_TRACE(arena);
@@ -188,6 +219,9 @@ static inline ModC_Allocator ModC_ShareArenaAllocator(Arena* arena)
             };
 }
 
+#define ModC_ShareArenaAllocator(...) INTERN_PRINT_CALL(ModC_ShareArenaAllocator, __VA_ARGS__)
+
+
 static inline ModC_Allocator ModC_CreateHeapAllocator(void)
 {
     return  (ModC_Allocator)
@@ -196,5 +230,7 @@ static inline ModC_Allocator ModC_CreateHeapAllocator(void)
                 .Allocator = NULL,
             };
 }
+
+#define ModC_CreateHeapAllocator(...) INTERN_PRINT_CALL(ModC_CreateHeapAllocator, __VA_ARGS__)
 
 #endif
