@@ -81,7 +81,7 @@ static inline ModC_String* ModC_String_AppendVFormat(   ModC_String* this,
     ((obj)->Length == sizeof(cstr) - 1 && memcmp((obj)->Data, cstr, sizeof(cstr) - 1) == 0)
 
 #define ModC_StringView_IsEqualCStr(obj, cstr) ModC_String_IsEqualCStr(obj, cstr)
-#define ModC_CsontStringView_IsEqualCStr(obj, cstr) ModC_String_IsEqualCStr(obj, cstr)
+#define ModC_ConstStringView_IsEqualCStr(obj, cstr) ModC_String_IsEqualCStr(obj, cstr)
 
 #define ModC_ConstStringView_FromCStr(cstr) ModC_ConstStringView_Create(cstr, sizeof(cstr) - 1)
 
