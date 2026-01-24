@@ -247,7 +247,7 @@ static inline void ModC_VoidGlobalRetError(void) { (void)ModC_GlobalRetError; }
         if(errorPtr->ErrorCode != 0) \
             ModC_String_AppendFormat(&outputString, "\nError Code: %d", errorPtr->ErrorCode); \
         \
-        ModC_String_AppendCStr(&outputString, "\n\nStack trace:"); \
+        ModC_String_AppendLiteral(&outputString, "\n\nStack trace:"); \
         for(int i = 0; i < errorPtr->TracesSize; ++i) \
         { \
             /* Trace */ \
@@ -395,7 +395,7 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView msg,
 #define INTERN_MODC_ERROR_CSTR_ALLOC_3(allocator, cstr, errorCode) \
     MPT_DELAYED_CONCAT2(ModC_ResultName, _CreateError) \
     ( \
-        ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView_ViewFromCStr(cstr), \
+        ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView_ViewFromLiteral(cstr), \
                                             __FILE__, \
                                             __func__, \
                                             __LINE__, \
@@ -451,7 +451,7 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView msg,
         if(!(expr)) \
         { \
             ModC_ConstStringView exprView = \
-                ModC_ConstStringView_FromCStr("Expression \"" #expr "\" has failed."); \
+                ModC_ConstStringView_FromLiteral("Expression \"" #expr "\" has failed."); \
             ModC_StringOrConstView assertView = ModC_StringOrConstView_View(exprView); \
             ModC_GlobalError = ModC_Error_InternCreateErrorMsgEc(  assertView, \
                                                                     __FILE__, \

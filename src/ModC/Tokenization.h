@@ -116,43 +116,43 @@ static inline ModC_ConstStringView ModC_TokenType_ToCStr(ModC_TokenType type)
     switch(type)
     {
         case ModC_TokenType_Type:
-            return ModC_ConstStringView_FromCStr("ModC_TokenType_Type");
+            return ModC_ConstStringView_FromLiteral("ModC_TokenType_Type");
         case ModC_TokenType_Keyword:
-            return ModC_ConstStringView_FromCStr("ModC_TokenType_Keyword");
+            return ModC_ConstStringView_FromLiteral("ModC_TokenType_Keyword");
         case ModC_TokenType_Identifier:
-            return ModC_ConstStringView_FromCStr("ModC_TokenType_Identifier");
+            return ModC_ConstStringView_FromLiteral("ModC_TokenType_Identifier");
         case ModC_TokenType_Operator:
-            return ModC_ConstStringView_FromCStr("ModC_TokenType_Operator");
+            return ModC_ConstStringView_FromLiteral("ModC_TokenType_Operator");
         case ModC_TokenType_BlockStart:
-            return ModC_ConstStringView_FromCStr("ModC_TokenType_BlockStart");
+            return ModC_ConstStringView_FromLiteral("ModC_TokenType_BlockStart");
         case ModC_TokenType_BlockEnd:
-            return ModC_ConstStringView_FromCStr("ModC_TokenType_BlockEnd");
+            return ModC_ConstStringView_FromLiteral("ModC_TokenType_BlockEnd");
         case ModC_TokenType_InvokeStart:
-            return ModC_ConstStringView_FromCStr("ModC_TokenType_InvokeStart");
+            return ModC_ConstStringView_FromLiteral("ModC_TokenType_InvokeStart");
         case ModC_TokenType_InvokeEnd:
-            return ModC_ConstStringView_FromCStr("ModC_TokenType_InvokeEnd");
+            return ModC_ConstStringView_FromLiteral("ModC_TokenType_InvokeEnd");
         case ModC_TokenType_Semicolon:
-            return ModC_ConstStringView_FromCStr("ModC_TokenType_Semicolon");
+            return ModC_ConstStringView_FromLiteral("ModC_TokenType_Semicolon");
         case ModC_TokenType_StringLiteral:
-            return ModC_ConstStringView_FromCStr("ModC_TokenType_StringLiteral");
+            return ModC_ConstStringView_FromLiteral("ModC_TokenType_StringLiteral");
         case ModC_TokenType_CharLiteral:
-            return ModC_ConstStringView_FromCStr("ModC_TokenType_CharLiteral");
+            return ModC_ConstStringView_FromLiteral("ModC_TokenType_CharLiteral");
         case ModC_TokenType_IntLiteral:
-            return ModC_ConstStringView_FromCStr("ModC_TokenType_IntLiteral");
+            return ModC_ConstStringView_FromLiteral("ModC_TokenType_IntLiteral");
         case ModC_TokenType_FloatLiteral:
-            return ModC_ConstStringView_FromCStr("ModC_TokenType_FloatLiteral");
+            return ModC_ConstStringView_FromLiteral("ModC_TokenType_FloatLiteral");
         case ModC_TokenType_DoubleLiteral:
-            return ModC_ConstStringView_FromCStr("ModC_TokenType_DoubleLiteral");
+            return ModC_ConstStringView_FromLiteral("ModC_TokenType_DoubleLiteral");
         case ModC_TokenType_BoolLiteral:
-            return ModC_ConstStringView_FromCStr("ModC_TokenType_BoolLiteral");
+            return ModC_ConstStringView_FromLiteral("ModC_TokenType_BoolLiteral");
         case ModC_TokenType_Space:
-            return ModC_ConstStringView_FromCStr("ModC_TokenType_Space");
+            return ModC_ConstStringView_FromLiteral("ModC_TokenType_Space");
         case ModC_TokenType_Newline:
-            return ModC_ConstStringView_FromCStr("ModC_TokenType_Newline");
+            return ModC_ConstStringView_FromLiteral("ModC_TokenType_Newline");
         case ModC_TokenType_Undef:
-            return ModC_ConstStringView_FromCStr("ModC_TokenType_Undef");
+            return ModC_ConstStringView_FromLiteral("ModC_TokenType_Undef");
         case ModC_TokenType_Count:
-            return ModC_ConstStringView_FromCStr("ModC_TokenType_Count");
+            return ModC_ConstStringView_FromLiteral("ModC_TokenType_Count");
         default:
             return (ModC_ConstStringView){0};
     }

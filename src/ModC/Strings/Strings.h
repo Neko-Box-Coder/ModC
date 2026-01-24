@@ -45,25 +45,25 @@ typedef struct
 static inline ModC_StringOrConstView ModC_StringOrConstView_String(const ModC_String str);
 static inline ModC_StringOrConstView ModC_StringOrConstView_View(const ModC_ConstStringView view);
 
-#define ModC_StringOrConstView_ViewFromCStr(cstr) \
-    ModC_StringOrConstView_View(ModC_ConstStringView_FromCStr(cstr))
+#define ModC_StringOrConstView_ViewFromLiteral(cstr) \
+    ModC_StringOrConstView_View(ModC_ConstStringView_FromLiteral(cstr))
 
-#define ModC_StringOrConstView_StringFromCStr(allocator, cstr) \
-    ModC_StringOrConstView_String(ModC_String_FromCStr(allocator, cstr))
+#define ModC_StringOrConstView_StringFromLiteral(allocator, cstr) \
+    ModC_StringOrConstView_String(ModC_String_FromLiteral(allocator, cstr))
 
 
 static inline ModC_StringOrView ModC_StringOrView_String(const ModC_String str);
 static inline ModC_StringOrView ModC_StringOrView_View(const ModC_StringView view);
 
-#define ModC_String_AppendCStr(stringObj, cstr) \
+#define ModC_String_AppendLiteral(stringObj, cstr) \
     ModC_String_AddRange((stringObj), cstr, sizeof(cstr) - 1)
 
-static inline ModC_String InternalModC_String_FromCStr( ModC_Allocator allocator, 
-                                                        const char* data, 
-                                                        uint64_t length);
+static inline ModC_String ModC_String_FromData( ModC_Allocator allocator, 
+                                                const char* data, 
+                                                uint64_t length);
 
-#define ModC_String_FromCStr(allocator, cstr) \
-    InternalModC_String_FromCStr(allocator, cstr, sizeof(cstr) - 1)
+#define ModC_String_FromLiteral(allocator, cstr) \
+    ModC_String_FromData(allocator, cstr, sizeof(cstr) - 1)
     
 static inline ModC_String ModC_String_FromFormat(   ModC_Allocator allocator, 
                                                     const char* format, 
@@ -77,13 +77,13 @@ static inline ModC_String* ModC_String_AppendVFormat(   ModC_String* this,
                                                         const char* format, 
                                                         va_list args);
 
-#define ModC_String_IsEqualCStr(obj, cstr) \
+#define ModC_String_IsEqualLiteral(obj, cstr) \
     ((obj)->Length == sizeof(cstr) - 1 && memcmp((obj)->Data, cstr, sizeof(cstr) - 1) == 0)
 
-#define ModC_StringView_IsEqualCStr(obj, cstr) ModC_String_IsEqualCStr(obj, cstr)
-#define ModC_ConstStringView_IsEqualCStr(obj, cstr) ModC_String_IsEqualCStr(obj, cstr)
+#define ModC_StringView_IsEqualLiteral(obj, cstr) ModC_String_IsEqualLiteral(obj, cstr)
+#define ModC_ConstStringView_IsEqualLiteral(obj, cstr) ModC_String_IsEqualLiteral(obj, cstr)
 
-#define ModC_ConstStringView_FromCStr(cstr) ModC_ConstStringView_Create(cstr, sizeof(cstr) - 1)
+#define ModC_ConstStringView_FromLiteral(cstr) ModC_ConstStringView_Create(cstr, sizeof(cstr) - 1)
 
 
 
@@ -111,9 +111,9 @@ static inline ModC_StringOrView ModC_StringOrView_View(const ModC_StringView vie
     return (ModC_StringOrView){ .IsString = false, .Value.View = view };
 }
 
-static inline ModC_String InternalModC_String_FromCStr( ModC_Allocator allocator, 
-                                                        const char* data, 
-                                                        uint64_t length)
+static inline ModC_String ModC_String_FromData( ModC_Allocator allocator, 
+                                                const char* data, 
+                                                uint64_t length)
 {
     ModC_String retStr = ModC_String_Create(allocator, length);
     ModC_String_AddRange(&retStr, data, length);
