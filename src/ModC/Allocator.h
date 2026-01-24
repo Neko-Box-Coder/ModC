@@ -55,6 +55,7 @@ static inline void* ModC_Allocator_Malloc(const ModC_Allocator* this, uint64_t s
     {
         case ModC_AllocatorType_Heap:
             retPtr = malloc(size);
+            INTERN_PRINT_MODC_PRINT_TRACE(retPtr);
             break;
         case ModC_AllocatorType_SharedArena:
         case ModC_AllocatorType_OwnedArena:
@@ -67,7 +68,6 @@ static inline void* ModC_Allocator_Malloc(const ModC_Allocator* this, uint64_t s
     }
     
     ret:;
-    INTERN_PRINT_MODC_PRINT_TRACE(retPtr);
     return retPtr;
 }
 
@@ -84,6 +84,7 @@ static inline void* ModC_Allocator_Realloc(   const ModC_Allocator* this,
     {
         case ModC_AllocatorType_Heap:
             retPtr = realloc(data, size);
+            INTERN_PRINT_MODC_PRINT_TRACE(retPtr);
             break;
         case ModC_AllocatorType_SharedArena:
         case ModC_AllocatorType_OwnedArena:
@@ -93,7 +94,6 @@ static inline void* ModC_Allocator_Realloc(   const ModC_Allocator* this,
     }
     
     ret:;
-    INTERN_PRINT_MODC_PRINT_TRACE(retPtr);
     return retPtr;
 }
 
@@ -102,12 +102,11 @@ static inline void ModC_Allocator_Free(const ModC_Allocator* this, void* data)
     if(!this)
         return;
     
-    INTERN_PRINT_MODC_PRINT_TRACE(data);
-    
     //TODO: Assert count
     switch(this->Type)
     {
         case ModC_AllocatorType_Heap:
+            INTERN_PRINT_MODC_PRINT_TRACE(data);
             free(data);
             break;
         case ModC_AllocatorType_SharedArena:
@@ -123,10 +122,6 @@ static inline void ModC_Allocator_Destroy(ModC_Allocator* this)
     if(!this)
         return;
     
-    INTERN_PRINT_MODC_PRINT_TRACE(this);
-    
-    *this = (ModC_Allocator){0};
-    
     //TODO: Assert count
     switch(this->Type)
     {
@@ -136,11 +131,13 @@ static inline void ModC_Allocator_Destroy(ModC_Allocator* this)
         case ModC_AllocatorType_OwnedArena:
             if(!this->Allocator)
                 return;
+            INTERN_PRINT_MODC_PRINT_TRACE(this);
             arena_destroy(this->Allocator);
             break;
         default:
             break;
     }
+    *this = (ModC_Allocator){0};
 }
 
 static inline ModC_Allocator ModC_Allocator_Share(ModC_Allocator* this)
@@ -148,7 +145,7 @@ static inline ModC_Allocator ModC_Allocator_Share(ModC_Allocator* this)
     if(!this)
         return (ModC_Allocator){0};
     
-    INTERN_PRINT_MODC_PRINT_TRACE(this);
+    //INTERN_PRINT_MODC_PRINT_TRACE(this);
     
     //TODO: Assert count
     switch(this->Type)
@@ -181,7 +178,7 @@ static inline ModC_Allocator ModC_CreateArenaAllocator(uint64_t allocateSize)
 
 static inline ModC_Allocator ModC_ShareArenaAllocator(Arena* arena)
 {
-    INTERN_PRINT_MODC_PRINT_TRACE(arena);
+    //INTERN_PRINT_MODC_PRINT_TRACE(arena);
     return  (ModC_Allocator)
             {
                 .Type = ModC_AllocatorType_SharedArena,
