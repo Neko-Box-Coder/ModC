@@ -58,7 +58,7 @@ typedef enum
 typedef struct
 {
     ModC_TokenType TokenType;
-    ModC_StringOrConstView TokenText;
+    ModC_StringUnion TokenText;
     int LineIndex;
     int ColumnIndex;
     int SourceIndex;
@@ -74,41 +74,44 @@ static inline void ModC_Token_Free(ModC_Token* this);
 MODC_DEFINE_RESULT_STRUCT(ModC_Result_TokenList, ModC_TokenList)
 MODC_DEFINE_RESULT_STRUCT(ModC_Result_Token, ModC_Token)
 
+#define ModC_TaggedUnionName ModC_StringUnion
+
 static inline ModC_ConstStringView ModC_Token_TokenTextView(ModC_Token* this)
 {
     if(!this)
         return ModC_ConstStringView_Create(NULL, 2);
     
-    ModC_ConstStringView tokenStringView = 
-        this->TokenText.IsString ? 
-        ModC_ConstStringView_Create(this->TokenText.Value.String.Data,
-                                    this->TokenText.Value.String.Length) :
-        this->TokenText.Value.View;
-    
-    return tokenStringView;
+    return  (this->TokenText.Type == MODC_TAGGED_TYPE_S(ModC_String)) ?
+            ModC_ConstStringView_Create(this->TokenText.Data.MODC_TAGGED_FIELD_S(ModC_String).Data,
+                                        this->TokenText.Data.MODC_TAGGED_FIELD_S(ModC_String).Length) :
+            this->TokenText.Data.MODC_TAGGED_FIELD_S(ModC_ConstStringView);
 }
 
 static inline void ModC_Token_Free(ModC_Token* this)
 {
     if(!this)
         return;
-    if(!this->TokenText.IsString)
+    if(!this->TokenText.Type == MODC_TAGGED_TYPE_S(ModC_String))
     {
         *this = (ModC_Token){0};
         return;
     }
     
-    ModC_String_Free(&this->TokenText.Value.String);
+    ModC_String_Free(&this->TokenText.Data.MODC_TAGGED_FIELD_S(ModC_String));
 }
 
 static inline ModC_Token ModC_Token_FromString(ModC_TokenType type, ModC_String str)
 {
-    return (ModC_Token){ .TokenType = type, .TokenText = ModC_StringOrConstView_String(str) };
+    return (ModC_Token){ .TokenType = type, .TokenText = MODC_TAGGED_INIT_S(ModC_String, str) };
 }
 
 static inline ModC_Token ModC_Token_FromView(ModC_TokenType type, ModC_ConstStringView view)
 {
-    return (ModC_Token){ .TokenType = type, .TokenText = ModC_StringOrConstView_View(view) };
+    return  (ModC_Token)
+            { 
+                .TokenType = type, 
+                .TokenText = MODC_TAGGED_INIT_S(ModC_ConstStringView, view)
+            };
 }
 
 static inline ModC_ConstStringView ModC_TokenType_ToCStr(ModC_TokenType type)
@@ -170,19 +173,19 @@ static inline ModC_Result_Void ModC_Token_AppendChar(   ModC_Token* this,
 {
     MODC_ASSERT(this != NULL, (""), MODC_RET_ERROR());
     
-    if(this->TokenText.IsString)
+    if(!this->TokenText.Type == MODC_TAGGED_TYPE_S(ModC_String))
     {
-        ModC_String_AddValue(&this->TokenText.Value.String, c);
+        ModC_String_AddValue(&this->TokenText.Data.MODC_TAGGED_FIELD_S(ModC_String), c);
         return MODC_RESULT_VALUE_S(0);
     }
     
-    ModC_ConstStringView* tokenView = &this->TokenText.Value.View;
+    ModC_ConstStringView* tokenView = &this->TokenText.Data.MODC_TAGGED_FIELD_S(ModC_ConstStringView);
     if(forceString)
     {
         ModC_String tokenStr = ModC_String_Create(allocator, tokenView->Length + 1);
         ModC_String_AddRange(&tokenStr, tokenView->Data, tokenView->Length);
-        this->TokenText = ModC_StringOrConstView_String(tokenStr);
         ModC_String_AddValue(&tokenStr, c);
+        this->TokenText.Data.MODC_TAGGED_FIELD_S(ModC_String)  = tokenStr;
         return MODC_RESULT_VALUE_S(0);
     }
     
@@ -205,7 +208,7 @@ static inline ModC_Result_Void ModC_Token_AppendChar(   ModC_Token* this,
     );
     
     ++(tokenView->Length);
-    return MODC_RESULT_VALUE(0);
+    return MODC_RESULT_VALUE_S(0);
 }
 
 static inline ModC_CharTokenType ModC_CharTokenType_FromChar(char c)

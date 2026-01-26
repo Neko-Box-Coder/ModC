@@ -22,38 +22,15 @@ Just read the code
 #include <stdio.h>
 #include <string.h>
 
-typedef struct
-{
-    bool IsString;
-    union
-    {
-        ModC_String String;
-        ModC_ConstStringView View;
-    } Value;
-} ModC_StringOrConstView;
+#define MODC_TAGGED_UNION_NAME ModC_StringUnion
+#define MODC_VALUE_TYPES ModC_String,ModC_StringView,ModC_ConstStringView
+#include "ModC/TaggedUnion.h"
 
-typedef struct
-{
-    bool IsString;
-    union
-    {
-        ModC_String String;
-        ModC_StringView View;
-    } Value;
-} ModC_StringOrView;
+#define ModC_StringUnion_ViewFromLiteral(cstr) \
+    MODC_TAGGED_INIT(ModC_StringUnion, ModC_ConstStringView, ModC_ConstStringView_FromLiteral(cstr))
 
-static inline ModC_StringOrConstView ModC_StringOrConstView_String(const ModC_String str);
-static inline ModC_StringOrConstView ModC_StringOrConstView_View(const ModC_ConstStringView view);
-
-#define ModC_StringOrConstView_ViewFromLiteral(cstr) \
-    ModC_StringOrConstView_View(ModC_ConstStringView_FromLiteral(cstr))
-
-#define ModC_StringOrConstView_StringFromLiteral(allocator, cstr) \
-    ModC_StringOrConstView_String(ModC_String_FromLiteral(allocator, cstr))
-
-
-static inline ModC_StringOrView ModC_StringOrView_String(const ModC_String str);
-static inline ModC_StringOrView ModC_StringOrView_View(const ModC_StringView view);
+#define ModC_StringUnion_StringFromLiteral(allocator, cstr) \
+    MODC_TAGGED_INIT(ModC_StringUnion, ModC_String, ModC_String_FromLiteral(allocator, cstr))
 
 #define ModC_String_AppendLiteral(stringObj, cstr) \
     ModC_String_AddRange((stringObj), cstr, sizeof(cstr) - 1)
@@ -91,26 +68,6 @@ static inline ModC_String* ModC_String_AppendVFormat(   ModC_String* this,
 //=======================================================================================
 //Implementations
 //=======================================================================================
-static inline ModC_StringOrConstView ModC_StringOrConstView_String(const ModC_String str)
-{
-    return (ModC_StringOrConstView){ .IsString = true, .Value.String = str };
-}
-
-static inline ModC_StringOrConstView ModC_StringOrConstView_View(const ModC_ConstStringView view)
-{
-    return (ModC_StringOrConstView){ .IsString = false, .Value.View = view };
-}
-
-static inline ModC_StringOrView ModC_StringOrView_String(const ModC_String str)
-{
-    return (ModC_StringOrView){ .IsString = true, .Value.String = str };
-}
-
-static inline ModC_StringOrView ModC_StringOrView_View(const ModC_StringView view)
-{
-    return (ModC_StringOrView){ .IsString = false, .Value.View = view };
-}
-
 static inline ModC_String ModC_String_FromData( ModC_Allocator allocator, 
                                                 const char* data, 
                                                 uint64_t length)

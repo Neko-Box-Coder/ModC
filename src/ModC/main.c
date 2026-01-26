@@ -71,7 +71,8 @@ ModC_Result_Void Main(int argc, char* argv[])
         modcFile = fopen(filePath.Data, "r");
         if(!modcFile)
         {
-            MODC_DEFER_BREAK(0, return MODC_ERROR_STR_FMT_S(("Failed to open file: %s", strerror(errno))));
+            MODC_DEFER_BREAK(0, return MODC_ERROR_STR_FMT_S(("Failed to open file: %s", 
+                                                            strerror(errno))));
         }
         
         MODC_DEFER(0, { fclose(modcFile); modcFile = NULL; });
