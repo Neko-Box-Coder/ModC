@@ -61,6 +61,7 @@ typedef struct
     ModC_StringOrConstView TokenText;
     int LineIndex;
     int ColumnIndex;
+    int SourceIndex;
 } ModC_Token;
 
 static inline void ModC_Token_Free(ModC_Token* this);
@@ -303,7 +304,6 @@ static inline ModC_Result_Bool ModC_Token_IsCharPossible(   ModC_Token* this,
                 return MODC_RESULT_VALUE(false);
         }
         case ModC_CharTokenType_Operator:
-            return MODC_RESULT_VALUE(cType == ModC_CharTokenType_Operator);
         case ModC_CharTokenType_BlockStart:
         case ModC_CharTokenType_BlockEnd:
         case ModC_CharTokenType_InvokeStart:
@@ -371,6 +371,8 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ModC_ConstStringVi
             MODC_DEFER_BREAK(0, );
         }
     
+        int currentLineIndex = fileContent.Data[0] == '\n';
+        int currentColumnIndex = 1;
         for(int i = 1; i < fileContent.Length; ++i)
         {
             ModC_CharTokenType charTokenType = ModC_CharTokenType_FromChar(fileContent.Data[i]);
@@ -381,9 +383,13 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ModC_ConstStringVi
             if(!(*possible))
             {
                 ModC_TokenList_AddValue(&tokenList, currentToken);
+                
                 currentToken = 
                     ModC_Token_FromView((ModC_TokenType)charTokenType, 
                                         ModC_ConstStringView_Create(&fileContent.Data[i], 1));
+                currentToken.LineIndex = currentLineIndex;
+                currentToken.ColumnIndex = currentColumnIndex;
+                currentToken.SourceIndex = i;
             }
             else
             {
@@ -394,6 +400,10 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ModC_ConstStringVi
                                                                     false);
                 (void)MODC_RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
             }
+            
+            if(fileContent.Data[i] == '\n')
+                ++currentLineIndex;
+            ++currentColumnIndex;
         }
         
         ModC_TokenList_AddValue(&tokenList, currentToken);
