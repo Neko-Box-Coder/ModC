@@ -36,16 +36,16 @@ static_assert(sizeof(int) == sizeof(int32_t), "");
 static inline ModC_Result_Int32 TestResult()
 {
     if(true)
-        return MODC_ERROR_CSTR("Failed to seek file");
+        return MODC_ERROR_CSTR_S("Failed to seek file");
     else
-        return MODC_RESULT_VALUE(5);
+        return MODC_RESULT_VALUE_S(5);
 }
 
 static inline ModC_Result_Int32 TestResult2()
 {
     ModC_Result_Int32 intResult = TestResult();
     int32_t* unwrappedVal = MODC_RESULT_TRY(intResult, MODC_RET_ERROR());
-    return MODC_RESULT_VALUE(*unwrappedVal);
+    return MODC_RESULT_VALUE_S(*unwrappedVal);
 }
 
 #undef ModC_ResultName
@@ -62,7 +62,7 @@ ModC_Result_Void Main(int argc, char* argv[])
         if(argc == 1)
         {
             printf("Usage: %s <path>\n", argv[0]);
-            MODC_DEFER_BREAK(0, return MODC_RESULT_VALUE(0));
+            MODC_DEFER_BREAK(0, return MODC_RESULT_VALUE_S(0));
         }
         
         ModC_StringView filePath = ModC_StringView_Create(argv[1], strlen(argv[1]));
@@ -70,7 +70,9 @@ ModC_Result_Void Main(int argc, char* argv[])
         
         modcFile = fopen(filePath.Data, "r");
         if(!modcFile)
-            MODC_DEFER_BREAK(0,  return MODC_ERROR_STR_FMT(("Failed to open file: %s", strerror(errno))) );
+        {
+            MODC_DEFER_BREAK(0, return MODC_ERROR_STR_FMT_S(("Failed to open file: %s", strerror(errno))));
+        }
         
         MODC_DEFER(0, { fclose(modcFile); modcFile = NULL; });
         
@@ -122,7 +124,7 @@ ModC_Result_Void Main(int argc, char* argv[])
     }
     MODC_DEFER_SCOPE_END(0)
     
-    return MODC_RESULT_VALUE(0);
+    return MODC_RESULT_VALUE_S(0);
 }
 
 int main(int argc, char* argv[])
@@ -138,11 +140,11 @@ int main(int argc, char* argv[])
         if(result.HasError)
         {
             MODC_ERROR_APPEND_TRACE(result.ValueOrError.Error);
-            ModC_String resultStr = MODC_RESULT_TO_STRING(result);
+            ModC_String resultStr = MODC_RESULT_TO_STRING_S(result);
             printf("%.*s\n", (int)resultStr.Length, resultStr.Data);
             ModC_String_Free(&resultStr);
         }
-        MODC_RESULT_FREE_RESOURCE(&result);
+        MODC_RESULT_FREE_RESOURCE_S(&result);
     }
     #else
     {
@@ -153,11 +155,11 @@ int main(int argc, char* argv[])
         if(result.HasError)
         {
             MODC_ERROR_APPEND_TRACE(result.ValueOrError.Error);
-            ModC_String resultStr = MODC_RESULT_TO_STRING(result);
+            ModC_String resultStr = MODC_RESULT_TO_STRING_S(result);
             printf("%.*s\n", (int)resultStr.Length, resultStr.Data);
             ModC_String_Free(&resultStr);
         }
-        MODC_RESULT_FREE_RESOURCE(&result);
+        MODC_RESULT_FREE_RESOURCE_S(&result);
     }
     #endif
     

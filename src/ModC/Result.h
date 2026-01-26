@@ -22,6 +22,7 @@ typedef struct
 ```
 
 Define `MODC_DEFAULT_ALLOC()` to use non `_ALLOC` macro variants
+Define `ModC_ResultName` to use `_S` macro variants
 
 
 #### Functions:
@@ -63,46 +64,65 @@ Macro:
 
 Macro:
     `allocated` is `true` if `msg` can be freed with `MODC_RESULT_FREE`
-    `ModC_ResultName` needs to be defined first
 ```c
-ModC_ResultName MODC_ERROR_MSG_EC_ALLOC(ModC_StringOrConstView msg,
+ModC_ResultName MODC_ERROR_MSG_EC_ALLOC(ModC_ResultName,
+                                        ModC_StringUnion msg,
                                         ModC_Allocator allocator,
                                         int32_t errorCode);
+ModC_ResultName MODC_ERROR_MSG_EC(ModC_ResultName, ModC_StringUnion msg,int32_t errorCode);
 
-ModC_ResultName MODC_ERROR_MSG_EC(ModC_StringOrConstView msg,int32_t errorCode);
+//
+ModC_ResultName MODC_ERROR_MSG_EC_ALLOC_S(  ModC_StringUnion msg,
+                                            ModC_Allocator allocator,
+                                            int32_t errorCode);
+ModC_ResultName MODC_ERROR_MSG_EC_S(ModC_StringUnion msg, int32_t errorCode);
 ```
 
 Macro:
-    `ModC_ResultName` needs to be defined first
 ```c
-ModC_ResultName MODC_ERROR_MSG_ALLOC(ModC_StringOrConstView msg, ModC_Allocator allocator);
+ModC_ResultName MODC_ERROR_MSG_ALLOC(ModC_ResultName, ModC_StringUnion msg, ModC_Allocator allocator);
+ModC_ResultName MODC_ERROR_MSG(ModC_ResultName, ModC_StringUnion msg);
 
-ModC_ResultName MODC_ERROR_MSG(ModC_StringOrConstView msg);
+ModC_ResultName MODC_ERROR_MSG_ALLOC_S(ModC_StringUnion msg, ModC_Allocator allocator);
+ModC_ResultName MODC_ERROR_MSG_S(ModC_StringUnion msg);
 ```
 
 
 Macro:
-    `ModC_ResultName` needs to be defined first
 ```c
-ModC_ResultName MODC_ERROR_STR_FMT((format, ...));
-ModC_ResultName MODC_ERROR_STR_FMT((format, ...), int32_t errorCode);
+ModC_ResultName MODC_ERROR_STR_FMT(ModC_ResultName, (format, ...));
+ModC_ResultName MODC_ERROR_STR_FMT(ModC_ResultName, (format, ...), int32_t errorCode);
 
-ModC_ResultName MODC_ERROR_STR_FMT_ALLOC(ModC_Allocator allocator, (format, ...));
-ModC_ResultName MODC_ERROR_STR_FMT_ALLOC(ModC_Allocator allocator, (format, ...), int32_t errorCode);
+ModC_ResultName MODC_ERROR_STR_FMT_ALLOC(ModC_ResultName, ModC_Allocator allocator, (format, ...));
+ModC_ResultName MODC_ERROR_STR_FMT_ALLOC(ModC_ResultName, ModC_Allocator allocator, (format, ...), int32_t errorCode);
 
-ModC_ResultName MODC_ERROR_CSTR(cstr);
-ModC_ResultName MODC_ERROR_CSTR(cstr, int32_t errorCode);
+ModC_ResultName MODC_ERROR_CSTR(ModC_ResultName, cstr);
+ModC_ResultName MODC_ERROR_CSTR(ModC_ResultName, cstr, int32_t errorCode);
 
-ModC_ResultName MODC_ERROR_CSTR_ALLOC(ModC_Allocator allocator, cstr);
-ModC_ResultName MODC_ERROR_CSTR_ALLOC(ModC_Allocator allocator, cstr, int32_t errorCode);
+ModC_ResultName MODC_ERROR_CSTR_ALLOC(ModC_ResultName, ModC_Allocator allocator, cstr);
+ModC_ResultName MODC_ERROR_CSTR_ALLOC(ModC_ResultName, ModC_Allocator allocator, cstr, int32_t errorCode);
+
+ModC_ResultName MODC_ERROR_STR_FMT_S((format, ...));
+ModC_ResultName MODC_ERROR_STR_FMT_S((format, ...), int32_t errorCode);
+
+ModC_ResultName MODC_ERROR_STR_FMT_ALLOC_S(ModC_Allocator allocator, (format, ...));
+ModC_ResultName MODC_ERROR_STR_FMT_ALLOC_S(ModC_Allocator allocator, (format, ...), int32_t errorCode);
+
+ModC_ResultName MODC_ERROR_CSTR_S(cstr);
+ModC_ResultName MODC_ERROR_CSTR_S(cstr, int32_t errorCode);
+
+ModC_ResultName MODC_ERROR_CSTR_ALLOC_S(ModC_Allocator allocator, cstr);
+ModC_ResultName MODC_ERROR_CSTR_ALLOC_S(ModC_Allocator allocator, cstr, int32_t errorCode);
+
 ```
 
 Macro:
-    `ModC_ResultName` needs to be defined first
-`ModC_ResultName MODC_RESULT_VALUE(valueType val);`
+`ModC_ResultName MODC_RESULT_VALUE(ModC_ResultName, valueType val);`
+`ModC_ResultName MODC_RESULT_VALUE_S(valueType val);`
 
 Macro:
-`void MODC_RESULT_FREE_RESOURCE(ModC_ResultName* result);`
+`void MODC_RESULT_FREE_RESOURCE(ModC_ResultName, ModC_ResultName* result);`
+`void MODC_RESULT_FREE_RESOURCE_S(ModC_ResultName* result);`
 
 Macro:
 ```c
@@ -110,7 +130,12 @@ ModC_String MODC_RESULT_TO_STRING_ALLOC(ModC_ResultName,
                                         ModC_ResultName resultVal, 
                                         ModC_Allocator allocator);
 ModC_String MODC_RESULT_TO_STRING(ModC_ResultName, ModC_ResultName resultVal);
+
+ModC_String MODC_RESULT_TO_STRING_ALLOC_S(  ModC_ResultName resultVal, 
+                                            ModC_Allocator allocator);
+ModC_String MODC_RESULT_TO_STRING_S(ModC_ResultName resultVal);
 ```
+
 
 Macros:
     `ModC_ResultName` needs to be defined first
@@ -261,7 +286,7 @@ static inline void ModC_VoidGlobalRetError(void) { (void)ModC_GlobalRetError; }
     }
     
 static inline ModC_Error* 
-ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView msg,
+ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion msg,
                                     const char* file,
                                     const char* func,
                                     int32_t line,
@@ -277,14 +302,14 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView msg,
         
         //ModC_Error.ErrorMsg
         {
-            if(msg.IsString)
-                modcErrorPtr->ErrorMsg = msg.Value.String;
+            if(msg.Type == MODC_TAGGED_TYPE(ModC_StringUnion, ModC_String))
+                modcErrorPtr->ErrorMsg = msg.Data.MODC_TAGGED_FIELD(ModC_StringUnion, ModC_String);
             else
             {
                 modcErrorPtr->ErrorMsg = ModC_String_Create(allocator, 256);
-                ModC_String_AddRange(   &modcErrorPtr->ErrorMsg,
-                                        msg.Value.View.Data,
-                                        msg.Value.View.Length);
+                ModC_ConstStringView* msgView = &msg.Data.MODC_TAGGED_FIELD(ModC_StringUnion, 
+                                                                            ModC_ConstStringView);
+                ModC_String_AddRange(&modcErrorPtr->ErrorMsg, msgView->Data, msgView->Length);
             }
         }
         modcErrorPtr->ErrorCode = errorCode;
@@ -345,7 +370,7 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView msg,
 #endif
 
 
-#define MODC_ERROR_MSG_EC_ALLOC(msg, allocator, errorCode) \
+#define MODC_ERROR_MSG_EC_ALLOC(ModC_ResultName, msg, allocator, errorCode) \
     MPT_DELAYED_CONCAT2(ModC_ResultName, _CreateError) \
     ( \
         ModC_Error_InternCreateErrorMsgEc(  (msg), \
@@ -356,22 +381,32 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView msg,
                                             (allocator)) \
     )
 
-#define MODC_ERROR_MSG_ALLOC(msg, allocator) \
-    MODC_ERROR_MSG_EC_ALLOC(msg, allocator, 0)
+#define MODC_ERROR_MSG_EC_ALLOC_S(msg, allocator, errorCode) \
+    MODC_ERROR_MSG_EC_ALLOC(ModC_ResultName, msg, allocator, errorCode)
 
-#define MODC_ERROR_MSG(msg) \
-    MODC_ERROR_MSG_EC_ALLOC(msg, MODC_DEFAULT_ALLOC(), 0)
+#define MODC_ERROR_MSG_ALLOC(ModC_ResultName, msg, allocator) \
+    MODC_ERROR_MSG_EC_ALLOC(ModC_ResultName, msg, allocator, 0)
 
-#define MODC_ERROR_MSG_EC(msg, errorCode) \
-    MODC_ERROR_MSG_EC_ALLOC(msg, MODC_DEFAULT_ALLOC(), errorCode)
+#define MODC_ERROR_MSG_ALLOC_S(msg, allocator) MODC_ERROR_MSG_ALLOC(ModC_ResultName, msg, allocator)
 
+#define MODC_ERROR_MSG(ModC_ResultName, msg) \
+    MODC_ERROR_MSG_EC_ALLOC(ModC_ResultName, msg, MODC_DEFAULT_ALLOC(), 0)
+
+#define MODC_ERROR_MSG_S(msg) MODC_ERROR_MSG(ModC_ResultName, msg)
+
+#define MODC_ERROR_MSG_EC(ModC_ResultName, msg, errorCode) \
+    MODC_ERROR_MSG_EC_ALLOC(ModC_ResultName, msg, MODC_DEFAULT_ALLOC(), errorCode)
+
+#define MODC_ERROR_MSG_EC_S(msg, errorCode) MODC_ERROR_MSG_EC(ModC_ResultName, msg, errorCode)
 
 
 
 #define INTERN_MODC_STR_VIEW_FROM_STR_FMT(allocator, strfmts) \
-    ModC_StringOrConstView_String(ModC_String_FromFormat(allocator, MPT_REMOVE_PARENTHESIS(strfmts)))
+    MODC_TAGGED_INIT(   ModC_StringUnion, \
+                        ModC_String, \
+                        ModC_String_FromFormat(allocator, MPT_REMOVE_PARENTHESIS(strfmts)))
 
-#define INTERN_MODC_ERROR_STR_FMT_ALLOC_3(allocator, strfmts, errorCode) \
+#define INTERN_MODC_ERROR_STR_FMT_ALLOC_4(ModC_ResultName, allocator, strfmts, errorCode) \
     MPT_DELAYED_CONCAT2(ModC_ResultName, _CreateError) \
     ( \
         ModC_Error_InternCreateErrorMsgEc(  INTERN_MODC_STR_VIEW_FROM_STR_FMT(allocator, strfmts), \
@@ -382,21 +417,27 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView msg,
                                             (allocator)) \
     )
 
-#define INTERN_MODC_ERROR_STR_FMT_ALLOC_2(allocator, strfmts) \
-    INTERN_MODC_ERROR_STR_FMT_ALLOC_3(allocator, strfmts, 0)
+#define INTERN_MODC_ERROR_STR_FMT_ALLOC_3(ModC_ResultName, allocator, strfmts) \
+    INTERN_MODC_ERROR_STR_FMT_ALLOC_4(ModC_ResultName, allocator, strfmts, 0)
 
-//ModC_ResultName MODC_ERROR_STR_FMT_ALLOC(ModC_Allocator allocator, (format, ...));
-//ModC_ResultName MODC_ERROR_STR_FMT_ALLOC(ModC_Allocator allocator, (format, ...), int32_t errorCode);
-#define MODC_ERROR_STR_FMT_ALLOC(...) MPT_OVERLOAD_MACRO(INTERN_MODC_ERROR_STR_FMT_ALLOC, __VA_ARGS__)
+//ModC_ResultName MODC_ERROR_STR_FMT_ALLOC(ModC_ResultName, ModC_Allocator allocator, (format, ...));
+//ModC_ResultName MODC_ERROR_STR_FMT_ALLOC(ModC_ResultName, ModC_Allocator allocator, (format, ...), int32_t errorCode);
+#define MODC_ERROR_STR_FMT_ALLOC(...) \
+    MPT_OVERLOAD_MACRO(INTERN_MODC_ERROR_STR_FMT_ALLOC, __VA_ARGS__)
 
-//ModC_ResultName MODC_ERROR_STR_FMT((format, ...));
-//ModC_ResultName MODC_ERROR_STR_FMT((format, ...), int32_t errorCode);
-#define MODC_ERROR_STR_FMT(...) MODC_ERROR_STR_FMT_ALLOC(MODC_DEFAULT_ALLOC(), __VA_ARGS__)
+#define MODC_ERROR_STR_FMT_ALLOC_S(...) MODC_ERROR_STR_FMT_ALLOC(ModC_ResultName, __VA_ARGS__)
 
-#define INTERN_MODC_ERROR_CSTR_ALLOC_3(allocator, cstr, errorCode) \
+//ModC_ResultName MODC_ERROR_STR_FMT(ModC_ResultName, (format, ...));
+//ModC_ResultName MODC_ERROR_STR_FMT(ModC_ResultName, (format, ...), int32_t errorCode);
+#define MODC_ERROR_STR_FMT(ModC_ResultName, ...) \
+    MODC_ERROR_STR_FMT_ALLOC(ModC_ResultName, MODC_DEFAULT_ALLOC(), __VA_ARGS__)
+
+#define MODC_ERROR_STR_FMT_S(...) MODC_ERROR_STR_FMT(ModC_ResultName, __VA_ARGS__)
+
+#define INTERN_MODC_ERROR_CSTR_ALLOC_4(ModC_ResultName, allocator, cstr, errorCode) \
     MPT_DELAYED_CONCAT2(ModC_ResultName, _CreateError) \
     ( \
-        ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView_ViewFromLiteral(cstr), \
+        ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion_ViewFromLiteral(cstr), \
                                             __FILE__, \
                                             __func__, \
                                             __LINE__, \
@@ -404,24 +445,29 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView msg,
                                             (allocator)) \
     )
 
-#define INTERN_MODC_ERROR_CSTR_ALLOC_2(allocator, cstr) \
-    INTERN_MODC_ERROR_CSTR_ALLOC_3(allocator, cstr, 0)
+#define INTERN_MODC_ERROR_CSTR_ALLOC_3(ModC_ResultName, allocator, cstr) \
+    INTERN_MODC_ERROR_CSTR_ALLOC_4(ModC_ResultName, allocator, cstr, 0)
 
-//ModC_ResultName MODC_ERROR_CSTR_ALLOC(ModC_Allocator allocator, cstr);
-//ModC_ResultName MODC_ERROR_CSTR_ALLOC(ModC_Allocator allocator, cstr, int32_t errorCode);
+//ModC_ResultName MODC_ERROR_CSTR_ALLOC(ModC_ResultName, ModC_Allocator allocator, cstr);
+//ModC_ResultName MODC_ERROR_CSTR_ALLOC(ModC_ResultName, ModC_Allocator allocator, cstr, int32_t errorCode);
 #define MODC_ERROR_CSTR_ALLOC(...) MPT_OVERLOAD_MACRO(INTERN_MODC_ERROR_CSTR_ALLOC, __VA_ARGS__)
 
-//ModC_ResultName MODC_ERROR_CSTR(cstr);
-//ModC_ResultName MODC_ERROR_CSTR(cstr, int32_t errorCode);
-#define MODC_ERROR_CSTR(...) MODC_ERROR_CSTR_ALLOC(MODC_DEFAULT_ALLOC(), __VA_ARGS__)
+#define MODC_ERROR_CSTR_ALLOC_S(...) MODC_ERROR_CSTR_ALLOC(ModC_ResultName, __VA_ARGS__)
+
+//ModC_ResultName MODC_ERROR_CSTR(ModC_ResultName, cstr);
+//ModC_ResultName MODC_ERROR_CSTR(ModC_ResultName, cstr, int32_t errorCode);
+#define MODC_ERROR_CSTR(ModC_ResultName, ...) \
+    MODC_ERROR_CSTR_ALLOC(ModC_ResultName, MODC_DEFAULT_ALLOC(), __VA_ARGS__)
+
+#define MODC_ERROR_CSTR_S(...) MODC_ERROR_CSTR(ModC_ResultName, __VA_ARGS__)
 
 
+#define MODC_RESULT_VALUE(ModC_ResultName, val) \
+    MPT_DELAYED_CONCAT(ModC_ResultName, _CreateValue)(val)
 
+#define MODC_RESULT_VALUE_S(val) MODC_RESULT_VALUE(ModC_ResultName, val)
 
-
-#define MODC_RESULT_VALUE(val) MPT_DELAYED_CONCAT(ModC_ResultName, _CreateValue)(val)
-
-#define MODC_RESULT_FREE_RESOURCE(resultPtr) \
+#define MODC_RESULT_FREE_RESOURCE(ModC_ResultName, resultPtr) \
     do \
     { \
         if((resultPtr) == NULL) \
@@ -440,11 +486,19 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView msg,
         break; \
     } while(0)
 
-#define MODC_RESULT_TO_STRING_ALLOC(resultVal, allocator) \
+#define MODC_RESULT_FREE_RESOURCE_S(resultPtr) MODC_RESULT_FREE_RESOURCE(ModC_ResultName, resultPtr)
+
+
+#define MODC_RESULT_TO_STRING_ALLOC(ModC_ResultName, resultVal, allocator) \
     MPT_DELAYED_CONCAT(ModC_ResultName, _ToString)(resultVal, allocator)
 
-#define MODC_RESULT_TO_STRING(resultVal) \
+#define MODC_RESULT_TO_STRING_ALLOC_S(resultVal, allocator) \
+    MODC_RESULT_TO_STRING_ALLOC(ModC_ResultName, resultVal, allocator)
+
+#define MODC_RESULT_TO_STRING(ModC_ResultName, resultVal) \
     MPT_DELAYED_CONCAT(ModC_ResultName, _ToString)(resultVal, MODC_DEFAULT_ALLOC())
+
+#define MODC_RESULT_TO_STRING_S(resultVal) MODC_RESULT_TO_STRING(ModC_ResultName, resultVal)
 
 #define INTERNAL_MODC_ASSERT_EC_ALLOC(expr, errorCode, formatAppend, allocator, ... /* failedAction */) \
     do \
@@ -453,8 +507,10 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringOrConstView msg,
         { \
             ModC_ConstStringView exprView = \
                 ModC_ConstStringView_FromLiteral("Expression \"" #expr "\" has failed."); \
-            ModC_StringOrConstView assertView = ModC_StringOrConstView_View(exprView); \
-            ModC_GlobalError = ModC_Error_InternCreateErrorMsgEc(  assertView, \
+            ModC_StringUnion assertView = MODC_TAGGED_INIT( ModC_StringUnion, \
+                                                            ModC_ConstStringView, \
+                                                            exprView); \
+            ModC_GlobalError = ModC_Error_InternCreateErrorMsgEc(   assertView, \
                                                                     __FILE__, \
                                                                     __func__, \
                                                                     __LINE__, \
