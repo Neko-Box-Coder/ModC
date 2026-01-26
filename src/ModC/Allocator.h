@@ -5,6 +5,7 @@
 Just read the code
 */
 
+#include "static_assert.h/assert.h"
 #include "arena-allocator/arena.h"
 
 #include <stddef.h>
@@ -17,7 +18,7 @@ typedef enum
     ModC_AllocatorType_Heap,
     ModC_AllocatorType_SharedArena,
     ModC_AllocatorType_OwnedArena,
-    ModC_AllocatorType_Count,
+    ModC_AllocatorType_Count,   //3
 } ModC_AllocatorType;
 
 typedef struct
@@ -26,7 +27,7 @@ typedef struct
     void* Allocator;
 } ModC_Allocator;
 
-#define INTERN_MODC_DEBUG_PRINT_ALLOC 0
+#define INTERN_MODC_DEBUG_PRINT_ALLOC 1
 #if INTERN_MODC_DEBUG_PRINT_ALLOC
     #include <stdio.h>
     #include <inttypes.h>
@@ -57,7 +58,7 @@ static inline void* ModC_Allocator_Malloc(const ModC_Allocator* this, uint64_t s
     if(!this)
         goto ret;
     
-    //TODO: Assert count
+    static_assert((int)ModC_AllocatorType_Count == 3, "");
     switch(this->Type)
     {
         case ModC_AllocatorType_Heap:
@@ -96,7 +97,7 @@ static inline void* ModC_Allocator_Realloc( const ModC_Allocator* this,
     if(!this)
         goto ret;
     
-    //TODO: Assert count
+    static_assert((int)ModC_AllocatorType_Count == 3, "");
     switch(this->Type)
     {
         case ModC_AllocatorType_Heap:
@@ -127,7 +128,7 @@ static inline void ModC_Allocator_Free(const ModC_Allocator* this, void* data)
     if(!this)
         return;
     
-    //TODO: Assert count
+    static_assert((int)ModC_AllocatorType_Count == 3, "");
     switch(this->Type)
     {
         case ModC_AllocatorType_Heap:
@@ -149,7 +150,7 @@ static inline void ModC_Allocator_Destroy(ModC_Allocator* this)
     if(!this)
         return;
     
-    //TODO: Assert count
+    static_assert((int)ModC_AllocatorType_Count == 3, "");
     switch(this->Type)
     {
         case ModC_AllocatorType_Heap:
@@ -176,7 +177,7 @@ static inline ModC_Allocator ModC_Allocator_Share(ModC_Allocator* this)
     
     //INTERN_PRINT_MODC_PRINT_TRACE(this);
     
-    //TODO: Assert count
+    static_assert((int)ModC_AllocatorType_Count == 3, "");
     switch(this->Type)
     {
         case ModC_AllocatorType_Heap:
