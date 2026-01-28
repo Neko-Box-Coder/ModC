@@ -149,21 +149,6 @@ MPT_DELAYED_CONCAT(MODC_LIST_NAME, _AddValue)(MODC_LIST_NAME* this, const MODC_V
     return this;
 }
 
-#if 0
-static inline MODC_LIST_NAME* 
-MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Add)(MODC_LIST_NAME* this, const MODC_VALUE_TYPE* val)
-{
-    if(!this || !val)
-        return this;
-    uint64_t oldLength = this->Length;
-    MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Resize)(this, oldLength + 1);
-    if(this->Length != oldLength + 1)
-        return this;
-    memcpy(this->Data + oldLength, val, sizeof(MODC_VALUE_TYPE));
-    return this;
-}
-#endif
-
 static inline MODC_LIST_NAME* 
 MPT_DELAYED_CONCAT(MODC_LIST_NAME, _AddRange)(  MODC_LIST_NAME* this, 
                                                 const MODC_VALUE_TYPE* data, 
@@ -176,6 +161,49 @@ MPT_DELAYED_CONCAT(MODC_LIST_NAME, _AddRange)(  MODC_LIST_NAME* this,
     if(this->Length != oldLength + dataLength)
         return this;
     memcpy(this->Data + oldLength, data, sizeof(MODC_VALUE_TYPE) * dataLength);
+    return this;
+}
+
+static inline MODC_LIST_NAME* 
+MPT_DELAYED_CONCAT(MODC_LIST_NAME, _InsertValue)(   MODC_LIST_NAME* this, 
+                                                    uint64_t index, 
+                                                    const MODC_VALUE_TYPE val)
+{
+    if(!this || index > this->Length)
+        return NULL;
+    
+    if(index == this->Length)
+        return MPT_DELAYED_CONCAT(MODC_LIST_NAME, _AddValue)(this, val);
+    
+    uint64_t oldLength = this->Length;
+    MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Resize)(this, oldLength + 1);
+    if(this->Length != oldLength + 1)
+        return this;
+    
+    memmove(this->Data + index + 1, this->Data + index, (oldLength - index) * sizeof(MODC_VALUE_TYPE));
+    this->Data[index] = val;
+    return this;
+}
+
+static inline MODC_LIST_NAME* 
+MPT_DELAYED_CONCAT(MODC_LIST_NAME, _InsertRange)(   MODC_LIST_NAME* this, 
+                                                    uint64_t index, 
+                                                    const MODC_VALUE_TYPE* data, 
+                                                    uint64_t dataLength)
+{
+    if(!this || !dataLength || !data || index > this->Length)
+        return this;
+    
+    if(index == this->Length)
+        return MPT_DELAYED_CONCAT(MODC_LIST_NAME, _AddRange)(this, data, dataLength);
+    
+    uint64_t oldLength = this->Length;
+    MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Resize)(this, oldLength + dataLength);
+    if(this->Length != oldLength + dataLength)
+        return this;
+    
+    memmove(this->Data + index + dataLength, this->Data + index, (oldLength - index) * sizeof(MODC_VALUE_TYPE));
+    memcpy(this->Data + index, data, sizeof(MODC_VALUE_TYPE) * dataLength);
     return this;
 }
 
