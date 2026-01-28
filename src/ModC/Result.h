@@ -144,11 +144,11 @@ Macros:
     You can specify the error code with the `_EC` macro variants.
     Use `MODC_RET_ERROR()` inside `failedAction` to return the error.
 ```c
-MODC_ASSERT_ALLOC(expr, (formatAppend), allocator, failedAction);
-MODC_ASSERT(expr, (formatAppend), failedAction);
+MODC_CHECK_ALLOC(expr, (formatAppend), allocator, failedAction);
+MODC_CHECK(expr, (formatAppend), failedAction);
 
-MODC_ASSERT_EC_ALLOC(expr, errorCode, (formatAppend), allocator, failedAction);
-MODC_ASSERT_EC(expr, errorCode, (formatAppend), failedAction);
+MODC_CHECK_EC_ALLOC(expr, errorCode, (formatAppend), allocator, failedAction);
+MODC_CHECK_EC(expr, errorCode, (formatAppend), failedAction);
 ```
 */
 
@@ -500,7 +500,7 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion msg,
 
 #define MODC_RESULT_TO_STRING_S(resultVal) MODC_RESULT_TO_STRING(ModC_ResultName, resultVal)
 
-#define INTERNAL_MODC_ASSERT_EC_ALLOC(expr, errorCode, formatAppend, allocator, ... /* failedAction */) \
+#define INTERNAL_MODC_CHECK_EC_ALLOC(expr, errorCode, formatAppend, allocator, ... /* failedAction */) \
     do \
     { \
         if(!(expr)) \
@@ -523,16 +523,16 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion msg,
     } \
     while(false)
 
-#define MODC_ASSERT(expr, formatAppend, ... /* failedAction */) \
-    INTERNAL_MODC_ASSERT_EC_ALLOC(expr, 0, formatAppend, (MODC_DEFAULT_ALLOC()), __VA_ARGS__)
+#define MODC_CHECK(expr, formatAppend, ... /* failedAction */) \
+    INTERNAL_MODC_CHECK_EC_ALLOC(expr, 0, formatAppend, (MODC_DEFAULT_ALLOC()), __VA_ARGS__)
 
-#define MODC_ASSERT_ALLOC(expr, formatAppend, allocator, ... /* failedAction */) \
-    INTERNAL_MODC_ASSERT_EC_ALLOC(expr, 0, formatAppend, allocator, __VA_ARGS__)
+#define MODC_CHECK_ALLOC(expr, formatAppend, allocator, ... /* failedAction */) \
+    INTERNAL_MODC_CHECK_EC_ALLOC(expr, 0, formatAppend, allocator, __VA_ARGS__)
 
-#define MODC_ASSERT_EC_ALLOC(expr, errorCode, formatAppend, allocator, ... /* failedAction */) \
-    INTERNAL_MODC_ASSERT_EC_ALLOC(expr, errorCode, formatAppend, allocator, __VA_ARGS__)
+#define MODC_CHECK_EC_ALLOC(expr, errorCode, formatAppend, allocator, ... /* failedAction */) \
+    INTERNAL_MODC_CHECK_EC_ALLOC(expr, errorCode, formatAppend, allocator, __VA_ARGS__)
 
-#define MODC_ASSERT_EC(expr, errorCode, formatAppend, ... /* failedAction */) \
-    INTERNAL_MODC_ASSERT_EC_ALLOC(expr, errorCode, formatAppend, (MODC_DEFAULT_ALLOC()), __VA_ARGS__)
+#define MODC_CHECK_EC(expr, errorCode, formatAppend, ... /* failedAction */) \
+    INTERNAL_MODC_CHECK_EC_ALLOC(expr, errorCode, formatAppend, (MODC_DEFAULT_ALLOC()), __VA_ARGS__)
 
 #endif

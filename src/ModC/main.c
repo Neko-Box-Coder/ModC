@@ -81,12 +81,12 @@ ModC_Result_Void Main(int argc, char* argv[])
         int64_t fileSize;
         {
             int fseekResult = fseek(modcFile, 0, SEEK_END);
-            MODC_ASSERT(fseekResult == 0, 
+            MODC_CHECK( fseekResult == 0, 
                         (" fseekResult: %i.", fseekResult), 
                         MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
             
             fileSize = ftell(modcFile);
-            MODC_ASSERT(fileSize >= 0, 
+            MODC_CHECK( fileSize >= 0, 
                         (" fileSize: "PRIi64".", fileSize), 
                         MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
         }
@@ -97,10 +97,10 @@ ModC_Result_Void Main(int argc, char* argv[])
         
         fileContent = ModC_String_Create(ModC_ShareArenaAllocator(mainArena.Allocator), fileSize);
         ModC_String_Resize(&fileContent, fileSize);
-        MODC_ASSERT(fileContent.Length == fileSize, "", MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
+        MODC_CHECK( fileContent.Length == fileSize, "", MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
         
         uint32_t actuallyRead = fread(fileContent.Data, 1, fileSize, modcFile);
-        MODC_ASSERT(actuallyRead == fileSize, 
+        MODC_CHECK( actuallyRead == fileSize, 
                     (" actuallyRead: %"PRIu64", fileSize: %"PRIi64, actuallyRead, fileSize),
                     MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
     

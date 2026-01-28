@@ -171,9 +171,9 @@ static inline ModC_Result_Void ModC_Token_AppendChar(   ModC_Token* this,
                                                         ModC_Allocator allocator,
                                                         bool forceString)
 {
-    MODC_ASSERT(this != NULL, (""), MODC_RET_ERROR());
+    MODC_CHECK(this != NULL, (""), MODC_RET_ERROR());
     
-    if(!this->TokenText.Type == MODC_TAGGED_TYPE_S(ModC_String))
+    if(this->TokenText.Type == MODC_TAGGED_TYPE_S(ModC_String))
     {
         ModC_String_AddValue(&this->TokenText.Data.MODC_TAGGED_FIELD_S(ModC_String), c);
         return MODC_RESULT_VALUE_S(0);
@@ -189,18 +189,18 @@ static inline ModC_Result_Void ModC_Token_AppendChar(   ModC_Token* this,
         return MODC_RESULT_VALUE_S(0);
     }
     
-    MODC_ASSERT(source.Data <= tokenView->Data, 
+    MODC_CHECK( source.Data <= tokenView->Data, 
                 ("source: %p, token: %p", source.Data, tokenView->Data),
                 MODC_RET_ERROR());
     
-    MODC_ASSERT
+    MODC_CHECK
     (
         source.Data + source.Length > tokenView->Data + tokenView->Length, 
         ("source: %p, token: %p", source.Data + source.Length, tokenView->Data + tokenView->Length),
         MODC_RET_ERROR()
     );
     
-    MODC_ASSERT
+    MODC_CHECK
     (
         tokenView->Data[tokenView->Length] == c, 
         ("token next char: %i, passed char: %i", (int)tokenView->Data[tokenView->Length], (int)c),
@@ -291,11 +291,11 @@ static inline ModC_Result_Bool ModC_Token_IsCharPossible(   ModC_Token* this,
                                                             char c, 
                                                             ModC_CharTokenType cType)
 {
-    MODC_ASSERT(this != NULL, (""), MODC_RET_ERROR());
+    MODC_CHECK(this != NULL, (""), MODC_RET_ERROR());
     
     static_assert((int)ModC_TokenType_Count == 18, "");
     ModC_ConstStringView tokenStringView = ModC_Token_TokenTextView(this);
-    MODC_ASSERT(tokenStringView.Length > 0, (""), MODC_RET_ERROR());
+    MODC_CHECK(tokenStringView.Length > 0, (""), MODC_RET_ERROR());
     
     switch((ModC_CharTokenType)this->TokenType)
     {
