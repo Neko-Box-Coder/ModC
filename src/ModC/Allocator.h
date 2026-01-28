@@ -210,19 +210,6 @@ static inline ModC_Allocator ModC_CreateArenaAllocator(uint64_t allocateSize)
 
 #define ModC_CreateArenaAllocator(...) INTERN_PRINT_CALL(ModC_CreateArenaAllocator, __VA_ARGS__)
 
-static inline ModC_Allocator ModC_ShareArenaAllocator(Arena* arena)
-{
-    //INTERN_PRINT_MODC_PRINT_TRACE(arena);
-    return  (ModC_Allocator)
-            {
-                .Type = ModC_AllocatorType_SharedArena,
-                .Allocator = arena,
-            };
-}
-
-#define ModC_ShareArenaAllocator(...) INTERN_PRINT_CALL(ModC_ShareArenaAllocator, __VA_ARGS__)
-
-
 static inline ModC_Allocator ModC_CreateHeapAllocator(void)
 {
     return  (ModC_Allocator)

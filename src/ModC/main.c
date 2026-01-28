@@ -95,7 +95,7 @@ ModC_Result_Void Main(int argc, char* argv[])
         mainArena = ModC_CreateArenaAllocator(fileSize + 8192 * 2);
         MODC_DEFER(0, ModC_Allocator_Destroy(&mainArena));
         
-        fileContent = ModC_String_Create(ModC_ShareArenaAllocator(mainArena.Allocator), fileSize);
+        fileContent = ModC_String_Create(ModC_Allocator_Share(&mainArena), fileSize);
         ModC_String_Resize(&fileContent, fileSize);
         MODC_CHECK( fileContent.Length == fileSize, "", MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
         
@@ -107,7 +107,7 @@ ModC_Result_Void Main(int argc, char* argv[])
         ModC_Result_TokenList tokenListResult = 
             ModC_Tokenization(  ModC_ConstStringView_Create(fileContent.Data, fileContent.Length),
                                 //ModC_CreateHeapAllocator());
-                                ModC_ShareArenaAllocator(mainArena.Allocator));
+                                ModC_Allocator_Share(&mainArena));
         ModC_TokenList* tokenList = MODC_RESULT_TRY(tokenListResult, 
                                                     MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
         
