@@ -92,7 +92,7 @@ ModC_Result_Void Main(int argc, char* argv[])
         }
         
         fseek(modcFile, 0, 0);
-        mainArena = ModC_CreateArenaAllocator(fileSize + 8192 * 2);
+        mainArena = ModC_CreateArenaAllocator(fileSize);
         MODC_DEFER(0, ModC_Allocator_Destroy(&mainArena));
         
         fileContent = ModC_String_Create(ModC_Allocator_Share(&mainArena), fileSize);

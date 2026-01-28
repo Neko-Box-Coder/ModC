@@ -357,7 +357,8 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ModC_ConstStringVi
     if(fileContent.Length == 0)
         return MODC_RESULT_VALUE_S( (ModC_TokenList){0} );
     
-    ModC_TokenList tokenList = ModC_TokenList_Create(ModC_Allocator_Share(&allocator), 128);
+    ModC_TokenList tokenList = ModC_TokenList_Create(   ModC_Allocator_Share(&allocator), 
+                                                        fileContent.Length / 16);
     ModC_TokenList retList = {0};
     
     MODC_DEFER_SCOPE_START(0)
