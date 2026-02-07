@@ -4,7 +4,7 @@
 /* Docs
 Define `MODC_LIST_NAME` for the name of the list.
 Define `MODC_VALUE_TYPE` for the element type stored in the list
-Define `MODC_VALUE_FREE` which will be called as `MODC_ITEM_FREE(MODC_VALUE_TYPE* val)`
+Define `MODC_VALUE_FREE` which will be called as `MODC_VALUE_FREE(MODC_VALUE_TYPE* val)`
 
 Then include this file
 
@@ -24,7 +24,7 @@ Just read the code for the functions
 #include <stddef.h>
 #include <stdint.h>
 
-typedef struct
+typedef struct MODC_LIST_NAME
 {
     ModC_Allocator Allocator;
     MODC_VALUE_TYPE* Data;

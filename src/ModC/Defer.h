@@ -2,7 +2,7 @@
 #define MODC_DEFER_H
 
 /* Docs
-Use in a function like this. Will not work with nested defer scope.
+Use in a function like this. Will not work inside a switch statement
 ```c
 MODC_DEFER_SCOPE_START(scopeId)
 ...

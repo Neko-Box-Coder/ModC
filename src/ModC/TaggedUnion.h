@@ -9,14 +9,16 @@
 
 /* Docs
 Define `MODC_TAGGED_UNION_NAME` for the name of the tagged union.
-Define `MODC_VALUE_TYPES` for types of the tagged union
+Define `MODC_VALUE_TYPES` for types of the tagged union. This is comma separated.
+Pointers need to be typedef to be passed to `MODC_VALUE_TYPES`.
+
 Then include this file
 
 #### Definitions
 The following types will be defined
 
 ```c
-typedef enum
+typedef enum <MODC_TAGGED_UNION_NAME>Index
 {
     <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_1>Index,
     <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_2>Index,
@@ -24,7 +26,7 @@ typedef enum
     ...
 } <MODC_TAGGED_UNION_NAME>Index
 
-typedef struct
+typedef struct <MODC_TAGGED_UNION_NAME>
 {
     <MODC_TAGGED_UNION_NAME>Index Type;
     
@@ -98,7 +100,7 @@ MyUnion myUnion = MODC_TAGGED_INIT(MyUnion, int, 5);
 /*
 Expands to: 
 ```c
-typedef enum
+typedef enum <MODC_TAGGED_UNION_NAME>Index
 {
     <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_1>Index,
     <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_2>Index,
@@ -107,7 +109,7 @@ typedef enum
 } <MODC_TAGGED_UNION_NAME>Index
 ```
 */
-typedef enum
+typedef enum MPT_DELAYED_CONCAT( MODC_TAGGED_UNION_NAME, Index )
 {
     MPT_CONCAT_LISTS_ITEMS
     (
@@ -125,7 +127,7 @@ typedef enum
 /*
 Expands to: 
 ```c
-typedef struct
+typedef struct <MODC_TAGGED_UNION_NAME>
 {
     <MODC_TAGGED_UNION_NAME>Index Type;
     
@@ -139,7 +141,7 @@ typedef struct
 } <MODC_TAGGED_UNION_NAME>
 ```
 */
-typedef struct
+typedef struct MODC_TAGGED_UNION_NAME
 {
     MPT_DELAYED_CONCAT( MODC_TAGGED_UNION_NAME, Index ) Type;
     

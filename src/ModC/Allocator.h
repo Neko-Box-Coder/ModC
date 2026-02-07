@@ -19,7 +19,7 @@ Just read the code
 #include <string.h>
 #include <stdbool.h>
 
-typedef enum
+typedef enum ModC_AllocatorType
 {
     ModC_AllocatorType_Heap,
     ModC_AllocatorType_SharedArena,
@@ -27,7 +27,7 @@ typedef enum
     ModC_AllocatorType_Count,   //3
 } ModC_AllocatorType;
 
-typedef struct
+typedef struct ModC_Allocator
 {
     ModC_AllocatorType Type;
     void* Allocator;

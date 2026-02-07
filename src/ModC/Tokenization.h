@@ -15,7 +15,7 @@
 #include <ctype.h>
 #include <stdbool.h>
 
-typedef enum
+typedef enum ModC_TokenType
 {
     ModC_TokenType_Type,
     ModC_TokenType_Keyword,
@@ -38,7 +38,7 @@ typedef enum
     ModC_TokenType_Count,   //18
 } ModC_TokenType;
 
-typedef enum
+typedef enum ModC_CharTokenType
 {
     ModC_CharTokenType_Identifier = ModC_TokenType_Identifier,
     ModC_CharTokenType_Operator = ModC_TokenType_Operator,
@@ -55,7 +55,7 @@ typedef enum
     ModC_CharTokenType_Undef = ModC_TokenType_Undef,
 } ModC_CharTokenType;
 
-typedef struct
+typedef struct ModC_Token
 {
     ModC_TokenType TokenType;
     ModC_StringUnion TokenText;
@@ -74,6 +74,7 @@ static inline void ModC_Token_Free(ModC_Token* this);
 MODC_DEFINE_RESULT_STRUCT(ModC_Result_TokenList, ModC_TokenList)
 MODC_DEFINE_RESULT_STRUCT(ModC_Result_Token, ModC_Token)
 
+#undef ModC_TaggedUnionName
 #define ModC_TaggedUnionName ModC_StringUnion
 
 static inline ModC_ConstStringView ModC_Token_TokenTextView(ModC_Token* this)

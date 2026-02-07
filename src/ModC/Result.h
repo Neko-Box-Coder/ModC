@@ -9,7 +9,7 @@ To define a result type:
 `MODC_DEFINE_RESULT_STRUCT(ModC_ResultName, valueType)`
 Equivalent to
 ```c
-typedef struct
+typedef struct ModC_ResultName
 {
     bool HasError;
     union
@@ -30,7 +30,7 @@ Define `ModC_ResultName` to use `_S` macro variants
 `static inline ModC_ConstStringView ModC_GetFileName(const ModC_ConstStringView path);`
 
 ```c
-typedef struct
+typedef struct ModC_Trace
 {
     ModC_StringView File;
     ModC_StringView Function;
@@ -43,7 +43,7 @@ static inline void ModC_Trace_Create(   const char* file,
 ```
 
 ```c
-typedef struct
+typedef struct ModC_Error
 {
     ModC_Trace Traces[MODC_MAX_TRACES];
     uint8_t TracesSize;
@@ -166,7 +166,7 @@ MODC_CHECK_EC(expr, errorCode, (formatAppend), failedAction);
 #include <string.h>
 #include <stdio.h>
 
-typedef struct
+typedef struct ModC_Trace
 {
     ModC_StringView File;
     ModC_StringView Function;
@@ -211,7 +211,7 @@ static inline void ModC_Trace_Create(   const char* file,
 
 #define MODC_MAX_TRACES 64
 
-typedef struct
+typedef struct ModC_Error
 {
     ModC_Trace Traces[MODC_MAX_TRACES];
     ModC_Allocator Allocator;
@@ -227,7 +227,7 @@ static inline void ModC_VoidGlobalRetError(void) { (void)ModC_GlobalRetError; }
 
 
 #define MODC_DEFINE_RESULT_STRUCT(ModC_DefResultName, valueType) \
-    typedef struct \
+    typedef struct ModC_DefResultName \
     { \
         bool HasError; \
         union \

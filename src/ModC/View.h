@@ -24,13 +24,13 @@ Just read the code for the functions
 #include <stddef.h>
 #include <stdint.h>
 
-typedef struct
+typedef struct MODC_VIEW_NAME
 {
     MODC_VALUE_TYPE* Data;
     uint64_t Length;
 } MODC_VIEW_NAME;
 
-typedef struct
+typedef struct MODC_CONST_VIEW_NAME
 {
     const MODC_VALUE_TYPE* Data;
     uint64_t Length;
