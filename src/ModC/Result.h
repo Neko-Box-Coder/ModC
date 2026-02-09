@@ -71,7 +71,6 @@ ModC_ResultName MODC_ERROR_MSG_EC_ALLOC(ModC_ResultName,
                                         int32_t errorCode);
 ModC_ResultName MODC_ERROR_MSG_EC(ModC_ResultName, ModC_StringUnion msg,int32_t errorCode);
 
-//
 ModC_ResultName MODC_ERROR_MSG_EC_ALLOC_S(  ModC_StringUnion msg,
                                             ModC_Allocator allocator,
                                             int32_t errorCode);
@@ -462,10 +461,10 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion msg,
 #define MODC_ERROR_CSTR_S(...) MODC_ERROR_CSTR(ModC_ResultName, __VA_ARGS__)
 
 
-#define MODC_RESULT_VALUE(ModC_ResultName, val) \
-    MPT_DELAYED_CONCAT(ModC_ResultName, _CreateValue)(val)
+#define MODC_RESULT_VALUE(ModC_ResultName, ... /* value */) \
+    MPT_DELAYED_CONCAT(ModC_ResultName, _CreateValue)(__VA_ARGS__)
 
-#define MODC_RESULT_VALUE_S(val) MODC_RESULT_VALUE(ModC_ResultName, val)
+#define MODC_RESULT_VALUE_S(... /* value */) MODC_RESULT_VALUE(ModC_ResultName, __VA_ARGS__)
 
 #define MODC_RESULT_FREE_RESOURCE(ModC_ResultName, resultPtr) \
     do \
