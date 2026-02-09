@@ -21,10 +21,11 @@ Just read the code
 
 typedef enum ModC_AllocatorType
 {
+    ModC_AllocatorType_Invalid,
     ModC_AllocatorType_Heap,
     ModC_AllocatorType_SharedArena,
     ModC_AllocatorType_OwnedArena,
-    ModC_AllocatorType_Count,   //3
+    ModC_AllocatorType_Count,   //4
 } ModC_AllocatorType;
 
 typedef struct ModC_Allocator
@@ -174,7 +175,7 @@ static inline void* ModC_Allocator_Malloc(const ModC_Allocator* this, uint64_t s
     if(!this)
         goto ret;
     
-    static_assert((int)ModC_AllocatorType_Count == 3, "");
+    static_assert((int)ModC_AllocatorType_Count == 4, "");
     switch(this->Type)
     {
         case ModC_AllocatorType_Heap:
@@ -261,7 +262,7 @@ static inline void* ModC_Allocator_Realloc(const ModC_Allocator* this, void* dat
     if(!this)
         goto ret;
     
-    static_assert((int)ModC_AllocatorType_Count == 3, "");
+    static_assert((int)ModC_AllocatorType_Count == 4, "");
     switch(this->Type)
     {
         case ModC_AllocatorType_Heap:
@@ -301,7 +302,7 @@ static inline void ModC_Allocator_Free(const ModC_Allocator* this, void* data)
     if(!this)
         return;
     
-    static_assert((int)ModC_AllocatorType_Count == 3, "");
+    static_assert((int)ModC_AllocatorType_Count == 4, "");
     switch(this->Type)
     {
         case ModC_AllocatorType_Heap:
@@ -352,12 +353,14 @@ static inline void ModC_Allocator_Free(const ModC_Allocator* this, void* data)
 
 #define ModC_Allocator_Free(...) INTERN_PRINT_CALL(ModC_Allocator_Free, __VA_ARGS__)
 
+//TODO: ModC_Allocator_Reset
+
 static inline void ModC_Allocator_Destroy(ModC_Allocator* this)
 {
     if(!this)
         return;
     
-    static_assert((int)ModC_AllocatorType_Count == 3, "");
+    static_assert((int)ModC_AllocatorType_Count == 4, "");
     switch(this->Type)
     {
         case ModC_AllocatorType_Heap:
@@ -408,7 +411,7 @@ static inline ModC_Allocator ModC_Allocator_Share(ModC_Allocator* this)
     
     //INTERN_PRINT_MODC_PRINT_TRACE(this);
     
-    static_assert((int)ModC_AllocatorType_Count == 3, "");
+    static_assert((int)ModC_AllocatorType_Count == 4, "");
     switch(this->Type)
     {
         case ModC_AllocatorType_Heap:
@@ -457,6 +460,52 @@ static inline ModC_Allocator ModC_CreateArenaAllocator(uint64_t allocateSize)
 }
 
 #define ModC_CreateArenaAllocator(...) INTERN_PRINT_CALL(ModC_CreateArenaAllocator, __VA_ARGS__)
+
+static inline ModC_Allocator ModC_CreateArenaAllocator_PreAllocated(void* preAllocatedData, 
+                                                                    uint64_t allocatedSize)
+{
+    uint64_t arenaOffset = offsetof(struct { char c; Arena d; }, d);
+    char* byteDataPtr = preAllocatedData;
+    uint64_t alignPadding = arenaOffset - ((uint64_t)byteDataPtr % arenaOffset);
+    uint64_t minDataNeeded = alignPadding + sizeof(Arena);
+    if(allocatedSize <= minDataNeeded)
+        return (ModC_Allocator){0};
+    
+    byteDataPtr += alignPadding;
+    allocatedSize -= alignPadding;
+    MODC_ASSERT((uint64_t)byteDataPtr % arenaOffset == 0);
+    
+    Arena* retArena = (void*)byteDataPtr;
+    byteDataPtr += sizeof(Arena);
+    allocatedSize -= sizeof(Arena);
+    
+    arena_init(retArena, byteDataPtr, allocatedSize);
+    
+    ModC_Allocator retAlloc =
+    {
+        .Type = ModC_AllocatorType_OwnedArena,
+        .Allocator = NULL
+    };
+    
+    ModC_ArenaWrapper* arenaWrapper = arena_alloc(retArena, sizeof(ModC_ArenaWrapper));
+    retAlloc.Allocator = arenaWrapper;
+    if(!retAlloc.Allocator)
+    {
+        arena_destroy(retArena);
+        return (ModC_Allocator){0};
+    }
+    
+    *arenaWrapper = (ModC_ArenaWrapper){0};
+    arenaWrapper->CurrentArena = retArena;
+    
+    INTERN_PRINT_MODC_PRINT_TRACE(  "retAlloc.Allocator: %p with size %"PRIu64"\n", 
+                                    retAlloc.Allocator, 
+                                    allocatedSize + sizeof(ModC_ArenaWrapper) + 64);
+    return retAlloc;
+}
+
+#define ModC_CreateArenaAllocator_PreAllocated(...) \
+    INTERN_PRINT_CALL(ModC_CreateArenaAllocator_PreAllocated, __VA_ARGS__)
 
 static inline ModC_Allocator ModC_CreateHeapAllocator(void)
 {
