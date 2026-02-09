@@ -197,15 +197,16 @@ typedef struct MODC_TAGGED_UNION_NAME
 #define MODC_TAGGED_FIELD_S(typeName) MODC_TAGGED_FIELD(ModC_TaggedUnionName, typeName) 
 
 #undef MODC_TAGGED_INIT
-#define MODC_TAGGED_INIT(ModC_TaggedUnionName, typeName, value) \
+#define MODC_TAGGED_INIT(ModC_TaggedUnionName, typeName, ... /* value */) \
         (ModC_TaggedUnionName) \
         { \
             .Type = MODC_TAGGED_TYPE(ModC_TaggedUnionName, typeName), \
-            .Data.MODC_TAGGED_FIELD(ModC_TaggedUnionName, typeName) = value \
+            .Data.MODC_TAGGED_FIELD(ModC_TaggedUnionName, typeName) = __VA_ARGS__ \
         } \
 
 #undef MODC_TAGGED_INIT_S
-#define MODC_TAGGED_INIT_S(typeName, value) MODC_TAGGED_INIT(ModC_TaggedUnionName, typeName, value)
+#define MODC_TAGGED_INIT_S(typeName, ... /* value */) \
+    MODC_TAGGED_INIT(ModC_TaggedUnionName, typeName, __VA_ARGS__)
 
 
 #undef MODC_TAGGED_UNION_NAME
