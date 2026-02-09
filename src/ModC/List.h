@@ -5,6 +5,7 @@
 Define `MODC_LIST_NAME` for the name of the list.
 Define `MODC_VALUE_TYPE` for the element type stored in the list
 Define `MODC_VALUE_FREE` which will be called as `MODC_VALUE_FREE(MODC_VALUE_TYPE* val)`
+Define `MODC_NO_TYPEDEF` to not use typedef struct
 
 Then include this file
 
@@ -24,13 +25,24 @@ Just read the code for the functions
 #include <stddef.h>
 #include <stdint.h>
 
-typedef struct MODC_LIST_NAME
-{
-    ModC_Allocator Allocator;
-    MODC_VALUE_TYPE* Data;
-    uint64_t Length;
-    uint64_t Cap;
-} MODC_LIST_NAME;
+
+#if MODC_NO_TYPEDEF
+    struct MODC_LIST_NAME
+    {
+        ModC_Allocator Allocator;
+        MODC_VALUE_TYPE* Data;
+        uint64_t Length;
+        uint64_t Cap;
+    };
+#else
+    typedef struct MODC_LIST_NAME
+    {
+        ModC_Allocator Allocator;
+        MODC_VALUE_TYPE* Data;
+        uint64_t Length;
+        uint64_t Cap;
+    } MODC_LIST_NAME;
+#endif
 
 static inline MODC_LIST_NAME*
 MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Reserve)(MODC_LIST_NAME* this, uint32_t reserveSize)
@@ -303,3 +315,4 @@ MPT_DELAYED_CONCAT(MODC_LIST_NAME, _Find)(const MODC_LIST_NAME* this, const MODC
 #undef MODC_LIST_NAME
 #undef MODC_VALUE_TYPE
 #undef MODC_VALUE_FREE
+#undef MODC_NO_TYPEDEF
