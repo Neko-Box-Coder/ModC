@@ -32,6 +32,8 @@ Just read the code
 #define ModC_StringUnion_StringFromLiteral(allocator, cstr) \
     MODC_TAGGED_INIT(ModC_StringUnion, ModC_String, ModC_String_FromLiteral(allocator, cstr))
 
+static inline ModC_ConstStringView ModC_StringUnion_GetConstView(ModC_StringUnion* this);
+
 #define ModC_String_AppendLiteral(stringObj, cstr) \
     ModC_String_AddRange((stringObj), cstr, sizeof(cstr) - 1)
 
@@ -68,6 +70,19 @@ static inline ModC_String* ModC_String_AppendVFormat(   ModC_String* this,
 //=======================================================================================
 //Implementations
 //=======================================================================================
+#undef ModC_TaggedUnionName
+#define ModC_TaggedUnionName ModC_StringUnion
+static inline ModC_ConstStringView ModC_StringUnion_GetConstView(ModC_StringUnion* this)
+{
+    if(!this)
+        return (ModC_ConstStringView){0};
+    
+    return  this->Type == MODC_TAGGED_TYPE_S(ModC_String) ?
+            ModC_ConstStringView_Create(this->Data.MODC_TAGGED_FIELD_S(ModC_String).Data,
+                                        this->Data.MODC_TAGGED_FIELD_S(ModC_String).Length) :
+            this->Data.MODC_TAGGED_FIELD_S(ModC_ConstStringView);
+}
+
 static inline ModC_String ModC_String_FromData( ModC_Allocator allocator, 
                                                 const char* data, 
                                                 uint64_t length)
