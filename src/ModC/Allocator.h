@@ -124,6 +124,14 @@ static inline PtrOrSize ModC_SetupCanariesAndSize(void* allocPtr, uint64_t alloc
     #endif
 }
 
+#if MODC_ALLOCATOR_NO_CANARY
+    #define ModC_FrontCanarySize() 0
+    #define ModC_BackCanarySize() 0
+#else
+    #define ModC_FrontCanarySize() ((sizeof("cana") - 1) + sizeof(uint64_t) + (sizeof("ries") - 1))
+    #define ModC_BackCanarySize() (sizeof("cana") - 1)
+#endif
+
 static inline bool ModC_CheckFrontCanary(void* allocPtr)
 {
     #if MODC_ALLOCATOR_NO_CANARY
@@ -139,7 +147,7 @@ static inline bool ModC_CheckFrontCanary(void* allocPtr)
     #endif
 }
 
-static inline uint64_t ModC_GetSize(void* allocPtr)
+static inline uint64_t ModC_GetAllocSize(void* allocPtr)
 {
     allocPtr = (char*)allocPtr - (sizeof("ries") - 1) - sizeof(uint64_t);
     uint64_t retSize = 0;
@@ -262,10 +270,11 @@ static inline void* ModC_Allocator_Realloc(const ModC_Allocator* this, void* dat
         case ModC_AllocatorType_SharedArena:
         case ModC_AllocatorType_OwnedArena:
         {
-            MODC_ASSERT(ModC_CheckFrontCanary(data) && ModC_CheckBackCanary(data, ModC_GetSize(data)) &&
+            MODC_ASSERT(ModC_CheckFrontCanary(data) && 
+                        ModC_CheckBackCanary(data, ModC_GetAllocSize(data)) &&
                         "Canary check broken, out-of-bound write detected");
             
-            uint64_t origSize = ModC_GetSize(data);
+            uint64_t origSize = ModC_GetAllocSize(data);
             retPtr = ModC_Allocator_Malloc(this, size);
             memcpy(retPtr, data, origSize);
             break;
@@ -301,9 +310,41 @@ static inline void ModC_Allocator_Free(const ModC_Allocator* this, void* data)
             break;
         case ModC_AllocatorType_SharedArena:
         case ModC_AllocatorType_OwnedArena:
-            MODC_ASSERT(ModC_CheckFrontCanary(data) && ModC_CheckBackCanary(data, ModC_GetSize(data)) &&
+        {
+            MODC_ASSERT(ModC_CheckFrontCanary(data) && 
+                        ModC_CheckBackCanary(data, ModC_GetAllocSize(data)) &&
                         "Canary check broken, out-of-bound write detected");
+            
+            ModC_ArenaWrapper* currentNode = this->Allocator;
+            char* byteDataPtr = data;
+            while(currentNode->NextArena)
+            {
+                Arena* currentArena = currentNode->CurrentArena;
+                MODC_ASSERT(currentArena);
+                if( currentArena->region >= byteDataPtr && 
+                    currentArena->region + currentArena->index < byteDataPtr)
+                {
+                    break;
+                }
+                
+                ModC_ArenaWrapper* prevArena = currentNode;
+                currentNode = currentNode->NextArena;
+                MODC_ASSERT(prevArena == currentNode->PrevArena);
+            }
+            MODC_ASSERT(currentNode->CurrentArena);
+            
+            if( currentNode->CurrentArena->region + currentNode->CurrentArena->index ==
+                byteDataPtr + ModC_GetAllocSize(data) + ModC_BackCanarySize())
+            {
+                currentNode->CurrentArena->index -= (ModC_FrontCanarySize() + 
+                                                    ModC_GetAllocSize(data) + 
+                                                    ModC_BackCanarySize());
+                MODC_ASSERT(currentNode->CurrentArena->region + currentNode->CurrentArena->index ==
+                            byteDataPtr);
+            }
+            
             break;
+        }
         default:
             break;
     }
