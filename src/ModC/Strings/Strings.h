@@ -56,11 +56,11 @@ static inline ModC_String* ModC_String_AppendVFormat(   ModC_String* this,
                                                         const char* format, 
                                                         va_list args);
 
-#define ModC_String_IsEqualLiteral(obj, cstr) \
-    ((obj)->Length == sizeof(cstr) - 1 && memcmp((obj)->Data, cstr, sizeof(cstr) - 1) == 0)
+#define ModC_String_IsEqualLiteral(this, cstr) \
+    ((this)->Length == sizeof(cstr) - 1 && memcmp((this)->Data, cstr, sizeof(cstr) - 1) == 0)
 
-#define ModC_StringView_IsEqualLiteral(obj, cstr) ModC_String_IsEqualLiteral(obj, cstr)
-#define ModC_ConstStringView_IsEqualLiteral(obj, cstr) ModC_String_IsEqualLiteral(obj, cstr)
+#define ModC_StringView_IsEqualLiteral(this, cstr) ModC_String_IsEqualLiteral(this, cstr)
+#define ModC_ConstStringView_IsEqualLiteral(this, cstr) ModC_String_IsEqualLiteral(this, cstr)
 
 #define ModC_ConstStringView_FromLiteral(cstr) ModC_ConstStringView_Create(cstr, sizeof(cstr) - 1)
 
