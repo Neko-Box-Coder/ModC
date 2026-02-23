@@ -5,6 +5,7 @@
 #include "ModC/GenericContainers.h"
 #include "ModC/Strings/Strings.h"
 #include "ModC/Tokenization.h"
+#include "ModC/Parser.h"
 
 //Dependencies
 #include "static_assert.h/assert.h"
@@ -50,11 +51,13 @@ static inline ModC_Result_Int32 TestResult2()
 
 #undef ModC_ResultName
 #define ModC_ResultName ModC_Result_Void
-
+#undef ModC_TaggedUnionName
+#define ModC_TaggedUnionName ModC_StatementUnion
 ModC_Result_Void Main(int argc, char* argv[])
 {
     FILE* modcFile = NULL;
     ModC_Allocator mainArena;
+    ModC_Allocator statementListArena;
     ModC_String fileContent;
     
     MODC_DEFER_SCOPE_START(0)
@@ -122,6 +125,102 @@ ModC_Result_Void Main(int argc, char* argv[])
                     i, 
                     (int)typeStr.Length, typeStr.Data);
         }
+        
+        ModC_Result_StatementList statementListResult = ModC_CreateStatements(  tokenList, 
+                                                                                &statementListArena);
+        ModC_StatementList* statementList = MODC_RESULT_TRY(statementListResult, 
+                                                            MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
+        MODC_DEFER(0, ModC_Allocator_Destroy(&statementListArena));
+        
+        for(int i = 0; i < statementList->Length; ++i)
+        {
+            ModC_ConstStringView statementTypeStr = 
+                ModC_StatementType_ToConstStringView(statementList->Data[i].StatementType);
+            
+            printf( "statementList[%i]:\n" "StatementType: %.*s\n", 
+                    i, (int)statementTypeStr.Length, statementTypeStr.Data);
+            
+            ModC_Result_Void checkResult = MODC_RESULT_VALUE_S(0);
+            //bool invalidLength = false;
+            switch(statementList->Data[i].Value.Type)
+            {
+                case MODC_TAGGED_TYPE_S(ModC_CompoundStatement):
+                {
+                    ModC_CompoundStatement* compoundStatement = 
+                        &statementList->Data[i].Value.Data.MODC_TAGGED_FIELD_S(ModC_CompoundStatement);
+                    
+                    printf("ModC_CompoundStatement.StartTokenIndex: %"PRIu32 "\n", 
+                        compoundStatement->StartTokenIndex);
+                    
+                    for(int j = 0; j < compoundStatement->ChildStatements.Length; ++j)
+                    {
+                        printf( "ModC_CompoundStatement.ChildStatements[%i]: %"PRIu32 "\n", 
+                                j, compoundStatement->ChildStatements.Data[j]);
+                    }
+                    
+                    printf("ModC_CompoundStatement.EndTokenIndex: %"PRIu32 "\n", 
+                        compoundStatement->EndTokenIndex);
+                    printf( "ModC_CompoundStatement.Implicit: %s\n",  
+                            (compoundStatement->Implicit ? "true" : "false"));
+                    break;
+                }
+                case MODC_TAGGED_TYPE_S(ModC_TokenIndexList):
+                {
+                    ModC_TokenIndexList* tokenIndexList = 
+                        &statementList->Data[i].Value.Data.MODC_TAGGED_FIELD_S(ModC_TokenIndexList);
+                    
+                    for(int j = 0; j < tokenIndexList->Length; ++j)
+                        printf("ModC_TokenIndexList[%i]: %"PRIu32 "\n", j, tokenIndexList->Data[j]);
+                    
+                    //Print tokens
+                    printf("Tokens: \"");
+                    for(int j = 0; j < tokenIndexList->Length; ++j)
+                    {
+                        ModC_ConstStringView tokenText = 
+                            ModC_Token_TokenTextView(&tokenList->Data[tokenIndexList->Data[j]]);
+                        MODC_CHECK( tokenText.Length > 0, 
+                                    ("Invalid token text"), 
+                                    checkResult = MODC_RESULT_ERROR_S(MODC_LAST_ERROR); break);
+                        printf("%.*s", (int)tokenText.Length, tokenText.Data);
+                    }
+                    printf("\"\n");
+                    break;
+                }
+                case MODC_TAGGED_TYPE_S(ModC_TokenIndexRange):
+                {
+                    ModC_TokenIndexRange* tokenIndexRange = 
+                        &statementList->Data[i].Value.Data.MODC_TAGGED_FIELD_S(ModC_TokenIndexRange);
+                    
+                    printf( "ModC_TokenIndexRange.StartIndex: %"PRIu32 "\n", 
+                            tokenIndexRange->StartIndex);
+                    printf("ModC_TokenIndexRange.EndIndex: %"PRIu32 "\n", tokenIndexRange->EndIndex);
+                    //Print tokens
+                    printf("Tokens: \"");
+                    for(int j = tokenIndexRange->StartIndex; j < tokenIndexRange->EndIndex; ++j)
+                    {
+                        ModC_ConstStringView tokenText = ModC_Token_TokenTextView(&tokenList->Data[j]);
+                        MODC_CHECK( tokenText.Length > 0, 
+                                    ("Invalid token text"), 
+                                    checkResult = MODC_RESULT_ERROR_S(MODC_LAST_ERROR); break);
+                        printf("%.*s", (int)tokenText.Length, tokenText.Data);
+                    }
+                    printf("\"\n");
+                    break;
+                }
+            } //switch(statementList->Data[i].Value.Type)
+            
+            (void)MODC_RESULT_TRY(checkResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
+            printf("\n");
+            
+            
+            
+        } //for(int i = 0; i < statementList->Length; ++i)
+        
+        
+        
+        
+        
+        
     }
     MODC_DEFER_SCOPE_END(0)
     
