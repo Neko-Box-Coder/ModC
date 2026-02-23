@@ -46,7 +46,7 @@ typedef struct ModC_ArenaWrapper
 
 
 
-#define INTERN_MODC_DEBUG_PRINT_ALLOC 1
+#define INTERN_MODC_DEBUG_PRINT_ALLOC 0
 #if INTERN_MODC_DEBUG_PRINT_ALLOC
     #include <stdio.h>
     #include <inttypes.h>
