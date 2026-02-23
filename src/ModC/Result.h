@@ -86,6 +86,12 @@ ModC_ResultName MODC_ERROR_MSG_ALLOC_S(ModC_StringUnion msg, ModC_Allocator allo
 ModC_ResultName MODC_ERROR_MSG_S(ModC_StringUnion msg);
 ```
 
+Macro:
+```c
+ModC_ResultName MODC_RESULT_ERROR(ModC_ResultName, ModC_Error* error);
+ModC_ResultName MODC_RESULT_ERROR_S(ModC_Error* error);
+```
+
 
 Macro:
 ```c
@@ -398,7 +404,10 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion msg,
 
 #define MODC_ERROR_MSG_EC_S(msg, errorCode) MODC_ERROR_MSG_EC(ModC_ResultName, msg, errorCode)
 
+#define MODC_RESULT_ERROR(ModC_ResultName, errorPtr) \
+    MPT_DELAYED_CONCAT(ModC_ResultName, _CreateError)(errorPtr) \
 
+#define MODC_RESULT_ERROR_S(errorPtr) MODC_RESULT_ERROR(ModC_ResultName, errorPtr)
 
 #define INTERN_MODC_STR_VIEW_FROM_STR_FMT(allocator, strfmts) \
     MODC_TAGGED_INIT(   ModC_StringUnion, \

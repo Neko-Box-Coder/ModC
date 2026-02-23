@@ -12,7 +12,7 @@ Define `MODC_DEFAULT_ALLOC` and `MODC_DEFAULT_ALLOC_ARGS` to use non `_ALLOC` ma
 
 #include "ModC/Result.h"
 MODC_DEFINE_RESULT_STRUCT(ModC_Result_Int32, int32_t)
-
+MODC_DEFINE_RESULT_STRUCT(ModC_Result_Uint32, uint32_t)
 MODC_DEFINE_RESULT_STRUCT(ModC_Result_Bool, bool)
 
 typedef char ModC_Void;
