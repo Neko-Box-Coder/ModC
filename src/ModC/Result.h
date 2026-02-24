@@ -59,6 +59,9 @@ Macro:
     You can use `MODC_LAST_ERROR` which points to the error used to return.
     You can use `MODC_LAST_ERROR_MSG` which points to the error message used to return.
     Use `MODC_RET_ERROR()` inside `failedAction` to return the error.
+    
+    NOTE:   Check is done after the the returned pointer. 
+            Therefore avoid dereference on types that can have invalid values, such as bool.
 `valueType* MODC_RESULT_TRY(result, failedAction);`
 
 
