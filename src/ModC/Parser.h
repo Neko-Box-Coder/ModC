@@ -9,6 +9,7 @@
 #include "ModC/GenericContainers.h"
 #include "ModC/Result.h"
 #include "ModC/Keyword.h"
+#include "ModC/Operators.h"
 
 typedef enum ModC_StatementType
 {
@@ -288,6 +289,7 @@ static inline ModC_Result_Uint32 ModC_EndCurrentStatment(   bool countCurrentTok
     indexRange->StartIndex = *startTokenIndex;
     indexRange->EndIndex = countCurrentToken ? i + 1 : i;
     
+    //TODO: Maybe not needed
     //Trim newlines, spaces and comments
     {
         uint32_t j = 0;
@@ -314,7 +316,6 @@ static inline ModC_Result_Uint32 ModC_EndCurrentStatment(   bool countCurrentTok
         indexRange->EndIndex = j + 1;
     }
     
-    
     //TODO: Attach comments to statements
     
     *startTokenIndex = countCurrentToken ? ++i : i;
@@ -332,16 +333,16 @@ static inline ModC_Result_Uint32 ModC_EndCurrentStatment(   bool countCurrentTok
 #undef ModC_TaggedUnionName
 #define ModC_TaggedUnionName ModC_StatementUnion
 static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_TokenList* tokens, 
-                                                                ModC_Allocator* outArenaAllocator)
+                                                                ModC_Allocator* outStatementsArena)
 {
     MODC_CHECK(tokens != NULL, (""), MODC_RET_ERROR());
-    MODC_CHECK(outArenaAllocator != NULL, (""), MODC_RET_ERROR());
+    MODC_CHECK(outStatementsArena != NULL, (""), MODC_RET_ERROR());
     
-    *outArenaAllocator = ModC_CreateArenaAllocator(1024);   //TODO: Proper reserve count
-    ModC_Allocator sharedArena = ModC_Allocator_Share(outArenaAllocator);
+    *outStatementsArena = ModC_CreateArenaAllocator(1024);   //TODO: Proper reserve count
+    ModC_Allocator sharedArena = ModC_Allocator_Share(outStatementsArena);
     
     //TODO: Proper reserve count
-    ModC_StatementList statementList = ModC_StatementList_Create(*outArenaAllocator, 16);
+    ModC_StatementList statementList = ModC_StatementList_Create(*outStatementsArena, 16);
     ModC_ResultStatementPtr statementPtrResult = ModC_Statement_CreateCompound( sharedArena, 
                                                                                 &statementList, 
                                                                                 0,
@@ -565,12 +566,261 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
     return MODC_RESULT_VALUE_S(statementList);
 }
 
-static inline void ModC_ParseTokens(const ModC_TokenList* tokens)
+#undef ModC_ResultName
+#define ModC_ResultName ModC_Result_Void
+#undef ModC_TaggedUnionName
+#define ModC_TaggedUnionName ModC_StatementUnion
+static inline ModC_Result_Void ModC_TryMergeOperators(  ModC_Statement* const statement,
+                                                        ModC_Allocator tokensAllcoator,
+                                                        ModC_Allocator statementsArena,
+                                                        ModC_TokenList* tokens,
+                                                        ModC_Allocator scratchAllocator)
 {
-    (void)tokens;
+    MODC_CHECK( statement->Value.Type == MODC_TAGGED_TYPE_S(ModC_TokenIndexRange),
+                ("Unexpected statement union type"),
+                MODC_RET_ERROR());
+    
+    ModC_TokenIndexRange* indexRange = &statement   ->Value
+                                                    .Data
+                                                    .MODC_TAGGED_FIELD_S(ModC_TokenIndexRange);
+    ModC_TokenIndexList tokenIndices;
+    ModC_String tempMergedOperator;
+    
+    MODC_DEFER_SCOPE_START(0)
+    {
+        tokenIndices = 
+            ModC_Uint32List_Create( scratchAllocator, 
+                                    (indexRange->EndIndex - indexRange->StartIndex));
+        MODC_DEFER(0, ModC_Uint32List_Free(&tokenIndices));
+        
+        tempMergedOperator = ModC_String_Create(scratchAllocator, 3);
+        MODC_DEFER(0, ModC_String_Free(&tempMergedOperator));
+        
+        uint32_t minLookBack = indexRange->StartIndex;
+        bool skipped = false;
+        for(uint32_t i = indexRange->StartIndex; i < indexRange->EndIndex; ++i)
+        {
+            if(tokens->Data[i].TokenType == ModC_TokenType_Operator)
+            {
+                //If we reached the end of continuous operator tokens,
+                //merge operators tokens into a single token if possible
+                bool operatorNext = i != indexRange->EndIndex - 1 &&
+                                    tokens->Data[i + 1].TokenType == ModC_TokenType_Operator;
+                if(!operatorNext && minLookBack != i)
+                {
+                    MODC_CHECK(minLookBack < i, (""), MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
+                    
+                    ModC_String_Resize(&tempMergedOperator, 0);
+                    for(uint32_t j = minLookBack; j <= i; ++j)
+                    {
+                        MODC_CHECK( tokens->Data[j].TokenType == ModC_TokenType_Operator, 
+                                    (""), 
+                                    MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
+                        
+                        ModC_ConstStringView opChar = 
+                            ModC_Token_TokenTextView(&tokens->Data[j]);
+                        
+                        MODC_CHECK( opChar.Length == 1, 
+                                    ("Unexpected operator text length: %"PRIu32, 
+                                    opChar.Length),
+                                    MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
+                        
+                        ModC_String_AddValue(&tempMergedOperator, opChar.Data[0]);
+                    }
+                    
+                    ModC_ConstStringView mergedView = 
+                        ModC_ConstStringView_Create(tempMergedOperator.Data, 
+                                                    tempMergedOperator.Length);
+                    if(ModC_IsValidComplexOperator(mergedView))
+                    {
+                        skipped = true;
+                        
+                        //Modify token to concatenated operator string
+                        if( tokens->Data[i].TokenText.Type == 
+                            MODC_TAGGED_TYPE(ModC_StringUnion, ModC_String))
+                        {
+                            ModC_String* tokenStr = 
+                                &tokens ->Data[minLookBack]
+                                        .TokenText
+                                        .Data
+                                        .MODC_TAGGED_FIELD(ModC_StringUnion, ModC_String);
+                            
+                            ModC_String_AddRange(   tokenStr, 
+                                                    &tempMergedOperator.Data[1], 
+                                                    tempMergedOperator.Length - 1);
+                        }
+                        else
+                        {
+                            ModC_String tokenStr = 
+                                ModC_String_FromData(   tokensAllcoator, 
+                                                        tempMergedOperator.Data, 
+                                                        tempMergedOperator.Length);
+                            
+                            tokens->Data[minLookBack].TokenText = 
+                                MODC_TAGGED_INIT(ModC_StringUnion, ModC_String, tokenStr);
+                        }
+                        
+                        ModC_Uint32List_AddValue(&tokenIndices, minLookBack);
+                    }
+                    else
+                    {
+                        for(uint32_t j = minLookBack; j <= i; ++j)
+                            ModC_Uint32List_AddValue(&tokenIndices, j);
+                    }
+                } //if(!operatorNext && minLookBack != i)
+                else if(!operatorNext)
+                    ModC_Uint32List_AddValue(&tokenIndices, i);
+            } //if(tokens->Data[i].TokenType == ModC_TokenType_Operator)
+            //Skip all comments, spaces, newlines, etc...
+            else if(ModC_Token_IsSkippable(&tokens->Data[i]))
+            {
+                //TODO: Attach comments to statements
+                skipped = true;
+                minLookBack = i + 1;
+            }
+            //Otherwise, don't skip current token
+            else
+            {
+                minLookBack = i + 1;
+                ModC_Uint32List_AddValue(&tokenIndices, i);
+            }
+        } //for(uint32_t i = indexRange->StartIndex; i < indexRange->EndIndex; ++i)
+        
+        if(skipped)
+        {
+            indexRange = NULL;
+            statement->Value = 
+                MODC_TAGGED_INIT_S( ModC_TokenIndexList, 
+                                    ModC_Uint32List_Create( statementsArena, 
+                                                            tokenIndices.Length));
+            ModC_Uint32List_AddRange(   &statement  ->Value
+                                                    .Data
+                                                    .MODC_TAGGED_FIELD_S(ModC_TokenIndexList),
+                                        tokenIndices.Data,
+                                        tokenIndices.Length);
+        }
+    }
+    MODC_DEFER_SCOPE_END(0)
+    
+    return MODC_RESULT_VALUE_S(0);
+}
+
+#undef ModC_ResultName
+#define ModC_ResultName ModC_Result_Void
+#undef ModC_TaggedUnionName
+#define ModC_TaggedUnionName ModC_StatementUnion
+static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementList* statements, 
+                                                    ModC_Allocator tokensAllcoator,
+                                                    ModC_Allocator statementsArena,
+                                                    ModC_TokenList* tokens,
+                                                    ModC_Allocator scratchAllocator)
+{
+    MODC_CHECK(statements != NULL, (""), MODC_RET_ERROR());
+    MODC_CHECK(tokens != NULL, (""), MODC_RET_ERROR());
+    MODC_CHECK( statementsArena.Type == ModC_AllocatorType_SharedArena ||
+                statementsArena.Type == ModC_AllocatorType_OwnedArena, 
+                (""),
+                MODC_RET_ERROR());
     
     
+    //ModC_StatementIndexList currentProcess
+    if(statements->Length == 0)
+        return MODC_RESULT_VALUE_S(0);
     
+    uint32_t currentStatementIndex = 0;
+    {
+        ModC_Statement* rootStatement = &statements->Data[0];
+        
+        MODC_CHECK( rootStatement->StatementType == ModC_StatementType_Compound, 
+                    ("Root node must be compound statement"),
+                    MODC_RET_ERROR());
+        //Empty?
+        if(rootStatement->Value
+                        .Data
+                        .MODC_TAGGED_FIELD_S(ModC_CompoundStatement)
+                        .ChildStatements
+                        .Length == 0)
+        {
+            return MODC_RESULT_VALUE_S(0);
+        }
+        
+        currentStatementIndex = rootStatement   ->Value
+                                                .Data
+                                                .MODC_TAGGED_FIELD_S(ModC_CompoundStatement)
+                                                .ChildStatements
+                                                .Data[0];
+    }
+    
+    //Iterate all statements
+    while(true)
+    {
+        ModC_Statement* statement = &statements->Data[currentStatementIndex];
+        
+        MODC_CHECK( statement->StatementType == ModC_StatementType_Compound ||
+                    statement->StatementType == ModC_StatementType_Unknown, 
+                    ("Unexpected statement type"),
+                    MODC_RET_ERROR());
+        
+        //If compound, go to first child if any
+        if( statement->StatementType == ModC_StatementType_Compound &&
+            statement   ->Value
+                        .Data
+                        .MODC_TAGGED_FIELD_S(ModC_CompoundStatement)
+                        .ChildStatements
+                        .Length != 0)
+        {
+            currentStatementIndex = statement   ->Value
+                                                .Data
+                                                .MODC_TAGGED_FIELD_S(ModC_CompoundStatement)
+                                                .ChildStatements
+                                                .Data[0];
+            continue;
+        }
+        
+        if(statement->StatementType != ModC_StatementType_Compound)
+        {
+            ModC_Result_Void voidResult = ModC_TryMergeOperators(   statement,
+                                                                    tokensAllcoator,
+                                                                    statementsArena,
+                                                                    tokens,
+                                                                    scratchAllocator);
+            (void)MODC_RESULT_TRY(voidResult, MODC_RET_ERROR());
+            
+            //TODO(NOW): Classify statements
+            
+            
+        } //if(statement->StatementType != ModC_StatementType_Compound)
+        
+        //Traverse to the next statement
+        uint32_t origStatementIndex = currentStatementIndex;
+        while(currentStatementIndex == origStatementIndex)
+        {
+            ModC_Statement* parentStatement = &statements->Data[statement->ParentIndex];
+            MODC_CHECK( parentStatement->StatementType == ModC_StatementType_Compound, 
+                        (""), 
+                        MODC_RET_ERROR());
+            
+            ModC_CompoundStatement* parentCompound = 
+                &parentStatement->Value.Data.MODC_TAGGED_FIELD_S(ModC_CompoundStatement);
+            
+            uint32_t childIndex = ModC_Uint32List_Find( &parentCompound->ChildStatements, 
+                                                        &statement->Index);
+            MODC_CHECK(childIndex != parentCompound->ChildStatements.Length, (""), MODC_RET_ERROR());
+            
+            //Continue to the next child if we are not at the end
+            if(childIndex < parentCompound->ChildStatements.Length - 1)
+                currentStatementIndex = parentCompound->ChildStatements.Data[childIndex + 1];
+            //Otherwise go up if we are not under root
+            else if(parentStatement->Index != parentStatement->ParentIndex)
+                statement = parentStatement;
+            //Otherwise, we are done
+            else
+                return MODC_RESULT_VALUE_S(0);
+        }
+        
+    } //While(true)
+    
+    return MODC_ERROR_CSTR_S("Unreachable reached...");
 }
 
 #endif
