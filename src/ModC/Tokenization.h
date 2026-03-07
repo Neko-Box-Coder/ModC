@@ -75,11 +75,11 @@ static inline void ModC_Token_Free(ModC_Token* this);
 MODC_DEFINE_RESULT_STRUCT(ModC_Result_TokenList, ModC_TokenList)
 MODC_DEFINE_RESULT_STRUCT(ModC_Result_Token, ModC_Token)
 
-#undef ModC_TaggedUnionName
-#define ModC_TaggedUnionName ModC_StringUnion
-
 static inline ModC_ConstStringView ModC_Token_TokenTextView(ModC_Token* this)
 {
+    #undef ModC_TaggedUnionName_State
+    #define ModC_TaggedUnionName_State ModC_StringUnion
+    
     if(!this)
         return ModC_ConstStringView_Create(NULL, 0);
     
@@ -171,16 +171,16 @@ static inline ModC_ConstStringView ModC_TokenType_ToCStr(ModC_TokenType type)
     }
 }
 
-#undef ModC_ResultName
-#define ModC_ResultName ModC_Result_Void
-
 static inline ModC_Result_Void ModC_Token_AppendChar(   ModC_Token* this, 
                                                         const ModC_ConstStringView source, 
                                                         char c,
                                                         ModC_Allocator allocator,
                                                         bool forceString)
 {
-    MODC_CHECK(this != NULL, (""), MODC_RET_ERROR());
+    #undef ModC_ResultName_State
+    #define ModC_ResultName_State ModC_Result_Void
+    
+    MODC_CHECK(this != NULL, (""), MODC_RET_ERROR_S());
     
     if(this->TokenText.Type == MODC_TAGGED_TYPE_S(ModC_String))
     {
@@ -191,7 +191,7 @@ static inline ModC_Result_Void ModC_Token_AppendChar(   ModC_Token* this,
     ModC_ConstStringView* tokenView = &this->TokenText.Data.MODC_TAGGED_FIELD_S(ModC_ConstStringView);
     MODC_CHECK( source.Data <= tokenView->Data, 
                 ("source: %p, token: %p", source.Data, tokenView->Data),
-                MODC_RET_ERROR());
+                MODC_RET_ERROR_S());
     
     MODC_CHECK
     (
@@ -199,7 +199,7 @@ static inline ModC_Result_Void ModC_Token_AppendChar(   ModC_Token* this,
         ("source end: %p, token end: %p", 
         source.Data + source.Length, 
         tokenView->Data + tokenView->Length),
-        MODC_RET_ERROR()
+        MODC_RET_ERROR_S()
     );
     
     if(tokenView->Data[tokenView->Length] != c)
@@ -291,18 +291,19 @@ static inline bool IsLastCharEscaped(ModC_ConstStringView view)
     return (consecBackslash % 2 != 0);
 }
 
-#undef ModC_ResultName
-#define ModC_ResultName ModC_Result_Bool
 
 static inline ModC_Result_Bool ModC_Token_IsCharPossible(   ModC_Token* this, 
                                                             char c, 
                                                             ModC_CharTokenType cType)
 {
-    MODC_CHECK(this != NULL, (""), MODC_RET_ERROR());
+    #undef ModC_ResultName_State
+    #define ModC_ResultName_State ModC_Result_Bool
+    
+    MODC_CHECK(this != NULL, (""), MODC_RET_ERROR_S());
     
     static_assert((int)ModC_TokenType_Count == 19, "");
     ModC_ConstStringView tokenStringView = ModC_Token_TokenTextView(this);
-    MODC_CHECK(tokenStringView.Length > 0, (""), MODC_RET_ERROR());
+    MODC_CHECK(tokenStringView.Length > 0, (""), MODC_RET_ERROR_S());
     
     switch((ModC_CharTokenType)this->TokenType)
     {
@@ -357,11 +358,12 @@ static inline ModC_Result_Bool ModC_Token_IsCharPossible(   ModC_Token* this,
 
 
 //Returns list of tokens that are types in `ModC_CharTokenType` or `ModC_TokenType_Comment`
-#undef ModC_ResultName
-#define ModC_ResultName ModC_Result_TokenList
 static inline ModC_Result_TokenList ModC_Tokenization(  const ModC_ConstStringView fileContent, 
                                                         ModC_Allocator allocator)
 {
+    #undef ModC_ResultName_State
+    #define ModC_ResultName_State ModC_Result_TokenList
+    
     if(fileContent.Length == 0)
         return MODC_RESULT_VALUE_S( (ModC_TokenList){0} );
     
@@ -398,7 +400,7 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ModC_ConstStringVi
                                                                         fileContent.Data[i], \
                                                                         allocator, \
                                                                         false); \
-                    (void)MODC_RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR())); \
+                    (void)MODC_RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR_S())); \
                 } while(0)
             
             #define CREATE_NEW_TOKEN() \
@@ -489,7 +491,7 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ModC_ConstStringVi
                 ModC_Result_Bool boolResult = ModC_Token_IsCharPossible(&currentToken, 
                                                                         fileContent.Data[i], 
                                                                         charTokenType);
-                bool possible = *MODC_RESULT_TRY(boolResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
+                bool possible = *MODC_RESULT_TRY(boolResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
                 if(!possible)
                 {
                     ModC_TokenList_AddValue(&tokenList, currentToken);

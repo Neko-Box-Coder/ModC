@@ -70,10 +70,10 @@ static inline ModC_String* ModC_String_AppendVFormat(   ModC_String* this,
 //=======================================================================================
 //Implementations
 //=======================================================================================
-#undef ModC_TaggedUnionName
-#define ModC_TaggedUnionName ModC_StringUnion
 static inline ModC_ConstStringView ModC_StringUnion_GetConstView(ModC_StringUnion* this)
 {
+    #undef ModC_TaggedUnionName_State
+    #define ModC_TaggedUnionName_State ModC_StringUnion
     if(!this)
         return (ModC_ConstStringView){0};
     

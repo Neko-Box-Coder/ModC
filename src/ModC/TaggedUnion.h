@@ -48,7 +48,7 @@ typedef struct <MODC_TAGGED_UNION_NAME>
 
 #### Functions:
 
-Define `ModC_TaggedUnionName` to use `_S` macro variants
+Define `ModC_TaggedUnionName_State` to use `_S` macro variants
 
 Macro:
     Use this macro to match `.Type` from the union object.
@@ -184,7 +184,7 @@ typedef struct MODC_TAGGED_UNION_NAME
                         Index)
 
 #undef MODC_TAGGED_TYPE_S
-#define MODC_TAGGED_TYPE_S(typeName) MODC_TAGGED_TYPE(ModC_TaggedUnionName, typeName)
+#define MODC_TAGGED_TYPE_S(typeName) MODC_TAGGED_TYPE(ModC_TaggedUnionName_State, typeName)
 
 #undef MODC_TAGGED_FIELD
 //Expands to: <ModC_TaggedUnionName>_<typeName>Field
@@ -194,7 +194,7 @@ typedef struct MODC_TAGGED_UNION_NAME
                         Field)
 
 #undef MODC_TAGGED_FIELD_S
-#define MODC_TAGGED_FIELD_S(typeName) MODC_TAGGED_FIELD(ModC_TaggedUnionName, typeName) 
+#define MODC_TAGGED_FIELD_S(typeName) MODC_TAGGED_FIELD(ModC_TaggedUnionName_State, typeName) 
 
 #undef MODC_TAGGED_INIT
 #define MODC_TAGGED_INIT(ModC_TaggedUnionName, typeName, ... /* value */) \
@@ -206,7 +206,7 @@ typedef struct MODC_TAGGED_UNION_NAME
 
 #undef MODC_TAGGED_INIT_S
 #define MODC_TAGGED_INIT_S(typeName, ... /* value */) \
-    MODC_TAGGED_INIT(ModC_TaggedUnionName, typeName, __VA_ARGS__)
+    MODC_TAGGED_INIT(ModC_TaggedUnionName_State, typeName, __VA_ARGS__)
 
 
 #undef MODC_TAGGED_UNION_NAME

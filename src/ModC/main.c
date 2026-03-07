@@ -31,11 +31,11 @@ static_assert(sizeof(int) == sizeof(int32_t), "");
     #define MODC_DEFAULT_ALLOC() ModC_CreateHeapAllocator()
 #endif
 
-#undef ModC_ResultName
-#define ModC_ResultName ModC_Result_Int32
-
 static inline ModC_Result_Int32 TestResult()
 {
+    #undef ModC_ResultName_State
+    #define ModC_ResultName_State ModC_Result_Int32
+    
     if(true)
         return MODC_ERROR_CSTR_S("Failed to seek file");
     else
@@ -45,16 +45,17 @@ static inline ModC_Result_Int32 TestResult()
 static inline ModC_Result_Int32 TestResult2()
 {
     ModC_Result_Int32 intResult = TestResult();
-    int32_t* unwrappedVal = MODC_RESULT_TRY(intResult, MODC_RET_ERROR());
+    int32_t* unwrappedVal = MODC_RESULT_TRY(intResult, MODC_RET_ERROR_S());
     return MODC_RESULT_VALUE_S(*unwrappedVal);
 }
 
-#undef ModC_ResultName
-#define ModC_ResultName ModC_Result_Void
-#undef ModC_TaggedUnionName
-#define ModC_TaggedUnionName ModC_StatementUnion
 ModC_Result_Void Main(int argc, char* argv[])
 {
+    #undef ModC_ResultName_State
+    #define ModC_ResultName_State ModC_Result_Void
+    #undef ModC_TaggedUnionName_State
+    #define ModC_TaggedUnionName_State ModC_StatementUnion
+    
     FILE* modcFile = NULL;
     ModC_Allocator mainArena;
     ModC_Allocator statementListArena;
@@ -86,12 +87,12 @@ ModC_Result_Void Main(int argc, char* argv[])
             int fseekResult = fseek(modcFile, 0, SEEK_END);
             MODC_CHECK( fseekResult == 0, 
                         (" fseekResult: %i.", fseekResult), 
-                        MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
+                        MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
             
             fileSize = ftell(modcFile);
             MODC_CHECK( fileSize >= 0, 
                         (" fileSize: "PRIi64".", fileSize), 
-                        MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
+                        MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
         }
         
         fseek(modcFile, 0, 0);
@@ -100,19 +101,19 @@ ModC_Result_Void Main(int argc, char* argv[])
         
         fileContent = ModC_String_Create(ModC_Allocator_Share(&mainArena), fileSize);
         ModC_String_Resize(&fileContent, fileSize);
-        MODC_CHECK( fileContent.Length == fileSize, "", MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
+        MODC_CHECK( fileContent.Length == fileSize, "", MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
         
         uint32_t actuallyRead = fread(fileContent.Data, 1, fileSize, modcFile);
         MODC_CHECK( actuallyRead == fileSize, 
                     (" actuallyRead: %"PRIu64", fileSize: %"PRIi64, actuallyRead, fileSize),
-                    MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
+                    MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
     
         ModC_Result_TokenList tokenListResult = 
             ModC_Tokenization(  ModC_ConstStringView_Create(fileContent.Data, fileContent.Length),
                                 //ModC_CreateHeapAllocator());
                                 ModC_Allocator_Share(&mainArena));
         ModC_TokenList* tokenList = MODC_RESULT_TRY(tokenListResult, 
-                                                    MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
+                                                    MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
         
         MODC_DEFER(0, ModC_TokenList_Free(tokenList));
         
@@ -129,7 +130,7 @@ ModC_Result_Void Main(int argc, char* argv[])
         ModC_Result_StatementList statementListResult = ModC_CreateStatements(  tokenList, 
                                                                                 &statementListArena);
         ModC_StatementList* statementList = MODC_RESULT_TRY(statementListResult, 
-                                                            MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
+                                                            MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
         MODC_DEFER(0, ModC_Allocator_Destroy(&statementListArena));
         
         for(int i = 0; i < statementList->Length; ++i)
@@ -209,7 +210,7 @@ ModC_Result_Void Main(int argc, char* argv[])
                 }
             } //switch(statementList->Data[i].Value.Type)
             
-            (void)MODC_RESULT_TRY(checkResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR()));
+            (void)MODC_RESULT_TRY(checkResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
             printf("\n");
             
             
@@ -233,8 +234,8 @@ int main(int argc, char* argv[])
     (void)argv;
     #if 1
     {
-        #undef ModC_ResultName
-        #define ModC_ResultName ModC_Result_Void
+        #undef ModC_ResultName_State
+        #define ModC_ResultName_State ModC_Result_Void
         
         ModC_Result_Void result = Main(argc, argv);
         if(result.HasError)
@@ -248,8 +249,8 @@ int main(int argc, char* argv[])
     }
     #else
     {
-        #undef ModC_ResultName
-        #define ModC_ResultName ModC_Result_Int32
+        #undef ModC_ResultName_State
+        #define ModC_ResultName_State ModC_Result_Int32
         
         ModC_Result_Int32 result = TestResult2();
         if(result.HasError)
