@@ -7,6 +7,6 @@
 [submodule "External/MacroPowerToys"]
 	path = External/MacroPowerToys
 	url = https://github.com/Neko-Box-Coder/MacroPowerToys.git
-[submodule "External/STC"]
-	path = External/STC
-	url = https://github.com/stclib/STC.git
+[submodule "External/uthash"]
+	path = External/uthash
+	url = https://github.com/troydhanson/uthash.git

@@ -6,11 +6,13 @@ ModCRepoRoot="${ModCScriptDir}/../.."
 
 ModCFlags="-std=c99 -Wall -Wextra -Wpedantic -Werror -Wno-sign-compare -fsanitize=undefined -g3"
 
+ModCIncludes="-I${ModCRepoRoot}/External -I${ModCRepoRoot}/External/uthash/src -I${ModCRepoRoot}/src"
+
 # Preprocessor output
-# gcc ${ModCFlags} -E -P -I${ModCRepoRoot}/External -I${ModCRepoRoot}/src "${ModCScriptDir}/main.c" -o "${ModCScriptDir}/main.i"
+# gcc ${ModCFlags} -E -P ${ModCIncludes} "${ModCScriptDir}/main.c" -o "${ModCScriptDir}/main.i"
 
 # Normal output
-gcc ${ModCFlags} -I${ModCRepoRoot}/External -I${ModCRepoRoot}/src "${ModCScriptDir}/main.c" -o "${ModCScriptDir}/Build/ModC"
+gcc ${ModCFlags} ${ModCIncludes} "${ModCScriptDir}/main.c" -o "${ModCScriptDir}/Build/ModC"
 
 # Use preprocessor output as input
-# gcc ${ModCFlags} -I${ModCRepoRoot}/External -I${ModCRepoRoot}/src "${ModCScriptDir}/main.i" -o "${ModCScriptDir}/Build/ModC"
+# gcc ${ModCFlags} ${ModCIncludes} "${ModCScriptDir}/main.i" -o "${ModCScriptDir}/Build/ModC"
