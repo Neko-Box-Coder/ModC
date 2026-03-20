@@ -2,7 +2,12 @@
 #define MODC_STRINGS_STRINGS_H
 
 /* Docs
-Just read the code
+Creates ModC_String using List.h and ModC_StringView/ModC_ConstStringView using View.h
+
+Also creates a tagged union ModC_StringUnion which is an union of all of the types above using 
+TaggedUnion.h
+
+Other than that, this also contains various helper functions. Just read the code to see what they are
 */
 
 #include "ModC/Allocator.h"

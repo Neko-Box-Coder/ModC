@@ -4,8 +4,8 @@
 /* Docs
 Define `MODC_LIST_NAME` for the name of the list.
 Define `MODC_VALUE_TYPE` for the element type stored in the list
-Define `MODC_VALUE_FREE` which will be called as `MODC_VALUE_FREE(MODC_VALUE_TYPE* val)`
-Define `MODC_NO_TYPEDEF` to not use typedef struct
+Define `MODC_VALUE_FREE` optionally which will be called as `MODC_VALUE_FREE(MODC_VALUE_TYPE* val)`
+Define `MODC_NO_TYPEDEF` optionally to not use typedef struct
 
 Then include this file
 
