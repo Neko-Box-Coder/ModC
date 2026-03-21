@@ -74,6 +74,7 @@ static inline void ModC_Token_Free(ModC_Token* this);
 
 MODC_DEFINE_RESULT_STRUCT(ModC_Result_TokenList, ModC_TokenList)
 MODC_DEFINE_RESULT_STRUCT(ModC_Result_Token, ModC_Token)
+MODC_DEFINE_RESULT_STRUCT(ModC_Result_TokenPtr, ModC_Token*)
 
 static inline ModC_ConstStringView ModC_Token_TokenTextView(ModC_Token* this)
 {
