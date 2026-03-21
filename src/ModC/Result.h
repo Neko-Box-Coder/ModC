@@ -310,13 +310,13 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion msg,
         
         //ModC_Error.ErrorMsg
         {
-            if(msg.Type == MODC_TAGGED_TYPE(ModC_StringUnion, ModC_String))
-                modcErrorPtr->ErrorMsg = msg.Data.MODC_TAGGED_FIELD(ModC_StringUnion, ModC_String);
+            if(msg.Type == MODC_TAG_TYPE(ModC_StringUnion, ModC_String))
+                modcErrorPtr->ErrorMsg = msg.MODC_TAG_DATA(ModC_StringUnion, ModC_String);
             else
             {
                 modcErrorPtr->ErrorMsg = ModC_String_Create(allocator, 256);
-                ModC_ConstStringView* msgView = &msg.Data.MODC_TAGGED_FIELD(ModC_StringUnion, 
-                                                                            ModC_ConstStringView);
+                ModC_ConstStringView* msgView = &msg.MODC_TAG_DATA( ModC_StringUnion, 
+                                                                    ModC_ConstStringView);
                 ModC_String_AddRange(&modcErrorPtr->ErrorMsg, msgView->Data, msgView->Length);
             }
         }
@@ -415,9 +415,9 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion msg,
 #define MODC_RESULT_ERROR_S(errorPtr) MODC_RESULT_ERROR(ModC_ResultName_State, errorPtr)
 
 #define INTERN_MODC_STR_VIEW_FROM_STR_FMT(allocator, strfmts) \
-    MODC_TAGGED_INIT(   ModC_StringUnion, \
-                        ModC_String, \
-                        ModC_String_FromFormat(allocator, MPT_REMOVE_PARENTHESIS(strfmts)))
+    MODC_TAG_INIT(  ModC_StringUnion, \
+                    ModC_String, \
+                    ModC_String_FromFormat(allocator, MPT_REMOVE_PARENTHESIS(strfmts)))
 
 #define INTERN_MODC_ERROR_STR_FMT_ALLOC_4(ModC_ResultName, allocator, strfmts, errorCode) \
     MPT_DELAYED_CONCAT2(ModC_ResultName, _CreateError) \
@@ -520,9 +520,9 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion msg,
         { \
             ModC_ConstStringView exprView = \
                 ModC_ConstStringView_FromLiteral("Expression \"" #expr "\" has failed."); \
-            ModC_StringUnion assertView = MODC_TAGGED_INIT( ModC_StringUnion, \
-                                                            ModC_ConstStringView, \
-                                                            exprView); \
+            ModC_StringUnion assertView = MODC_TAG_INIT(ModC_StringUnion, \
+                                                        ModC_ConstStringView, \
+                                                        exprView); \
             ModC_GlobalError = ModC_Error_InternCreateErrorMsgEc(   assertView, \
                                                                     __FILE__, \
                                                                     __func__, \

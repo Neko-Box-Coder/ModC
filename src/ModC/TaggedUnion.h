@@ -24,6 +24,7 @@ typedef enum <MODC_TAGGED_UNION_NAME>Index
     <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_2>Index,
     <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_3>Index,
     ...
+    <MODC_TAGGED_UNION_NAME>_CountIndex,
 } <MODC_TAGGED_UNION_NAME>Index
 
 typedef struct <MODC_TAGGED_UNION_NAME>
@@ -53,31 +54,31 @@ Define `ModC_TaggedUnionName_State` to use `_S` macro variants
 Macro:
     Use this macro to match `.Type` from the union object.
 ```c
-//MODC_TAGGED_TYPE(ModC_TaggedUnionName, typeName)
-//MODC_TAGGED_TYPE_S(typeName)
+//MODC_TAG_TYPE(ModC_TaggedUnionName, typeName)
+//MODC_TAG_TYPE_S(typeName)
 
-if(myUnion.Type == MODC_TAGGED_TYPE(MyUnion, int))
+if(myUnion.Type == MODC_TAG_TYPE(MyUnion, int))
 {
     ...
 }
 ```
 
 Macro:
-    Use this macro to get the field from `.Data` from the union object
+    Use this macro to get the data from the union object
 ```c
-//MODC_TAGGED_FIELD(ModC_TaggedUnionName, typeName)
-//MODC_TAGGED_FIELD_S(typeName)
+//MODC_TAG_DATA(ModC_TaggedUnionName, typeName)
+//MODC_TAG_DATA_S(typeName)
 
-int unionData = myUnion.Data.MODC_TAGGED_FIELD(MyUnion, int);
+int unionData = myUnion.MODC_TAG_DATA(MyUnion, int);
 ```
 
 Macro:
     Use this macro to set the union value
 ```c
-//MODC_TAGGED_INIT(ModC_TaggedUnionName, typeName, value)
-//MODC_TAGGED_INIT_S(typeName, value) \
+//MODC_TAG_INIT(ModC_TaggedUnionName, typeName, value)
+//MODC_TAG_INIT_S(typeName, value) \
 
-MyUnion myUnion = MODC_TAGGED_INIT(MyUnion, int, 5);
+MyUnion myUnion = MODC_TAG_INIT(MyUnion, int, 5);
 ```
 
 */
@@ -106,6 +107,7 @@ typedef enum <MODC_TAGGED_UNION_NAME>Index
     <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_2>Index,
     <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_3>Index,
     ...
+    <MODC_TAGGED_UNION_NAME>_CountIndex,
 } <MODC_TAGGED_UNION_NAME>Index
 ```
 */
@@ -120,7 +122,8 @@ typedef enum MPT_DELAYED_CONCAT( MODC_TAGGED_UNION_NAME, Index )
                                     MODC_VALUE_TYPES),
             MPT_REPEAT_WITH_COMMA(INTERNAL_MODC_FIELD_COUNT, Index)
         )
-    )
+    ),
+    MPT_DELAYED_CONCAT(MODC_TAGGED_UNION_NAME, _CountIndex)
 } MPT_DELAYED_CONCAT( MODC_TAGGED_UNION_NAME, Index );
 
 
@@ -176,37 +179,37 @@ typedef struct MODC_TAGGED_UNION_NAME
     } Data;
 } MODC_TAGGED_UNION_NAME;
 
-#undef MODC_TAGGED_TYPE
+#undef MODC_TAG_TYPE
 //Expands to: <ModC_TaggedUnionName>_<typeName>Index
-#define MODC_TAGGED_TYPE(ModC_TaggedUnionName, typeName) \
+#define MODC_TAG_TYPE(ModC_TaggedUnionName, typeName) \
     MPT_DELAYED_CONCAT3(MPT_DELAYED_CONCAT2(MPT_DELAYED_CONCAT(ModC_TaggedUnionName, _), \
                                             typeName), \
                         Index)
 
-#undef MODC_TAGGED_TYPE_S
-#define MODC_TAGGED_TYPE_S(typeName) MODC_TAGGED_TYPE(ModC_TaggedUnionName_State, typeName)
+#undef MODC_TAG_TYPE_S
+#define MODC_TAG_TYPE_S(typeName) MODC_TAG_TYPE(ModC_TaggedUnionName_State, typeName)
 
-#undef MODC_TAGGED_FIELD
+#undef MODC_TAG_DATA
 //Expands to: <ModC_TaggedUnionName>_<typeName>Field
-#define MODC_TAGGED_FIELD(ModC_TaggedUnionName, typeName) \
-    MPT_DELAYED_CONCAT3(MPT_DELAYED_CONCAT2(MPT_DELAYED_CONCAT(ModC_TaggedUnionName, _), \
-                                            typeName), \
-                        Field)
+#define MODC_TAG_DATA(ModC_TaggedUnionName, typeName) \
+    Data.MPT_DELAYED_CONCAT3(   MPT_DELAYED_CONCAT2(MPT_DELAYED_CONCAT(ModC_TaggedUnionName, _), \
+                                                    typeName), \
+                                Field)
 
-#undef MODC_TAGGED_FIELD_S
-#define MODC_TAGGED_FIELD_S(typeName) MODC_TAGGED_FIELD(ModC_TaggedUnionName_State, typeName) 
+#undef MODC_TAG_DATA_S
+#define MODC_TAG_DATA_S(typeName) MODC_TAG_DATA(ModC_TaggedUnionName_State, typeName) 
 
-#undef MODC_TAGGED_INIT
-#define MODC_TAGGED_INIT(ModC_TaggedUnionName, typeName, ... /* value */) \
+#undef MODC_TAG_INIT
+#define MODC_TAG_INIT(ModC_TaggedUnionName, typeName, ... /* value */) \
         (ModC_TaggedUnionName) \
         { \
-            .Type = MODC_TAGGED_TYPE(ModC_TaggedUnionName, typeName), \
-            .Data.MODC_TAGGED_FIELD(ModC_TaggedUnionName, typeName) = __VA_ARGS__ \
+            .Type = MODC_TAG_TYPE(ModC_TaggedUnionName, typeName), \
+            .MODC_TAG_DATA(ModC_TaggedUnionName, typeName) = __VA_ARGS__ \
         } \
 
-#undef MODC_TAGGED_INIT_S
-#define MODC_TAGGED_INIT_S(typeName, ... /* value */) \
-    MODC_TAGGED_INIT(ModC_TaggedUnionName_State, typeName, __VA_ARGS__)
+#undef MODC_TAG_INIT_S
+#define MODC_TAG_INIT_S(typeName, ... /* value */) \
+    MODC_TAG_INIT(ModC_TaggedUnionName_State, typeName, __VA_ARGS__)
 
 
 #undef MODC_TAGGED_UNION_NAME

@@ -143,15 +143,13 @@ ModC_Result_Void Main(int argc, char* argv[])
             
             ModC_Result_Void checkResult = MODC_RESULT_VALUE_S(0);
             //bool invalidLength = false;
+            static_assert((int)MODC_TAG_TYPE_S(Count) == 3, "");
             switch(statementList->Data[i].Tokens.Type)
             {
-                case MODC_TAGGED_TYPE_S(ModC_CompoundStatement):
+                case MODC_TAG_TYPE_S(ModC_CompoundStatement):
                 {
                     ModC_CompoundStatement* compoundStatement = 
-                        &statementList  ->Data[i]
-                                        .Tokens
-                                        .Data
-                                        .MODC_TAGGED_FIELD_S(ModC_CompoundStatement);
+                        &statementList->Data[i].Tokens.MODC_TAG_DATA_S(ModC_CompoundStatement);
                     
                     printf("ModC_CompoundStatement.StartTokenIndex: %"PRIu32 "\n", 
                         compoundStatement->StartTokenIndex);
@@ -168,13 +166,10 @@ ModC_Result_Void Main(int argc, char* argv[])
                             (compoundStatement->Implicit ? "true" : "false"));
                     break;
                 }
-                case MODC_TAGGED_TYPE_S(ModC_TokenIndexList):
+                case MODC_TAG_TYPE_S(ModC_TokenIndexList):
                 {
                     ModC_TokenIndexList* tokenIndexList = 
-                        &statementList  ->Data[i]
-                                        .Tokens
-                                        .Data
-                                        .MODC_TAGGED_FIELD_S(ModC_TokenIndexList);
+                        &statementList->Data[i].Tokens.MODC_TAG_DATA_S(ModC_TokenIndexList);
                     
                     for(int j = 0; j < tokenIndexList->Length; ++j)
                         printf("ModC_TokenIndexList[%i]: %"PRIu32 "\n", j, tokenIndexList->Data[j]);
@@ -193,13 +188,10 @@ ModC_Result_Void Main(int argc, char* argv[])
                     printf("\"\n");
                     break;
                 }
-                case MODC_TAGGED_TYPE_S(ModC_TokenIndexRange):
+                case MODC_TAG_TYPE_S(ModC_TokenIndexRange):
                 {
                     ModC_TokenIndexRange* tokenIndexRange = 
-                        &statementList  ->Data[i]
-                                        .Tokens
-                                        .Data
-                                        .MODC_TAGGED_FIELD_S(ModC_TokenIndexRange);
+                        &statementList->Data[i].Tokens.MODC_TAG_DATA_S(ModC_TokenIndexRange);
                     
                     printf( "ModC_TokenIndexRange.StartIndex: %"PRIu32 "\n", 
                             tokenIndexRange->StartIndex);
@@ -217,6 +209,8 @@ ModC_Result_Void Main(int argc, char* argv[])
                     printf("\"\n");
                     break;
                 }
+                default:
+                    break;
             } //switch(statementList->Data[i].Value.Type)
             
             (void)MODC_RESULT_TRY(checkResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));

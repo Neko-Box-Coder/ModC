@@ -32,10 +32,10 @@ Other than that, this also contains various helper functions. Just read the code
 #include "ModC/TaggedUnion.h"
 
 #define ModC_StringUnion_ViewFromLiteral(cstr) \
-    MODC_TAGGED_INIT(ModC_StringUnion, ModC_ConstStringView, ModC_ConstStringView_FromLiteral(cstr))
+    MODC_TAG_INIT(ModC_StringUnion, ModC_ConstStringView, ModC_ConstStringView_FromLiteral(cstr))
 
 #define ModC_StringUnion_StringFromLiteral(allocator, cstr) \
-    MODC_TAGGED_INIT(ModC_StringUnion, ModC_String, ModC_String_FromLiteral(allocator, cstr))
+    MODC_TAG_INIT(ModC_StringUnion, ModC_String, ModC_String_FromLiteral(allocator, cstr))
 
 static inline ModC_ConstStringView ModC_StringUnion_GetConstView(ModC_StringUnion* this);
 
@@ -82,10 +82,10 @@ static inline ModC_ConstStringView ModC_StringUnion_GetConstView(ModC_StringUnio
     if(!this)
         return (ModC_ConstStringView){0};
     
-    return  this->Type == MODC_TAGGED_TYPE_S(ModC_String) ?
-            ModC_ConstStringView_Create(this->Data.MODC_TAGGED_FIELD_S(ModC_String).Data,
-                                        this->Data.MODC_TAGGED_FIELD_S(ModC_String).Length) :
-            this->Data.MODC_TAGGED_FIELD_S(ModC_ConstStringView);
+    return  this->Type == MODC_TAG_TYPE_S(ModC_String) ?
+            ModC_ConstStringView_Create(this->MODC_TAG_DATA_S(ModC_String).Data,
+                                        this->MODC_TAG_DATA_S(ModC_String).Length) :
+            this->MODC_TAG_DATA_S(ModC_ConstStringView);
 }
 
 static inline ModC_String ModC_String_FromData( ModC_Allocator allocator, 

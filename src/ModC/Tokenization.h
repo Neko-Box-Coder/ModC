@@ -91,18 +91,18 @@ static inline void ModC_Token_Free(ModC_Token* this)
 {
     if(!this)
         return;
-    if(!this->TokenText.Type == MODC_TAGGED_TYPE_S(ModC_String))
+    if(!this->TokenText.Type == MODC_TAG_TYPE_S(ModC_String))
     {
         *this = (ModC_Token){0};
         return;
     }
     
-    ModC_String_Free(&this->TokenText.Data.MODC_TAGGED_FIELD_S(ModC_String));
+    ModC_String_Free(&this->TokenText.MODC_TAG_DATA_S(ModC_String));
 }
 
 static inline ModC_Token ModC_Token_FromString(ModC_TokenType type, ModC_String str)
 {
-    return (ModC_Token){ .TokenType = type, .TokenText = MODC_TAGGED_INIT_S(ModC_String, str) };
+    return (ModC_Token){ .TokenType = type, .TokenText = MODC_TAG_INIT_S(ModC_String, str) };
 }
 
 static inline ModC_Token ModC_Token_FromView(ModC_TokenType type, ModC_ConstStringView view)
@@ -110,7 +110,7 @@ static inline ModC_Token ModC_Token_FromView(ModC_TokenType type, ModC_ConstStri
     return  (ModC_Token)
             { 
                 .TokenType = type, 
-                .TokenText = MODC_TAGGED_INIT_S(ModC_ConstStringView, view)
+                .TokenText = MODC_TAG_INIT_S(ModC_ConstStringView, view)
             };
 }
 
@@ -183,13 +183,13 @@ static inline ModC_Result_Void ModC_Token_AppendChar(   ModC_Token* this,
     
     MODC_CHECK(this != NULL, (""), MODC_RET_ERROR_S());
     
-    if(this->TokenText.Type == MODC_TAGGED_TYPE_S(ModC_String))
+    if(this->TokenText.Type == MODC_TAG_TYPE_S(ModC_String))
     {
-        ModC_String_AddValue(&this->TokenText.Data.MODC_TAGGED_FIELD_S(ModC_String), c);
+        ModC_String_AddValue(&this->TokenText.MODC_TAG_DATA_S(ModC_String), c);
         return MODC_RESULT_VALUE_S(0);
     }
     
-    ModC_ConstStringView* tokenView = &this->TokenText.Data.MODC_TAGGED_FIELD_S(ModC_ConstStringView);
+    ModC_ConstStringView* tokenView = &this->TokenText.MODC_TAG_DATA_S(ModC_ConstStringView);
     MODC_CHECK( source.Data <= tokenView->Data, 
                 ("source: %p, token: %p", source.Data, tokenView->Data),
                 MODC_RET_ERROR_S());
@@ -211,7 +211,7 @@ static inline ModC_Result_Void ModC_Token_AppendChar(   ModC_Token* this,
         ModC_String tokenStr = ModC_String_Create(allocator, tokenView->Length + 1);
         ModC_String_AddRange(&tokenStr, tokenView->Data, tokenView->Length);
         ModC_String_AddValue(&tokenStr, c);
-        this->TokenText.Data.MODC_TAGGED_FIELD_S(ModC_String)  = tokenStr;
+        this->TokenText.MODC_TAG_DATA_S(ModC_String) = tokenStr;
         return MODC_RESULT_VALUE_S(0);
     }
     
