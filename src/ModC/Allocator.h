@@ -77,6 +77,14 @@ typedef union
     uint64_t Size;
 } PtrOrSize;
 
+#if MODC_ALLOCATOR_NO_CANARY
+    #define ModC_FrontCanarySize() 0
+    #define ModC_BackCanarySize() 0
+#else
+    #define ModC_FrontCanarySize() ((sizeof("cana") - 1) + sizeof(uint64_t) + (sizeof("ries") - 1))
+    #define ModC_BackCanarySize() (sizeof("cana") - 1)
+#endif
+
 //When `NULL` is passed to `allocPtr`, it returns additional bytes needed.
 //Otherwise, returns the pointer for `allocSize`
 static inline PtrOrSize ModC_SetupCanariesAndSize(void* allocPtr, uint64_t allocSize)
@@ -84,7 +92,7 @@ static inline PtrOrSize ModC_SetupCanariesAndSize(void* allocPtr, uint64_t alloc
     #if MODC_ALLOCATOR_NO_CANARY
     {
         if(!allocPtr)
-        return (PtrOrSize){ .Size = allocSize + sizeof(uint64_t) };
+            return (PtrOrSize){ .Size = allocSize + sizeof(uint64_t) };
     
         static_assert(sizeof(char) == 1, "");
         memcpy(allocPtr, &allocSize, sizeof(allocSize));
@@ -94,7 +102,7 @@ static inline PtrOrSize ModC_SetupCanariesAndSize(void* allocPtr, uint64_t alloc
     #else
     {
         if(!allocPtr)
-            return (PtrOrSize){ .Size = allocSize + sizeof(uint64_t) + sizeof("canaries") - 1 };
+            return (PtrOrSize){ .Size = ModC_FrontCanarySize() + allocSize + ModC_BackCanarySize() };
         
         static_assert(sizeof("canaries") - 1 == 8, "");
         
@@ -124,14 +132,6 @@ static inline PtrOrSize ModC_SetupCanariesAndSize(void* allocPtr, uint64_t alloc
     }
     #endif
 }
-
-#if MODC_ALLOCATOR_NO_CANARY
-    #define ModC_FrontCanarySize() 0
-    #define ModC_BackCanarySize() 0
-#else
-    #define ModC_FrontCanarySize() ((sizeof("cana") - 1) + sizeof(uint64_t) + (sizeof("ries") - 1))
-    #define ModC_BackCanarySize() (sizeof("cana") - 1)
-#endif
 
 static inline bool ModC_CheckFrontCanary(void* allocPtr)
 {
@@ -209,7 +209,8 @@ static inline void* ModC_Allocator_Malloc(const ModC_Allocator* this, uint64_t s
                 //Try create next arena
                 else
                 {
-                    INTERN_PRINT_MODC_PRINT_TRACE("Creating child arena...\n");
+                    INTERN_PRINT_MODC_PRINT_TRACE(  "Creating child arena from %p...\n", 
+                                                    (void*)arenaWrapper);
                     
                     //If doubling overflows or doubling is not enough
                     if( SIZE_MAX / 2 < arenaWrapper->CurrentArena->size ||
@@ -232,8 +233,12 @@ static inline void* ModC_Allocator_Malloc(const ModC_Allocator* this, uint64_t s
                     //Set the previous arena entry for the next arena to this, and go to it
                     arenaWrapper->NextArena->PrevArena = arenaWrapper;
                     arenaWrapper = arenaWrapper->NextArena;
+                    //INTERN_PRINT_MODC_PRINT_TRACE(  "Child arena prev arena: %p\n", 
+                    //                                (void*)arenaWrapper->PrevArena);
                 }
                 
+                MODC_ASSERT(arenaWrapper->PrevArena);
+                MODC_ASSERT(arenaWrapper->PrevArena->NextArena == arenaWrapper);
                 retPtr = arena_alloc(arenaWrapper->CurrentArena, minRequiredSize);
             }
             
@@ -322,8 +327,8 @@ static inline void ModC_Allocator_Free(const ModC_Allocator* this, void* data)
             {
                 Arena* currentArena = currentNode->CurrentArena;
                 MODC_ASSERT(currentArena);
-                if( currentArena->region >= byteDataPtr && 
-                    currentArena->region + currentArena->index < byteDataPtr)
+                if( byteDataPtr >= currentArena->region && 
+                    byteDataPtr < currentArena->region + currentArena->index)
                 {
                     break;
                 }
@@ -340,8 +345,9 @@ static inline void ModC_Allocator_Free(const ModC_Allocator* this, void* data)
                 currentNode->CurrentArena->index -= (ModC_FrontCanarySize() + 
                                                     ModC_GetAllocSize(data) + 
                                                     ModC_BackCanarySize());
-                MODC_ASSERT(currentNode->CurrentArena->region + currentNode->CurrentArena->index ==
-                            byteDataPtr);
+                MODC_ASSERT(currentNode->CurrentArena->region + 
+                            currentNode->CurrentArena->index + 
+                            ModC_FrontCanarySize() == byteDataPtr);
             }
             
             break;
