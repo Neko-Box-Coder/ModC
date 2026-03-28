@@ -322,6 +322,7 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion msg,
         }
         modcErrorPtr->ErrorCode = errorCode;
     }
+    //TODO: Add debug_break()
     return modcErrorPtr;
 }
 
@@ -519,7 +520,7 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion msg,
         if(!(expr)) \
         { \
             ModC_ConstStringView exprView = \
-                ModC_ConstStringView_FromLiteral("Expression \"" #expr "\" has failed."); \
+                ModC_ConstStringView_FromLiteral("Expression \"" #expr "\" has failed. "); \
             ModC_StringUnion assertView = MODC_TAG_INIT(ModC_StringUnion, \
                                                         ModC_ConstStringView, \
                                                         exprView); \
