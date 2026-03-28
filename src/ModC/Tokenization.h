@@ -76,7 +76,7 @@ MODC_DEFINE_RESULT_STRUCT(ModC_Result_TokenList, ModC_TokenList)
 MODC_DEFINE_RESULT_STRUCT(ModC_Result_Token, ModC_Token)
 MODC_DEFINE_RESULT_STRUCT(ModC_Result_TokenPtr, ModC_Token*)
 
-static inline ModC_ConstStringView ModC_Token_TokenTextView(ModC_Token* this)
+static inline ModC_ConstStringView ModC_Token_TokenTextView(const ModC_Token* this)
 {
     #undef ModC_TaggedUnionName_State
     #define ModC_TaggedUnionName_State ModC_StringUnion
@@ -293,7 +293,7 @@ static inline bool IsLastCharEscaped(ModC_ConstStringView view)
 }
 
 
-static inline ModC_Result_Bool ModC_Token_IsCharPossible(   ModC_Token* this, 
+static inline ModC_Result_Bool ModC_Token_IsCharPossible(   const ModC_Token* this, 
                                                             char c, 
                                                             ModC_CharTokenType cType)
 {

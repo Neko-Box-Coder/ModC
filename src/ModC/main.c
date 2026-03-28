@@ -133,6 +133,16 @@ ModC_Result_Void Main(int argc, char* argv[])
                                                             MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
         MODC_DEFER(0, ModC_Allocator_Destroy(&statementListArena));
         
+        ModC_Result_Void voidResult = 
+            ModC_CleanAndClassifyStatements(statementList, 
+                                            ModC_Allocator_Share(&mainArena),
+                                            ModC_Allocator_Share(&statementListArena),
+                                            tokenList,
+                                            //TODO: Use scratch arena.
+                                            ModC_Allocator_Share(&mainArena));
+        (void)MODC_RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
+        
+        
         for(int i = 0; i < statementList->Length; ++i)
         {
             ModC_ConstStringView statementTypeStr = 
@@ -183,7 +193,10 @@ ModC_Result_Void Main(int argc, char* argv[])
                         MODC_CHECK( tokenText.Length > 0, 
                                     ("Invalid token text"), 
                                     checkResult = MODC_RESULT_ERROR_S(MODC_LAST_ERROR); break);
-                        printf("%.*s", (int)tokenText.Length, tokenText.Data);
+                        if(j != tokenIndexList->Length - 1)
+                            printf("%.*s ", (int)tokenText.Length, tokenText.Data);
+                        else
+                            printf("%.*s", (int)tokenText.Length, tokenText.Data);
                     }
                     printf("\"\n");
                     break;
@@ -204,7 +217,10 @@ ModC_Result_Void Main(int argc, char* argv[])
                         MODC_CHECK( tokenText.Length > 0, 
                                     ("Invalid token text"), 
                                     checkResult = MODC_RESULT_ERROR_S(MODC_LAST_ERROR); break);
-                        printf("%.*s", (int)tokenText.Length, tokenText.Data);
+                        if(j != tokenIndexRange->EndIndex - 1)
+                            printf("%.*s ", (int)tokenText.Length, tokenText.Data);
+                        else
+                            printf("%.*s", (int)tokenText.Length, tokenText.Data);
                     }
                     printf("\"\n");
                     break;
