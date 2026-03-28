@@ -85,12 +85,18 @@ typedef struct ModC_FunctionDeclarationInfo
     uint32_t ArgumentIndexInStatement;
 } ModC_FunctionDeclarationInfo;
 
+typedef struct ModC_AssignmentInfo
+{
+    uint32_t AssignIndexInStatement;
+} ModC_AssignmentInfo;
+
 
 #define MODC_TAGGED_UNION_NAME ModC_StatementInfoUnion
 #define MODC_VALUE_TYPES    ModC_Void, \
                             ModC_TypeDeclarationInfo, \
                             ModC_VariableDeclareAssignInfo, \
-                            ModC_FunctionDeclarationInfo
+                            ModC_FunctionDeclarationInfo, \
+                            ModC_AssignmentInfo
 #include "ModC/TaggedUnion.h"
 
 typedef struct ModC_Statement ModC_Statement;
@@ -129,8 +135,8 @@ typedef struct ModC_TypeEntry
 #include <stdbool.h>
 #include <stdint.h>
 
-
-uint32_t ModC_StatementTokensUnion_GetTokenCount(const ModC_StatementTokensUnion* statementUnion)
+static inline uint32_t 
+ModC_StatementTokensUnion_GetTokenCount(const ModC_StatementTokensUnion* statementUnion)
 {
     #undef ModC_TaggedUnionName_State
     #define ModC_TaggedUnionName_State ModC_StatementTokensUnion
@@ -155,7 +161,7 @@ uint32_t ModC_StatementTokensUnion_GetTokenCount(const ModC_StatementTokensUnion
     }
 }
 
-ModC_Result_Uint32
+static inline ModC_Result_Uint32
 ModC_StatementTokensUnion_GetTokenIndexAt(  const ModC_StatementTokensUnion* statementUnion, 
                                             const ModC_TokenList* tokens,
                                             uint32_t indexInStatement)
@@ -221,7 +227,7 @@ ModC_StatementTokensUnion_GetTokenIndexAt(  const ModC_StatementTokensUnion* sta
     return MODC_RESULT_VALUE_S(tokenIndex);
 }
 
-ModC_Result_TokenPtr 
+static inline ModC_Result_TokenPtr 
 ModC_StatementTokensUnion_GetTokenAt(   const ModC_StatementTokensUnion* statementUnion, 
                                         const ModC_TokenList* tokens,
                                         uint32_t indexInStatement)
@@ -236,7 +242,7 @@ ModC_StatementTokensUnion_GetTokenAt(   const ModC_StatementTokensUnion* stateme
     return MODC_RESULT_VALUE_S(&tokens->Data[tokenIndex]);
 }
 
-ModC_Result_ConstStringView 
+static inline ModC_Result_ConstStringView 
 ModC_StatementTokensUnion_GetTokenTextViewAt(   const ModC_StatementTokensUnion* statementUnion, 
                                                 const ModC_TokenList* tokens,
                                                 uint32_t indexInStatement)
@@ -256,7 +262,7 @@ ModC_StatementTokensUnion_GetTokenTextViewAt(   const ModC_StatementTokensUnion*
 }
 
 
-ModC_Result_Uint32
+static inline ModC_Result_Uint32
 ModC_StatementTokensUnion_ContainsTokenText(const ModC_StatementTokensUnion* statementUnion, 
                                             const ModC_TokenList* tokens,
                                             ModC_ConstStringView checkText)
@@ -279,7 +285,7 @@ ModC_StatementTokensUnion_ContainsTokenText(const ModC_StatementTokensUnion* sta
     return MODC_RESULT_VALUE_S(tokensCount);
 }
 
-ModC_ConstStringView ModC_StatementType_ToConstStringView(ModC_StatementType type)
+static inline ModC_ConstStringView ModC_StatementType_ToConstStringView(ModC_StatementType type)
 {
     static_assert((int)ModC_StatementType_Count == 16, "");
     switch(type)
@@ -312,11 +318,11 @@ ModC_ConstStringView ModC_StatementType_ToConstStringView(ModC_StatementType typ
 }
 
 
-ModC_ResultStatementPtr ModC_Statement_CreateCompound(  ModC_Allocator allocator, 
-                                                        ModC_StatementList* statementList,
-                                                        uint32_t parentIndex,
-                                                        bool implicit,
-                                                        uint32_t reserveStatementsCount)
+static inline ModC_ResultStatementPtr ModC_Statement_CreateCompound(ModC_Allocator allocator, 
+                                                                    ModC_StatementList* statementList,
+                                                                    uint32_t parentIndex,
+                                                                    bool implicit,
+                                                                    uint32_t reserveStatementsCount)
 {
     #undef ModC_ResultName_State
     #define ModC_ResultName_State ModC_ResultStatementPtr
@@ -354,9 +360,9 @@ ModC_ResultStatementPtr ModC_Statement_CreateCompound(  ModC_Allocator allocator
     return MODC_RESULT_VALUE_S(retStatementPtr);
 }
 
-ModC_ResultStatementPtr ModC_Statement_CreatePlain( ModC_Allocator allocator, 
-                                                    ModC_StatementList* statementList,
-                                                    uint32_t parentIndex)
+static inline ModC_ResultStatementPtr ModC_Statement_CreatePlain(   ModC_Allocator allocator, 
+                                                                    ModC_StatementList* statementList,
+                                                                    uint32_t parentIndex)
 {
     #undef ModC_ResultName_State
     #define ModC_ResultName_State ModC_ResultStatementPtr
@@ -1459,6 +1465,50 @@ static inline ModC_Result_Void ModC_TryClassifyAsElse(  ModC_Statement* statemen
     return MODC_RESULT_VALUE_S(0);
 }
 
+//NOTE: ModC_TryClassifyAsVariableDeclareAssignment should be called before this
+static inline ModC_Result_Void ModC_TryClassifyAssignment(  ModC_Statement* statement,
+                                                            const ModC_TokenList* tokens,
+                                                            bool inTypeDecl,
+                                                            bool inFuncImpl)
+{
+    #undef ModC_ResultName_State
+    #define ModC_ResultName_State ModC_Result_Void
+    #undef ModC_TaggedUnionName_State
+    #define ModC_TaggedUnionName_State ModC_StatementInfoUnion
+    
+    if(statement->StatementType == ModC_StatementType_Compound || inTypeDecl || !inFuncImpl)
+        return MODC_RESULT_VALUE_S(0);
+    
+    uint32_t tokenCount = ModC_StatementTokensUnion_GetTokenCount(&statement->Tokens);
+    MODC_CHECK(tokenCount > 0, (""), MODC_RET_ERROR_S());
+    
+    //Check if last token is semicolon
+    {
+        ModC_Result_TokenPtr tokenPtrResult =
+            ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, tokenCount - 1);
+        
+        ModC_Token* token = *MODC_RESULT_TRY(tokenPtrResult, MODC_RET_ERROR_S());
+        if(token->TokenType != ModC_TokenType_Semicolon)
+            return MODC_RESULT_VALUE_S(0);
+    }
+    
+    //At least <Identifier> <Assignment> <Value> <Semicolon>
+    if(tokenCount < 4)
+        return MODC_RESULT_VALUE_S(0);
+    
+    ModC_Result_Uint32 uint32Result = 
+        ModC_StatementTokensUnion_ContainsTokenText(&statement->Tokens, 
+                                                    tokens, 
+                                                    ModC_ConstStringView_FromLiteral("="));
+    uint32_t foundIndex = *MODC_RESULT_TRY(uint32Result, MODC_RET_ERROR_S());
+    if(foundIndex == tokenCount)
+        return MODC_RESULT_VALUE_S(0);
+    
+    statement->StatementType = ModC_StatementType_Assignment;
+    statement->Info = MODC_TAG_INIT_S(ModC_AssignmentInfo, { .AssignIndexInStatement = foundIndex });
+    return MODC_RESULT_VALUE_S(0);
+}
+
 
 static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementList* statements, 
                                                                 ModC_Allocator tokensAllcoator,
@@ -1676,9 +1726,27 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                     (void)MODC_RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR_S())); \
                 }
             
+            #define TRY_CLASSIFY_ASSIGNMENT() \
+                if(statement->StatementType == ModC_StatementType_Unknown) \
+                { \
+                    voidResult = ModC_TryClassifyAssignment(statement, \
+                                                            tokens, \
+                                                            typeScope != -1, \
+                                                            funcScope != -1); \
+                    (void)MODC_RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR_S())); \
+                }
+            
             //Root
             if(typeScope == -1 && funcScope == -1)
             {
+                //In root, you can have:
+                //ModC_StatementType_TypeDeclaration
+                //ModC_StatementType_FunctionDeclaration
+                //ModC_StatementType_VariableDeclaration
+                //ModC_StatementType_Compound
+                //ModC_StatementType_CompilerDirective
+                //ModC_StatementType_VariableDeclareAssignment
+                
                 TRY_CLASSIFY_TYPE_DECLARATION();
                 TRY_CLASSIFY_COMPILER_DIRECTIVE();
                 TRY_CLASSIFY_VAR_DECLARE_ASSIGN();
@@ -1692,35 +1760,28 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
             //Inside function impl
             else if(funcScope != -1)
             {
+                //In function implementation, you can have:
+                //ModC_StatementType_TypeDeclaration
+                //ModC_StatementType_VariableDeclaration
+                //ModC_StatementType_Compound
+                //ModC_StatementType_CompilerDirective
+                //ModC_StatementType_Assignment
+                //ModC_StatementType_VariableDeclareAssignment
+                //ModC_StatementType_PureExpression
+                //ModC_StatementType_IfStatement
+                //ModC_StatementType_ElseStatement
+                //ModC_StatementType_ForStatement
+                //ModC_StatementType_WhileStatement
+                //ModC_StatementType_SwitchStatement
+                
                 TRY_CLASSIFY_INVOKABLE();
                 TRY_CLASSIFY_ELSE();
                 TRY_CLASSIFY_RETURN();
                 TRY_CLASSIFY_TYPE_DECLARATION();
                 TRY_CLASSIFY_COMPILER_DIRECTIVE();
                 TRY_CLASSIFY_VAR_DECLARE_ASSIGN();
+                TRY_CLASSIFY_ASSIGNMENT();
             }
-            
-            //If we are not in a function implementation
-                //We can only have
-                    //ModC_StatementType_TypeDeclaration
-                    //ModC_StatementType_FunctionDeclaration
-                    //ModC_StatementType_VariableDeclaration
-                    //ModC_StatementType_Compound
-                    //ModC_StatementType_CompilerDirective
-                    //ModC_StatementType_VariableDeclareAssignment
-            //Otherwise
-                //We can have
-                    //ModC_StatementType_TypeDeclaration
-                    //ModC_StatementType_VariableDeclaration
-                    //ModC_StatementType_Compound
-                    //ModC_StatementType_CompilerDirective
-                    //ModC_StatementType_Assignment
-                    //ModC_StatementType_VariableDeclareAssignment
-                    //ModC_StatementType_PureExpression
-                    //ModC_StatementType_IfStatement
-                    //ModC_StatementType_ForStatement
-                    //ModC_StatementType_WhileStatement
-                    //ModC_StatementType_SwitchStatement
         } //do
         while(true);
     }
