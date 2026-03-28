@@ -37,7 +37,7 @@ Other than that, this also contains various helper functions. Just read the code
 #define ModC_StringUnion_StringFromLiteral(allocator, cstr) \
     MODC_TAG_INIT(ModC_StringUnion, ModC_String, ModC_String_FromLiteral(allocator, cstr))
 
-static inline ModC_ConstStringView ModC_StringUnion_GetConstView(ModC_StringUnion* this);
+static inline ModC_ConstStringView ModC_StringUnion_GetConstView(const ModC_StringUnion* this);
 
 #define ModC_String_AppendLiteral(stringObj, cstr) \
     ModC_String_AddRange((stringObj), cstr, sizeof(cstr) - 1)
@@ -69,13 +69,14 @@ static inline ModC_String* ModC_String_AppendVFormat(   ModC_String* this,
 
 #define ModC_ConstStringView_FromLiteral(cstr) ModC_ConstStringView_Create(cstr, sizeof(cstr) - 1)
 
-
+#define ModC_StringLikeEqual(strA, strB) \
+    ((strA).Length == (strB).Length && memcmp((strA).Data, (strB).Data, (strA).Length) == 0)
 
 
 //=======================================================================================
 //Implementations
 //=======================================================================================
-static inline ModC_ConstStringView ModC_StringUnion_GetConstView(ModC_StringUnion* this)
+static inline ModC_ConstStringView ModC_StringUnion_GetConstView(const ModC_StringUnion* this)
 {
     #undef ModC_TaggedUnionName_State
     #define ModC_TaggedUnionName_State ModC_StringUnion
