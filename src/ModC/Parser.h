@@ -16,6 +16,7 @@ typedef enum ModC_StatementType
     ModC_StatementType_Invalid,
     ModC_StatementType_Unknown,
     ModC_StatementType_TypeDeclaration,
+    ModC_StatementType_EnumValues,
     ModC_StatementType_FunctionDeclaration,
     ModC_StatementType_VariableDeclaration,
     ModC_StatementType_Compound,
@@ -29,7 +30,7 @@ typedef enum ModC_StatementType
     ModC_StatementType_WhileStatement,
     ModC_StatementType_SwitchStatement,
     ModC_StatementType_ReturnStatement,
-    ModC_StatementType_Count,   //16
+    ModC_StatementType_Count,   //17
 } ModC_StatementType;
 
 struct ModC_StatementList;
@@ -287,7 +288,7 @@ ModC_StatementTokensUnion_ContainsTokenText(const ModC_StatementTokensUnion* sta
 
 static inline ModC_ConstStringView ModC_StatementType_ToConstStringView(ModC_StatementType type)
 {
-    static_assert((int)ModC_StatementType_Count == 16, "");
+    static_assert((int)ModC_StatementType_Count == 17, "");
     switch(type)
     {
         #define RET_TO_STR(enumVal) \
@@ -297,6 +298,7 @@ static inline ModC_ConstStringView ModC_StatementType_ToConstStringView(ModC_Sta
         RET_TO_STR(ModC_StatementType_Invalid);
         RET_TO_STR(ModC_StatementType_Unknown);
         RET_TO_STR(ModC_StatementType_TypeDeclaration);
+        RET_TO_STR(ModC_StatementType_EnumValues);
         RET_TO_STR(ModC_StatementType_FunctionDeclaration);
         RET_TO_STR(ModC_StatementType_VariableDeclaration);
         RET_TO_STR(ModC_StatementType_Compound);
@@ -1115,6 +1117,49 @@ static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   ModC_Stateme
     return MODC_RESULT_VALUE_S(0);
 }
 
+static inline ModC_Result_Void ModC_TryClassifyEnumValues(  ModC_Statement* statement,
+                                                            const ModC_StatementList* statements, 
+                                                            bool inTypeDecl)
+{
+    #undef ModC_ResultName_State
+    #define ModC_ResultName_State ModC_Result_Void
+    #undef ModC_TaggedUnionName_State
+    #define ModC_TaggedUnionName_State ModC_StatementTokensUnion
+    
+    if(statement->StatementType == ModC_StatementType_Compound || !inTypeDecl)
+        return MODC_RESULT_VALUE_S(0);
+    
+    ModC_Statement* parent = &statements->Data[statement->ParentIndex];
+    ModC_Statement* grandparent = &statements->Data[parent->ParentIndex];
+    
+    MODC_CHECK(grandparent->StatementType == ModC_StatementType_Compound, (""), MODC_RET_ERROR_S());
+    ModC_CompoundStatement* grandparentChildren = 
+        &grandparent->Tokens.MODC_TAG_DATA_S(ModC_CompoundStatement);
+    
+    uint64_t foundIndex = ModC_Uint32List_Find(&grandparentChildren->ChildStatements, &parent->Index);
+    MODC_CHECK(foundIndex != grandparentChildren->ChildStatements.Length, (""), MODC_RET_ERROR_S());
+    
+    if(foundIndex == 0)
+        return MODC_RESULT_VALUE_S(0);
+    
+    const ModC_Statement* typeDecl = 
+        &statements->Data[grandparentChildren->ChildStatements.Data[foundIndex - 1]];
+    
+    if(typeDecl->StatementType != ModC_StatementType_TypeDeclaration)
+        return MODC_RESULT_VALUE_S(0);
+    
+    if(typeDecl->Info.MODC_TAG_DATA(ModC_StatementInfoUnion, 
+                                    ModC_TypeDeclarationInfo).Type != ModC_Type_Enum)
+    {
+        return MODC_RESULT_VALUE_S(0);
+    }
+    
+    statement->StatementType = ModC_StatementType_EnumValues;
+    return MODC_RESULT_VALUE_S(0);
+}
+
+
+
 static inline ModC_Result_Void ModC_TryClassifyAsCompilerDirective( ModC_Statement* statement,
                                                                     const ModC_TokenList* tokens)
 {
@@ -1585,8 +1630,6 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                         if(!funcTypeHashSet)
                             HASH_CLEAR(hh, funcTypeHashSet));
         
-        //bool inTypeDecl = false;
-        //bool inFuncImpl = false;
         int funcScope = -1;
         int typeScope = -1;
         int currentScope = 0;
@@ -1645,7 +1688,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
             MODC_CHECK(tokenCount > 0, (""), MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
             
             //Classify statements
-            static_assert((int)ModC_StatementType_Count == 16, "");
+            static_assert((int)ModC_StatementType_Count == 17, "");
             
             #undef ModC_TaggedUnionName_State
             #define ModC_TaggedUnionName_State ModC_StatementInfoUnion
@@ -1662,6 +1705,14 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                                                                     &rootTypeHashSet, \
                                                                     &funcTypeHashSet); \
                     (void)MODC_RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR_S())); \
+                }
+            
+            #define TRY_CLASSIFY_ENUM_VALUES() \
+                if(statement->StatementType == ModC_StatementType_Unknown) \
+                { \
+                    voidResult = ModC_TryClassifyEnumValues(statement, \
+                                                            statements, \
+                                                            typeScope != -1); \
                 }
             
             #define TRY_CLASSIFY_COMPILER_DIRECTIVE() \
@@ -1751,11 +1802,16 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                 TRY_CLASSIFY_COMPILER_DIRECTIVE();
                 TRY_CLASSIFY_VAR_DECLARE_ASSIGN();
                 TRY_CLASSIFY_FUNC_DECLARE();
+                if(statement->StatementType == ModC_StatementType_Unknown)
+                    return MODC_ERROR_CSTR_S("Can't classify expression");
             }
             //Inside struct or enum (Which can be inside function impl as well)
             else if(typeScope != -1)
             {
                 TRY_CLASSIFY_VAR_DECLARE_ASSIGN();
+                TRY_CLASSIFY_ENUM_VALUES();
+                if(statement->StatementType == ModC_StatementType_Unknown)
+                    return MODC_ERROR_CSTR_S("Can't classify expression");
             }
             //Inside function impl
             else if(funcScope != -1)
@@ -1781,6 +1837,8 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                 TRY_CLASSIFY_COMPILER_DIRECTIVE();
                 TRY_CLASSIFY_VAR_DECLARE_ASSIGN();
                 TRY_CLASSIFY_ASSIGNMENT();
+                if(statement->StatementType == ModC_StatementType_Unknown)
+                    statement->StatementType = ModC_StatementType_PureExpression;
             }
         } //do
         while(true);

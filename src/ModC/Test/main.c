@@ -35,5 +35,7 @@ int main(int argc, char** argv)
     else
         printf("other args");
     
+    testEnum = EnumVal3;
+    
     return 0;
 }
