@@ -93,7 +93,8 @@ static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   ModC_Stateme
     }
     
     ModC_TypeEntry* entry = ModC_Allocator_Malloc(&scratchAllocator, sizeof(ModC_TypeEntry));
-    MODC_CHECK(entry, (""), MODC_RET_ERROR_S());    entry->Type = ModC_String_FromData( scratchAllocator, 
+    MODC_CHECK(entry, (""), MODC_RET_ERROR_S());    
+    entry->Type = ModC_String_FromData( scratchAllocator, 
                                         typeNameTextView.Data, 
                                         typeNameTextView.Length);
     if(inFuncImpl)
