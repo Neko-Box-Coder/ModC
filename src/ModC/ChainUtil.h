@@ -63,7 +63,7 @@ static inline int ChainTest4(int a)
     return a;
 }
 
-static inline void ChainTest5()
+static inline void ChainTest5(void)
 {
     (void)MODC_CHAIN(   ChainTest, (0), 
                         ChainTest2, (), 

@@ -91,7 +91,7 @@ static inline void ModC_Token_Free(ModC_Token* this)
 {
     if(!this)
         return;
-    if(!this->TokenText.Type == MODC_TAG_TYPE_S(ModC_String))
+    if(this->TokenText.Type != MODC_TAG_TYPE_S(ModC_String))
     {
         *this = (ModC_Token){0};
         return;

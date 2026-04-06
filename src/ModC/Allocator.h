@@ -470,7 +470,11 @@ static inline ModC_Allocator ModC_CreateArenaAllocator(uint64_t allocateSize)
 static inline ModC_Allocator ModC_CreateArenaAllocator_PreAllocated(void* preAllocatedData, 
                                                                     uint64_t allocatedSize)
 {
-    uint64_t arenaOffset = offsetof(struct { char c; Arena d; }, d);
+    #if defined(__clang__)
+        uint64_t arenaOffset = __extension__ offsetof(struct { char c; Arena d; }, d);
+    #else
+        uint64_t arenaOffset = offsetof(struct { char c; Arena d; }, d);
+    #endif
     char* byteDataPtr = preAllocatedData;
     uint64_t alignPadding = arenaOffset - ((uint64_t)byteDataPtr % arenaOffset);
     uint64_t minDataNeeded = alignPadding + sizeof(Arena);

@@ -31,7 +31,7 @@ static_assert(sizeof(int) == sizeof(int32_t), "");
     #define MODC_DEFAULT_ALLOC() ModC_CreateHeapAllocator()
 #endif
 
-static inline ModC_Result_Int32 TestResult()
+static inline ModC_Result_Int32 TestResult(void)
 {
     #undef ModC_ResultName_State
     #define ModC_ResultName_State ModC_Result_Int32
@@ -42,7 +42,7 @@ static inline ModC_Result_Int32 TestResult()
         return MODC_RESULT_VALUE_S(5);
 }
 
-static inline ModC_Result_Int32 TestResult2()
+static inline ModC_Result_Int32 TestResult2(void)
 {
     ModC_Result_Int32 intResult = TestResult();
     int32_t* unwrappedVal = MODC_RESULT_TRY(intResult, MODC_RET_ERROR_S());
@@ -51,6 +51,7 @@ static inline ModC_Result_Int32 TestResult2()
 
 ModC_Result_Void Main(int argc, char* argv[])
 {
+    (void)&TestResult2;
     #undef ModC_ResultName_State
     #define ModC_ResultName_State ModC_Result_Void
     #undef ModC_TaggedUnionName_State
