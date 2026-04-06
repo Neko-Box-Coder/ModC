@@ -30,7 +30,8 @@ typedef enum ModC_StatementType
     ModC_StatementType_WhileStatement,
     ModC_StatementType_SwitchStatement,
     ModC_StatementType_ReturnStatement,
-    ModC_StatementType_Count,   //17
+    ModC_StatementType_CaseStatement,
+    ModC_StatementType_Count,   //18
 } ModC_StatementType;
 
 struct ModC_StatementList;
@@ -288,7 +289,7 @@ ModC_StatementTokensUnion_ContainsTokenText(const ModC_StatementTokensUnion* sta
 
 static inline ModC_ConstStringView ModC_StatementType_ToConstStringView(ModC_StatementType type)
 {
-    static_assert((int)ModC_StatementType_Count == 17, "");
+    static_assert((int)ModC_StatementType_Count == 18, "");
     switch(type)
     {
         #define RET_TO_STR(enumVal) \
@@ -312,6 +313,7 @@ static inline ModC_ConstStringView ModC_StatementType_ToConstStringView(ModC_Sta
         RET_TO_STR(ModC_StatementType_WhileStatement);
         RET_TO_STR(ModC_StatementType_SwitchStatement);
         RET_TO_STR(ModC_StatementType_ReturnStatement);
+        RET_TO_STR(ModC_StatementType_CaseStatement);
         RET_TO_STR(ModC_StatementType_Count);
         
         #undef RET_TO_STR
@@ -604,7 +606,15 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                 break;
             }
             case ModC_CharTokenType_Operator:
+            {
+                //`case xxx:` count as a statement
+                ModC_ConstStringView tokenView = ModC_Token_TokenTextView(&tokens->Data[i]);
+                if(!ModC_ConstStringView_IsEqualLiteral(&tokenView, ":"))
+                    break;
+                
+                END_CURRENT_STATEMENT(true);
                 break;
+            }
             case ModC_CharTokenType_BlockStart:
             {
                 END_CURRENT_STATEMENT(false);
@@ -717,7 +727,6 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                 break;
             case ModC_CharTokenType_Newline:
             {
-                //Check compiler directives (#)
                 if(i == startTokenIndex)
                     break;
                 
@@ -743,6 +752,7 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                     }
                 }
                 
+                //Check compiler directives (#)
                 if( tokens->Data[lineFirstToken].TokenType == ModC_TokenType_Operator &&
                     ModC_Token_TokenTextView(&tokens->Data[lineFirstToken]).Length == 1 &&
                     ModC_Token_TokenTextView(&tokens->Data[lineFirstToken]).Data[0] == '#')
@@ -1554,6 +1564,56 @@ static inline ModC_Result_Void ModC_TryClassifyAssignment(  ModC_Statement* stat
     return MODC_RESULT_VALUE_S(0);
 }
 
+static inline ModC_Result_Void ModC_TryClassifyCase(ModC_Statement* statement,
+                                                    const ModC_TokenList* tokens,
+                                                    bool inTypeDecl,
+                                                    bool inFuncImpl)
+{
+    #undef ModC_ResultName_State
+    #define ModC_ResultName_State ModC_Result_Void
+    
+    if(statement->StatementType == ModC_StatementType_Compound || inTypeDecl || !inFuncImpl)
+        return MODC_RESULT_VALUE_S(0);
+    
+    uint32_t tokenCount = ModC_StatementTokensUnion_GetTokenCount(&statement->Tokens);
+    MODC_CHECK(tokenCount > 0, (""), MODC_RET_ERROR_S());
+    
+    //Check if last token is colon
+    {
+        ModC_Result_TokenPtr tokenPtrResult =
+            ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, tokenCount - 1);
+        
+        ModC_Token* token = *MODC_RESULT_TRY(tokenPtrResult, MODC_RET_ERROR_S());
+        if(token->TokenType != ModC_TokenType_Operator)
+            return MODC_RESULT_VALUE_S(0);
+    
+        ModC_ConstStringView tokenText = ModC_Token_TokenTextView(token);
+        if(!ModC_ConstStringView_IsEqualLiteral(&tokenText, ":"))
+            return MODC_RESULT_VALUE_S(0);
+    }
+    
+    //At least <case> <identifier> <colon>
+    if(tokenCount != 3)
+        return MODC_RESULT_VALUE_S(0);
+    
+    //Check if first token is case
+    {
+        ModC_Result_TokenPtr tokenPtrResult =
+            ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, 0);
+        
+        ModC_Token* token = *MODC_RESULT_TRY(tokenPtrResult, MODC_RET_ERROR_S());
+        if(token->TokenType != ModC_TokenType_Identifier)
+            return MODC_RESULT_VALUE_S(0);
+    
+        ModC_ConstStringView tokenText = ModC_Token_TokenTextView(token);
+        if(!ModC_ConstStringView_IsEqualLiteral(&tokenText, "case"))
+            return MODC_RESULT_VALUE_S(0);
+    }
+    
+    statement->StatementType = ModC_StatementType_CaseStatement;
+    return MODC_RESULT_VALUE_S(0);
+}
+
 
 static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementList* statements, 
                                                                 ModC_Allocator tokensAllcoator,
@@ -1688,7 +1748,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
             MODC_CHECK(tokenCount > 0, (""), MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
             
             //Classify statements
-            static_assert((int)ModC_StatementType_Count == 17, "");
+            static_assert((int)ModC_StatementType_Count == 18, "");
             
             #undef ModC_TaggedUnionName_State
             #define ModC_TaggedUnionName_State ModC_StatementInfoUnion
@@ -1755,8 +1815,6 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                     (void)MODC_RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR_S())); \
                 }
             
-            //TODO: classify invokable keywords
-            //TODO: classify else
             #define TRY_CLASSIFY_INVOKABLE() \
                 if(statement->StatementType == ModC_StatementType_Unknown) \
                 { \
@@ -1786,6 +1844,17 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                                                             funcScope != -1); \
                     (void)MODC_RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR_S())); \
                 }
+            
+            #define TRY_CLASSIFY_CASE() \
+                if(statement->StatementType == ModC_StatementType_Unknown) \
+                { \
+                    voidResult = ModC_TryClassifyCase(  statement, \
+                                                        tokens, \
+                                                        typeScope != -1, \
+                                                        funcScope != -1); \
+                    (void)MODC_RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR_S())); \
+                }
+            
             
             //Root
             if(typeScope == -1 && funcScope == -1)
@@ -1832,6 +1901,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                 
                 TRY_CLASSIFY_INVOKABLE();
                 TRY_CLASSIFY_ELSE();
+                TRY_CLASSIFY_CASE();
                 TRY_CLASSIFY_RETURN();
                 TRY_CLASSIFY_TYPE_DECLARATION();
                 TRY_CLASSIFY_COMPILER_DIRECTIVE();

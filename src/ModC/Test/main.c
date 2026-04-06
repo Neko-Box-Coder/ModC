@@ -35,6 +35,16 @@ int main(int argc, char** argv)
     else
         printf("other args");
     
+    switch(testEnum)
+    {
+        case EnumVal1:
+            break;
+        case EnumVal2:
+            break;
+        case EnumVal3:
+            break;
+    }
+    
     testEnum = EnumVal3;
     
     return 0;
