@@ -1,5 +1,5 @@
-#ifndef MODC_PARSER_H
-#define MODC_PARSER_H
+#ifndef MODC_CLASSIFICATION_H
+#define MODC_CLASSIFICATION_H
 
 #ifndef MODC_DEFAULT_ALLOC
     #define MODC_DEFAULT_ALLOC() ModC_CreateHeapAllocator()

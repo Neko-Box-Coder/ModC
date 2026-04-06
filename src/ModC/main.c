@@ -5,7 +5,7 @@
 #include "ModC/GenericContainers.h"
 #include "ModC/Strings/Strings.h"
 #include "ModC/Tokenization.h"
-#include "ModC/Parser.h"
+#include "ModC/Classification.h"
 
 //Dependencies
 #include "static_assert.h/assert.h"
