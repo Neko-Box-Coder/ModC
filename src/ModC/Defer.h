@@ -29,6 +29,12 @@ MODC_DEFER_SCOPE_END(scopeId)
     #define MODC_MAX_DEFER_COUNT 32
 #endif
 
+//NOTE: Shit solution to silence c2y-extensions warnings caused by __COUNTER__ until 
+//      https://github.com/llvm/llvm-project/issues/189645 is resolved
+#if defined(__clang__)
+    #pragma clang diagnostic ignored "-Wc2y-extensions"
+#endif
+
 //Improvised from: https://btmc.substack.com/i/142434521/duffs-device-to-the-rescue
 #define MODC_DEFER_SCOPE_START(id) \
     { \
