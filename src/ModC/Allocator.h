@@ -339,6 +339,7 @@ static inline void ModC_Allocator_Free(const ModC_Allocator* this, void* data)
             }
             MODC_ASSERT(currentNode->CurrentArena);
             
+            //TODO: Use walkable allocation list
             if( currentNode->CurrentArena->region + currentNode->CurrentArena->index ==
                 byteDataPtr + ModC_GetAllocSize(data) + ModC_BackCanarySize())
             {

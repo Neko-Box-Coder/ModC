@@ -10,6 +10,7 @@
 #include "ModC/GenericContainers.h"
 #include "ModC/Result.h"
 
+#define NO_DECLTYPE
 #include "uthash.h"
 typedef struct ModC_TypeEntry
 {

@@ -388,6 +388,117 @@ static inline ModC_ResultStatementPtr ModC_Statement_CreatePlain(   ModC_Allocat
     return MODC_RESULT_VALUE_S(retStatementPtr);
 }
 
+static inline ModC_Result_Void ModC_Statement_ToString( ModC_Statement* this, 
+                                                        ModC_TokenList* tokenList,
+                                                        ModC_String* inOutString, 
+                                                        bool append)
+{
+    #undef ModC_ResultName_State
+    #define ModC_ResultName_State ModC_Result_Void
+    #undef ModC_TaggedUnionName_State
+    #define ModC_TaggedUnionName_State ModC_StatementTokensUnion
+    
+    if(!inOutString || !tokenList)
+        return MODC_RESULT_VALUE_S(0);
+    
+    if(!append)
+        ModC_String_Resize(inOutString, 0);
+    
+    ModC_ConstStringView statementTypeStr = ModC_StatementType_ToConstStringView(this->StatementType);
+    ModC_String_AddRange(inOutString, statementTypeStr.Data, statementTypeStr.Length);
+    ModC_String_AppendLiteral(inOutString, " - ");
+    
+    static_assert((int)MODC_TAG_TYPE_S(Count) == 3, "");
+    switch(this->Tokens.Type)
+    {
+        case MODC_TAG_TYPE_S(ModC_CompoundStatement):
+        {
+            ModC_CompoundStatement* compoundStatement = 
+                &this->Tokens.MODC_TAG_DATA_S(ModC_CompoundStatement);
+            
+            ModC_String_AppendFormat(   inOutString, 
+                                        "ModC_CompoundStatement: %" PRIu32 " - %" PRIu32 " "
+                                        "(Implicit: %s), (Children: ", 
+                                        compoundStatement->StartTokenIndex,
+                                        compoundStatement->EndTokenIndex,
+                                        (compoundStatement->Implicit ? "true" : "false"));
+            
+            if(compoundStatement->ChildStatements.Length >= 2)
+            {
+                for(int j = 0; j < compoundStatement->ChildStatements.Length - 1; ++j)
+                {
+                    ModC_String_AppendFormat(   inOutString, 
+                                                "%" PRIu32 ", ", 
+                                                compoundStatement->ChildStatements.Data[j]);
+                }
+            }
+            
+            if(compoundStatement->ChildStatements.Length > 0)
+            {
+                uint32_t lastIndex = compoundStatement->ChildStatements.Length - 1;
+                ModC_String_AppendFormat(   inOutString, 
+                                            "%" PRIu32, 
+                                            compoundStatement->ChildStatements.Data[lastIndex]);
+            }
+            ModC_String_AddValue(inOutString, ')');
+            break;
+        }
+        case MODC_TAG_TYPE_S(ModC_TokenIndexList):
+        {
+            ModC_TokenIndexList* tokenIndexList = 
+                &this->Tokens.MODC_TAG_DATA_S(ModC_TokenIndexList);
+            
+            ModC_String_AppendFormat(inOutString, "ModC_TokenIndexList: (Indices: ");
+            if(tokenIndexList->Length >= 2)
+            {
+                for(int j = 0; j < tokenIndexList->Length - 1; ++j)
+                    ModC_String_AppendFormat(inOutString, "%" PRIu32 ", ", tokenIndexList->Data[j]);
+            }
+            
+            if(tokenIndexList->Length > 0)
+            {
+                ModC_String_AppendFormat(   inOutString, 
+                                            "%" PRIu32, 
+                                            tokenIndexList->Data[tokenIndexList->Length - 1]);
+            }
+            
+            ModC_String_AppendFormat(inOutString, "), \"");
+            for(int j = 0; j < tokenIndexList->Length; ++j)
+            {
+                ModC_ConstStringView tokenText = 
+                    ModC_Token_TokenTextView(&tokenList->Data[tokenIndexList->Data[j]]);
+                MODC_CHECK(tokenText.Length > 0, ("Invalid token text"), MODC_RET_ERROR_S());
+                ModC_String_AppendFormat(inOutString, "%.*s ", (int)tokenText.Length, tokenText.Data);
+            }
+            ModC_String_AppendLiteral(inOutString, "\"");
+            break;
+        }
+        case MODC_TAG_TYPE_S(ModC_TokenIndexRange):
+        {
+            ModC_TokenIndexRange* tokenIndexRange = 
+                &this->Tokens.MODC_TAG_DATA_S(ModC_TokenIndexRange);
+            
+            ModC_String_AppendFormat(   inOutString, 
+                                        "ModC_TokenIndexRange: %" PRIu32 " - %" PRIu32 ", \"",
+                                        tokenIndexRange->StartIndex,
+                                        tokenIndexRange->EndIndex);
+            
+            for(int j = tokenIndexRange->StartIndex; j < tokenIndexRange->EndIndex; ++j)
+            {
+                ModC_ConstStringView tokenText = ModC_Token_TokenTextView(&tokenList->Data[j]);
+                MODC_CHECK(tokenText.Length > 0, ("Invalid token text"), MODC_RET_ERROR_S());
+                ModC_String_AppendFormat(inOutString, "%.*s ", (int)tokenText.Length, tokenText.Data);
+            }
+            ModC_String_AppendLiteral(inOutString, "\"");
+            break;
+        }
+        default:
+            break;
+    } //switch(this->Tokens.Type)
+    
+    return MODC_RESULT_VALUE_S(0);
+}
+
 #if 0
     void ModC_Statement_Free(ModC_Statement* this)
     {
