@@ -905,6 +905,7 @@ static inline ModC_Result_Uint32 ModC_EndCurrentStatement(  bool countCurrentTok
 }
 
 static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_TokenList* tokens, 
+                                                                ModC_Allocator scratchAllocator,
                                                                 ModC_Allocator* outStatementsArena)
 {
     #undef ModC_ResultName_State
@@ -942,6 +943,7 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
     
     uint32_t startTokenIndex = 0;
     uint32_t currentParentIndex = 0;
+    ModC_BoolList blockStartComplex = ModC_BoolList_Create(scratchAllocator, 16);
     for(uint32_t i = 0; i < tokens->Length; ++i)
     {
         static_assert(ModC_TokenType_Count == 19, "");
@@ -979,7 +981,34 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
             }
             case ModC_CharTokenType_BlockStart:
             {
-                END_CURRENT_STATEMENT(false);
+                //Find the first previous token that we care
+                uint32_t lastTokenIndex = i;
+                for(int32_t j = i - 1; j >= startTokenIndex; --j)
+                {
+                    if( tokens->Data[j].TokenType == ModC_TokenType_Space ||
+                        tokens->Data[j].TokenType == ModC_TokenType_Newline ||
+                        tokens->Data[j].TokenType == ModC_TokenType_Comment)
+                    {
+                        continue;
+                    }
+                    lastTokenIndex = j;
+                    break;
+                }
+
+                if(lastTokenIndex != i)
+                {
+                    //Not complex statement
+                    if( tokens->Data[lastTokenIndex].TokenType != ModC_TokenType_Identifier &&
+                        tokens->Data[lastTokenIndex].TokenType != ModC_TokenType_InvokeEnd)
+                    {
+                        ModC_BoolList_AddValue(&blockStartComplex, false);
+                        break;
+                    }
+                    
+                    END_CURRENT_STATEMENT(false);
+                }
+                
+                ModC_BoolList_AddValue(&blockStartComplex, true);
                 
                 //Create compound as parent
                 statementPtrResult = ModC_Statement_CreateCompound( sharedArena, 
@@ -991,7 +1020,6 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                 MODC_CHECK( newStatement->Tokens.Type == MODC_TAG_TYPE_S(ModC_CompoundStatement),
                             ("Unexpected type"),
                             MODC_RET_ERROR_S());
-                MODC_CHECK(i == startTokenIndex, (""), MODC_RET_ERROR_S());
                 ModC_Result_Void voidResult = ModC_AddStatementToParent(statementList.Length - 1,
                                                                         currentParentIndex,
                                                                         &statementList);
@@ -1006,9 +1034,18 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
             }
             case ModC_CharTokenType_BlockEnd:
             {
-                END_CURRENT_STATEMENT(false);
+                if(blockStartComplex.Length == 0)   //Mismatching number of block start and ends
+                    break;
+                
+                if(!blockStartComplex.Data[blockStartComplex.Length - 1])
+                {
+                    ModC_BoolList_Resize(&blockStartComplex, blockStartComplex.Length - 1);
+                    break;
+                }
+                ModC_BoolList_Resize(&blockStartComplex, blockStartComplex.Length - 1);
                 
                 //Finish compound parent
+                END_CURRENT_STATEMENT(false);
                 ModC_Statement* parentStatement = &statementList.Data[currentParentIndex];
                 MODC_CHECK( parentStatement->Tokens.Type == MODC_TAG_TYPE_S(ModC_CompoundStatement),
                             ("Unexpected type"),

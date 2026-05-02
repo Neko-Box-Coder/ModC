@@ -22,6 +22,10 @@ MODC_DEFINE_RESULT_STRUCT(ModC_Result_Void, ModC_Void)
 #define MODC_VALUE_TYPE uint32_t
 #include "ModC/List.h"
 
+#define MODC_LIST_NAME ModC_BoolList
+#define MODC_VALUE_TYPE bool
+#include "ModC/List.h"
+
 //#define MODC_LIST_NAME ModC_TestString
 //#define MODC_VALUE_TYPE char
 //#include "ModC/List.h"

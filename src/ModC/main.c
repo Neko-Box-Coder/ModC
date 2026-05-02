@@ -129,8 +129,8 @@ ModC_Result_Void Main(int argc, char* argv[])
                     (int)typeStr.Length, typeStr.Data);
         }
         
-        ModC_Result_StatementList statementListResult = ModC_CreateStatements(  tokenList, 
-                                                                                &statementListArena);
+        ModC_Result_StatementList statementListResult = 
+            ModC_CreateStatements(tokenList, ModC_Allocator_Share(&mainArena), &statementListArena);
         ModC_StatementList* statementList = MODC_RESULT_TRY(statementListResult, 
                                                             MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
         MODC_DEFER(0, ModC_Allocator_Destroy(&statementListArena));
