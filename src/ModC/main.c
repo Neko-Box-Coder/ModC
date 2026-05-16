@@ -104,16 +104,15 @@ ModC_Result_Void Main(int argc, char* argv[])
                 DEFER_BREAK(0, RET_ERROR_S()));
     
         ConstStringView sourceView = ConstStringView_Create(fileContent.Data, fileContent.Length);
-        ModC_Result_TokenList tokenListResult = ModC_Tokenization(  sourceView, 
-                                                                    Allocator_Share(&mainArena));
-        ModC_TokenList* tokenList = RESULT_TRY(tokenListResult, DEFER_BREAK(0, RET_ERROR_S()));
+        ModC_Result_TokenList tokenListResult = Tokenization(sourceView, Allocator_Share(&mainArena));
+        TokenList* tokenList = RESULT_TRY(tokenListResult, DEFER_BREAK(0, RET_ERROR_S()));
         
-        DEFER(0, ModC_TokenList_Free(tokenList));
+        DEFER(0, TokenList_Free(tokenList));
         
         for(int i = 0; i < tokenList->Length; ++i)
         {
-            ConstStringView typeStr = ModC_TokenType_ToCStr(tokenList->Data[i].TokenType);
-            ConstStringView tokenTextView = ModC_Token_TokenTextView(&tokenList->Data[i]);
+            ConstStringView typeStr = TokenType_ToCStr(tokenList->Data[i].TokenType);
+            ConstStringView tokenTextView = Token_TokenTextView(&tokenList->Data[i]);
             printf( "Token: \"%.*s\", Token Type[%i]: %.*s\n", 
                     (int)tokenTextView.Length, tokenTextView.Data,
                     i, 

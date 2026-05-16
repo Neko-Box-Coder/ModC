@@ -21,7 +21,7 @@ typedef struct ModC_TypeEntry
 #define RETURN_VISUALIZED_ERROR(tokenPtr, source, spanLine, fmtMsg, ...) \
         do \
         { \
-            String visualizeStr = ModC_Token_VisualizeLocation(tokenPtr, \
+            String visualizeStr = Token_VisualizeLocation(tokenPtr, \
                                                                     CreateHeapAllocator(), \
                                                                     spanLine, \
                                                                     source); \
@@ -34,7 +34,7 @@ typedef struct ModC_TypeEntry
         while(0)
 
 static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   ModC_Statement* statement,
-                                                                    const ModC_TokenList* tokens,
+                                                                    const TokenList* tokens,
                                                                     const ConstStringView source,
                                                                     Allocator statementsArena,
                                                                     Allocator scratchAllocator,
@@ -79,7 +79,7 @@ static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   ModC_Stateme
     {
         ModC_Result_TokenPtr tokenPtrResult = 
             ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, 0);
-        ModC_Token* tokenPtr = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
+        Token* tokenPtr = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
         RETURN_VISUALIZED_ERROR(tokenPtr, 
                                 source, 
                                 false,
@@ -109,7 +109,7 @@ static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   ModC_Stateme
     {
         ModC_Result_TokenPtr tokenPtrResult = 
             ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, 1);
-        ModC_Token* tokenPtr = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
+        Token* tokenPtr = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
         RETURN_VISUALIZED_ERROR(tokenPtr, 
                                 source, 
                                 false,
@@ -172,7 +172,7 @@ static inline ModC_Result_Void ModC_TryClassifyEnumValues(  ModC_Statement* stat
 
 
 static inline ModC_Result_Void ModC_TryClassifyAsCompilerDirective( ModC_Statement* statement,
-                                                                    const ModC_TokenList* tokens)
+                                                                    const TokenList* tokens)
 {
     #undef ResultNameState
     #define ResultNameState ModC_Result_Void
@@ -186,9 +186,9 @@ static inline ModC_Result_Void ModC_TryClassifyAsCompilerDirective( ModC_Stateme
     ModC_Result_TokenPtr tokenPtrResult =
         ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, 0);
     
-    ModC_Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
+    Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
     
-    if(token->TokenType != ModC_TokenType_Operator)
+    if(token->TokenType != TokenType_Operator)
         return RESULT_VALUE_S(0);
     
     ModC_Result_ConstStringView constStringViewResult =
@@ -203,7 +203,7 @@ static inline ModC_Result_Void ModC_TryClassifyAsCompilerDirective( ModC_Stateme
 
 static inline ModC_Result_Void 
 ModC_TryClassifyAsVariableDeclareAssignment(ModC_Statement* statement,
-                                            const ModC_TokenList* tokens,
+                                            const TokenList* tokens,
                                             const ConstStringView source,
                                             bool inTypeDecl,
                                             bool inFuncImpl,
@@ -226,8 +226,8 @@ ModC_TryClassifyAsVariableDeclareAssignment(ModC_Statement* statement,
         ModC_Result_TokenPtr tokenPtrResult =
             ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, tokenCount - 1);
         
-        ModC_Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
-        if(token->TokenType != ModC_TokenType_Semicolon)
+        Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
+        if(token->TokenType != TokenType_Semicolon)
             return RESULT_VALUE_S(0);
     }
     
@@ -235,8 +235,8 @@ ModC_TryClassifyAsVariableDeclareAssignment(ModC_Statement* statement,
     if(tokenCount < 3)
         return RESULT_VALUE_S(0);
     
-    ModC_Token* typeToken;
-    ModC_Token* identifierToken;
+    Token* typeToken;
+    Token* identifierToken;
     
     //NOTE: Hardcode type to be index 0 and identifier to be index 1 for now
     for(int i = 0; i < 2; ++i)
@@ -244,20 +244,20 @@ ModC_TryClassifyAsVariableDeclareAssignment(ModC_Statement* statement,
         ModC_Result_TokenPtr tokenPtrResult =
             ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, i);
         
-        ModC_Token** outPtr = i == 0 ? &typeToken : &identifierToken;
+        Token** outPtr = i == 0 ? &typeToken : &identifierToken;
         *outPtr = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
-        if((*outPtr)->TokenType != ModC_TokenType_Identifier)
+        if((*outPtr)->TokenType != TokenType_Identifier)
             return RESULT_VALUE_S(0);
     }
     
-    if( typeToken->TokenType != ModC_TokenType_Identifier ||
-        identifierToken->TokenType != ModC_TokenType_Identifier)
+    if( typeToken->TokenType != TokenType_Identifier ||
+        identifierToken->TokenType != TokenType_Identifier)
     {
         return RESULT_VALUE_S(0);
     }
     
     bool typeExist = false;
-    ConstStringView typeTokenText = ModC_Token_TokenTextView(typeToken);
+    ConstStringView typeTokenText = Token_TokenTextView(typeToken);
     if(inFuncImpl)
     {
         ModC_TypeEntry* foundEntry = NULL;
@@ -296,7 +296,7 @@ ModC_TryClassifyAsVariableDeclareAssignment(ModC_Statement* statement,
         {
             ModC_Result_TokenPtr tokenPtrResult =
                 ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, foundIndex);
-            ModC_Token* tokenPtr = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
+            Token* tokenPtr = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
             RETURN_VISUALIZED_ERROR(tokenPtr, 
                                     source, 
                                     false,
@@ -331,7 +331,7 @@ ModC_TryClassifyAsVariableDeclareAssignment(ModC_Statement* statement,
 
 static inline ModC_Result_Void 
 ModC_TryClassifyAsFunctionDeclaration(  ModC_Statement* statement,
-                                        const ModC_TokenList* tokens,
+                                        const TokenList* tokens,
                                         const ConstStringView source,
                                         bool inTypeDecl,
                                         bool inFuncImpl,
@@ -353,8 +353,8 @@ ModC_TryClassifyAsFunctionDeclaration(  ModC_Statement* statement,
         ModC_Result_TokenPtr tokenPtrResult =
             ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, tokenCount - 1);
         
-        ModC_Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
-        if(token->TokenType != ModC_TokenType_InvokeEnd)
+        Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
+        if(token->TokenType != TokenType_InvokeEnd)
             return RESULT_VALUE_S(0);
     }
     
@@ -362,9 +362,9 @@ ModC_TryClassifyAsFunctionDeclaration(  ModC_Statement* statement,
     if(tokenCount < 4)
         return RESULT_VALUE_S(0);
     
-    ModC_Token* typeToken;
-    ModC_Token* identifierToken;
-    ModC_Token* argumentToken = NULL;
+    Token* typeToken;
+    Token* identifierToken;
+    Token* argumentToken = NULL;
     
     //NOTE: Hardcode type to be index 0 and identifier to be index 1 for now
     for(int i = 0; i < 4; ++i)
@@ -372,31 +372,31 @@ ModC_TryClassifyAsFunctionDeclaration(  ModC_Statement* statement,
         ModC_Result_TokenPtr tokenPtrResult =
             ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, i);
         
-        ModC_Token* curToken = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
-        ModC_Token** outPtr = NULL;
+        Token* curToken = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
+        Token** outPtr = NULL;
         
         if(i == 0)
         {
-            if(curToken->TokenType != ModC_TokenType_Identifier)
+            if(curToken->TokenType != TokenType_Identifier)
                 return RESULT_VALUE_S(0);
             outPtr = &typeToken;
         }
         else if(i == 1)
         {
-            if(curToken->TokenType != ModC_TokenType_Identifier)
+            if(curToken->TokenType != TokenType_Identifier)
                 return RESULT_VALUE_S(0);
             outPtr = &identifierToken;
         }
-        else if(i == 2 && curToken->TokenType != ModC_TokenType_InvokeStart)
+        else if(i == 2 && curToken->TokenType != TokenType_InvokeStart)
             return RESULT_VALUE_S(0);
-        else if(i == 3 && curToken->TokenType != ModC_TokenType_InvokeEnd)
+        else if(i == 3 && curToken->TokenType != TokenType_InvokeEnd)
             outPtr = &argumentToken;
         
         if(outPtr)
             *outPtr = curToken;
     }
     
-    ConstStringView typeTokenText = ModC_Token_TokenTextView(typeToken);
+    ConstStringView typeTokenText = Token_TokenTextView(typeToken);
     {
         ModC_TypeEntry* foundEntry = NULL;
         HASH_FIND(hh, *rootTypeHashSet, typeTokenText.Data, typeTokenText.Length, foundEntry);
@@ -426,7 +426,7 @@ ModC_TryClassifyAsFunctionDeclaration(  ModC_Statement* statement,
 
 
 static inline ModC_Result_Void ModC_TryClassifyAsReturn(ModC_Statement* statement,
-                                                        const ModC_TokenList* tokens,
+                                                        const TokenList* tokens,
                                                         bool inTypeDecl,
                                                         bool inFuncImpl)
 {
@@ -444,8 +444,8 @@ static inline ModC_Result_Void ModC_TryClassifyAsReturn(ModC_Statement* statemen
         ModC_Result_TokenPtr tokenPtrResult =
             ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, tokenCount - 1);
         
-        ModC_Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
-        if(token->TokenType != ModC_TokenType_Semicolon)
+        Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
+        if(token->TokenType != TokenType_Semicolon)
             return RESULT_VALUE_S(0);
     }
     
@@ -466,7 +466,7 @@ static inline ModC_Result_Void ModC_TryClassifyAsReturn(ModC_Statement* statemen
 }
 
 static inline ModC_Result_Void ModC_TryClassifyKeywordInvokable(ModC_Statement* statement,
-                                                                const ModC_TokenList* tokens,
+                                                                const TokenList* tokens,
                                                                 bool inTypeDecl,
                                                                 bool inFuncImpl)
 {
@@ -484,8 +484,8 @@ static inline ModC_Result_Void ModC_TryClassifyKeywordInvokable(ModC_Statement* 
         ModC_Result_TokenPtr tokenPtrResult =
             ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, tokenCount - 1);
         
-        ModC_Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
-        if(token->TokenType != ModC_TokenType_InvokeEnd)
+        Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
+        if(token->TokenType != TokenType_InvokeEnd)
             return RESULT_VALUE_S(0);
     }
     
@@ -510,7 +510,7 @@ static inline ModC_Result_Void ModC_TryClassifyKeywordInvokable(ModC_Statement* 
 }
 
 static inline ModC_Result_Void ModC_TryClassifyAsElse(  ModC_Statement* statement,
-                                                        const ModC_TokenList* tokens,
+                                                        const TokenList* tokens,
                                                         bool inTypeDecl,
                                                         bool inFuncImpl)
 {
@@ -538,7 +538,7 @@ static inline ModC_Result_Void ModC_TryClassifyAsElse(  ModC_Statement* statemen
 
 //NOTE: ModC_TryClassifyAsVariableDeclareAssignment should be called before this
 static inline ModC_Result_Void ModC_TryClassifyAssignment(  ModC_Statement* statement,
-                                                            const ModC_TokenList* tokens,
+                                                            const TokenList* tokens,
                                                             bool inTypeDecl,
                                                             bool inFuncImpl)
 {
@@ -558,8 +558,8 @@ static inline ModC_Result_Void ModC_TryClassifyAssignment(  ModC_Statement* stat
         ModC_Result_TokenPtr tokenPtrResult =
             ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, tokenCount - 1);
         
-        ModC_Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
-        if(token->TokenType != ModC_TokenType_Semicolon)
+        Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
+        if(token->TokenType != TokenType_Semicolon)
             return RESULT_VALUE_S(0);
     }
     
@@ -581,7 +581,7 @@ static inline ModC_Result_Void ModC_TryClassifyAssignment(  ModC_Statement* stat
 }
 
 static inline ModC_Result_Void ModC_TryClassifyCase(ModC_Statement* statement,
-                                                    const ModC_TokenList* tokens,
+                                                    const TokenList* tokens,
                                                     bool inTypeDecl,
                                                     bool inFuncImpl)
 {
@@ -599,11 +599,11 @@ static inline ModC_Result_Void ModC_TryClassifyCase(ModC_Statement* statement,
         ModC_Result_TokenPtr tokenPtrResult =
             ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, tokenCount - 1);
         
-        ModC_Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
-        if(token->TokenType != ModC_TokenType_Operator)
+        Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
+        if(token->TokenType != TokenType_Operator)
             return RESULT_VALUE_S(0);
     
-        ConstStringView tokenText = ModC_Token_TokenTextView(token);
+        ConstStringView tokenText = Token_TokenTextView(token);
         if(!ConstStringView_IsEqualLiteral(&tokenText, ":"))
             return RESULT_VALUE_S(0);
     }
@@ -617,11 +617,11 @@ static inline ModC_Result_Void ModC_TryClassifyCase(ModC_Statement* statement,
         ModC_Result_TokenPtr tokenPtrResult =
             ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, 0);
         
-        ModC_Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
-        if(token->TokenType != ModC_TokenType_Identifier)
+        Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
+        if(token->TokenType != TokenType_Identifier)
             return RESULT_VALUE_S(0);
     
-        ConstStringView tokenText = ModC_Token_TokenTextView(token);
+        ConstStringView tokenText = Token_TokenTextView(token);
         if(!ConstStringView_IsEqualLiteral(&tokenText, "case"))
             return RESULT_VALUE_S(0);
     }
@@ -634,7 +634,7 @@ static inline ModC_Result_Void ModC_TryClassifyCase(ModC_Statement* statement,
 static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementList* statements, 
                                                                 Allocator tokensAllcoator,
                                                                 Allocator statementsArena,
-                                                                ModC_TokenList* tokens,
+                                                                TokenList* tokens,
                                                                 const ConstStringView source,
                                                                 Allocator scratchAllocator)
 {
@@ -879,7 +879,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                 { \
                     ModC_Result_TokenPtr tokenPtrResult = \
                         ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, 0); \
-                    ModC_Token* tokenPtr = *RESULT_TRY(tokenPtrResult, DEFER_BREAK(0, RET_ERROR_S())); \
+                    Token* tokenPtr = *RESULT_TRY(tokenPtrResult, DEFER_BREAK(0, RET_ERROR_S())); \
                     RETURN_VISUALIZED_ERROR(tokenPtr, source, true, "%s", "Can't classify expression"); \
                 } \
                 while(0)

@@ -37,11 +37,11 @@ typedef enum ModC_StatementType
 struct ModC_StatementList;
 typedef struct ModC_StatementList ModC_StatementList;
 
-typedef struct ModC_TokenIndexRange
+typedef struct TokenIndexRange
 {
     uint32_t StartIndex;    //Inclusive
     uint32_t EndIndex;      //Exclusive
-} ModC_TokenIndexRange;
+} TokenIndexRange;
 
 typedef ModC_Uint32List ModC_StatementIndexList;
 
@@ -54,10 +54,10 @@ typedef struct ModC_CompoundStatement
     bool Implicit;      //No start and end token index if true
 } ModC_CompoundStatement;
 
-typedef ModC_Uint32List ModC_TokenIndexList;
+typedef ModC_Uint32List TokenIndexList;
 
 #define TU_NAME ModC_StatementTokensUnion
-#define VALUE_TYPES ModC_CompoundStatement,ModC_TokenIndexList,ModC_TokenIndexRange
+#define VALUE_TYPES ModC_CompoundStatement,TokenIndexList,TokenIndexRange
 #include "ModC/TaggedUnion.h"
 
 typedef struct ModC_TypeDeclarationInfo
@@ -140,12 +140,12 @@ ModC_StatementTokensUnion_GetTokenCount(const ModC_StatementTokensUnion* stateme
     {
         case TU_TYPE_S(ModC_CompoundStatement):
             return 2;
-        case TU_TYPE_S(ModC_TokenIndexList):
-            return statementUnion->TU_DATA_S(ModC_TokenIndexList).Length;
-        case TU_TYPE_S(ModC_TokenIndexRange):
+        case TU_TYPE_S(TokenIndexList):
+            return statementUnion->TU_DATA_S(TokenIndexList).Length;
+        case TU_TYPE_S(TokenIndexRange):
         {
-            const ModC_TokenIndexRange* range = 
-                &statementUnion->TU_DATA_S(ModC_TokenIndexRange);
+            const TokenIndexRange* range = 
+                &statementUnion->TU_DATA_S(TokenIndexRange);
             return range->EndIndex - range->StartIndex;
         }
         default:
@@ -155,7 +155,7 @@ ModC_StatementTokensUnion_GetTokenCount(const ModC_StatementTokensUnion* stateme
 
 static inline ModC_Result_Uint32
 ModC_StatementTokensUnion_GetTokenIndexAt(  const ModC_StatementTokensUnion* statementUnion, 
-                                            const ModC_TokenList* tokens,
+                                            const TokenList* tokens,
                                             uint32_t indexInStatement)
 {
     #undef ResultNameState
@@ -182,11 +182,9 @@ ModC_StatementTokensUnion_GetTokenIndexAt(  const ModC_StatementTokensUnion* sta
                 return ERROR_STR_FMT_S("Invalid index for accessing %"PRIu32, indexInStatement);
             break;
         }
-        case TU_TYPE_S(ModC_TokenIndexList):
+        case TU_TYPE_S(TokenIndexList):
         {
-            const ModC_TokenIndexList* tokenIndexList = 
-                &statementUnion->TU_DATA_S(ModC_TokenIndexList);
-            
+            const TokenIndexList* tokenIndexList = &statementUnion->TU_DATA_S(TokenIndexList);
             CHECK(tokenIndexList->Length > 0, ("Empty statement"), RET_ERROR_S());
             CHECK(  indexInStatement < tokenIndexList->Length, 
                     ("Invalid index for accessing, index: %"PRIu32", length: %"PRIu64, 
@@ -195,9 +193,9 @@ ModC_StatementTokensUnion_GetTokenIndexAt(  const ModC_StatementTokensUnion* sta
             tokenIndex = tokenIndexList->Data[indexInStatement];
             break;
         }
-        case TU_TYPE_S(ModC_TokenIndexRange):
+        case TU_TYPE_S(TokenIndexRange):
         {
-            const ModC_TokenIndexRange* range = &statementUnion->TU_DATA_S(ModC_TokenIndexRange);
+            const TokenIndexRange* range = &statementUnion->TU_DATA_S(TokenIndexRange);
             CHECK(range->EndIndex > range->StartIndex, ("Empty statement"), RET_ERROR_S());
             CHECK(  indexInStatement < range->EndIndex - range->StartIndex, 
                     ("Invalid index for accessing, index: %"PRIu32", length: %"PRIu32,
@@ -219,7 +217,7 @@ ModC_StatementTokensUnion_GetTokenIndexAt(  const ModC_StatementTokensUnion* sta
 
 static inline ModC_Result_TokenPtr 
 ModC_StatementTokensUnion_GetTokenAt(   const ModC_StatementTokensUnion* statementUnion, 
-                                        const ModC_TokenList* tokens,
+                                        const TokenList* tokens,
                                         uint32_t indexInStatement)
 {
     #undef ResultNameState
@@ -234,13 +232,13 @@ ModC_StatementTokensUnion_GetTokenAt(   const ModC_StatementTokensUnion* stateme
 
 static inline ModC_Result_ConstStringView 
 ModC_StatementTokensUnion_GetTokenTextViewAt(   const ModC_StatementTokensUnion* statementUnion, 
-                                                const ModC_TokenList* tokens,
+                                                const TokenList* tokens,
                                                 uint32_t indexInStatement)
 {
     #undef ResultNameState
     #define ResultNameState ModC_Result_ConstStringView 
     
-    ModC_Token* token = NULL;
+    Token* token = NULL;
     {
         ModC_Result_TokenPtr tokenPtrResult = ModC_StatementTokensUnion_GetTokenAt( statementUnion, 
                                                                                     tokens, 
@@ -248,13 +246,13 @@ ModC_StatementTokensUnion_GetTokenTextViewAt(   const ModC_StatementTokensUnion*
         token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
     }
     
-    return RESULT_VALUE_S(ModC_Token_TokenTextView(token));
+    return RESULT_VALUE_S(Token_TokenTextView(token));
 }
 
 
 static inline ModC_Result_Uint32
 ModC_StatementTokensUnion_ContainsTokenText(const ModC_StatementTokensUnion* statementUnion, 
-                                            const ModC_TokenList* tokens,
+                                            const TokenList* tokens,
                                             ConstStringView checkText)
 {
     #undef ResultNameState
@@ -366,7 +364,7 @@ static inline ModC_ResultStatementPtr ModC_Statement_CreatePlain(   Allocator al
                                 (ModC_Statement)
                                 {
                                     .StatementType = ModC_StatementType_Unknown,
-                                    .Tokens = TU_INIT_S(ModC_TokenIndexRange, {0}),
+                                    .Tokens = TU_INIT_S(TokenIndexRange, {0}),
                                     .Info = TU_INIT(ModC_StatementInfoUnion, Void, 0),
                                     .Index = oldLength,
                                     .ParentIndex = parentIndex
@@ -375,7 +373,7 @@ static inline ModC_ResultStatementPtr ModC_Statement_CreatePlain(   Allocator al
     
     ModC_Statement* retStatementPtr = &statementList->Data[statementList->Length - 1];
     //CHECK( retStatementPtr->Tokens.TU_DATA(ModC_StatementTokensUnion, 
-    //                                            ModC_TokenIndexList).Cap > 0,
+    //                                            TokenIndexList).Cap > 0,
     //            ("Failed to allocate"), 
     //            RET_ERROR_S());
     
@@ -383,7 +381,7 @@ static inline ModC_ResultStatementPtr ModC_Statement_CreatePlain(   Allocator al
 }
 
 static inline ModC_Result_Void ModC_Statement_ToString( ModC_Statement* this, 
-                                                        ModC_TokenList* tokenList,
+                                                        TokenList* tokenList,
                                                         String* inOutString, 
                                                         bool append)
 {
@@ -436,10 +434,10 @@ static inline ModC_Result_Void ModC_Statement_ToString( ModC_Statement* this,
             String_AddValue(inOutString, ')');
             break;
         }
-        case TU_TYPE_S(ModC_TokenIndexList):
+        case TU_TYPE_S(TokenIndexList):
         {
-            ModC_TokenIndexList* tokenIndexList = &this->Tokens.TU_DATA_S(ModC_TokenIndexList);
-            String_AppendFormat(inOutString, "ModC_TokenIndexList: (Indices: ");
+            TokenIndexList* tokenIndexList = &this->Tokens.TU_DATA_S(TokenIndexList);
+            String_AppendFormat(inOutString, "TokenIndexList: (Indices: ");
             if(tokenIndexList->Length >= 2)
             {
                 for(int j = 0; j < tokenIndexList->Length - 1; ++j)
@@ -457,24 +455,24 @@ static inline ModC_Result_Void ModC_Statement_ToString( ModC_Statement* this,
             for(int j = 0; j < tokenIndexList->Length; ++j)
             {
                 ConstStringView tokenText = 
-                    ModC_Token_TokenTextView(&tokenList->Data[tokenIndexList->Data[j]]);
+                    Token_TokenTextView(&tokenList->Data[tokenIndexList->Data[j]]);
                 CHECK(tokenText.Length > 0, ("Invalid token text"), RET_ERROR_S());
                 String_AppendFormat(inOutString, "%.*s ", (int)tokenText.Length, tokenText.Data);
             }
             String_AppendLiteral(inOutString, "\"");
             break;
         }
-        case TU_TYPE_S(ModC_TokenIndexRange):
+        case TU_TYPE_S(TokenIndexRange):
         {
-            ModC_TokenIndexRange* tokenIndexRange = &this->Tokens.TU_DATA_S(ModC_TokenIndexRange);
+            TokenIndexRange* tokenIndexRange = &this->Tokens.TU_DATA_S(TokenIndexRange);
             String_AppendFormat(inOutString, 
-                                "ModC_TokenIndexRange: %" PRIu32 " - %" PRIu32 ", \"",
+                                "TokenIndexRange: %" PRIu32 " - %" PRIu32 ", \"",
                                 tokenIndexRange->StartIndex,
                                 tokenIndexRange->EndIndex);
             
             for(int j = tokenIndexRange->StartIndex; j < tokenIndexRange->EndIndex; ++j)
             {
-                ConstStringView tokenText = ModC_Token_TokenTextView(&tokenList->Data[j]);
+                ConstStringView tokenText = Token_TokenTextView(&tokenList->Data[j]);
                 CHECK(tokenText.Length > 0, ("Invalid token text"), RET_ERROR_S());
                 String_AppendFormat(inOutString, "%.*s ", (int)tokenText.Length, tokenText.Data);
             }
@@ -551,7 +549,7 @@ static inline ModC_Result_Void ModC_AddStatementToParent(   uint32_t statementIn
 static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statement,
                                                         Allocator tokensAllcoator,
                                                         Allocator statementsArena,
-                                                        ModC_TokenList* tokens,
+                                                        TokenList* tokens,
                                                         Allocator scratchAllocator)
 {
     #undef ResultNameState
@@ -563,7 +561,7 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
             ("Unexpected statement union type"),
             RET_ERROR_S());
         
-    ModC_TokenIndexList tokenIndices;
+    TokenIndexList tokenIndices;
     String tempMergedOperator;
     
     DEFER_SCOPE_START(0)
@@ -581,9 +579,9 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
         {
             ModC_Result_TokenPtr tokenPtrResult = 
                 ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, i);
-            ModC_Token* currentToken = *RESULT_TRY(tokenPtrResult, DEFER_BREAK(0, RET_ERROR_S()));
+            Token* currentToken = *RESULT_TRY(tokenPtrResult, DEFER_BREAK(0, RET_ERROR_S()));
             
-            if(currentToken->TokenType == ModC_TokenType_Operator)
+            if(currentToken->TokenType == TokenType_Operator)
             {
                 bool operatorNext = false;
                 if(i != tokensCount - 1)
@@ -591,8 +589,8 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
                     tokenPtrResult = ModC_StatementTokensUnion_GetTokenAt(  &statement->Tokens, 
                                                                             tokens, 
                                                                             i + 1);
-                    ModC_Token* nextToken = *RESULT_TRY(tokenPtrResult, DEFER_BREAK(0, RET_ERROR_S()));
-                    operatorNext = nextToken->TokenType == ModC_TokenType_Operator;
+                    Token* nextToken = *RESULT_TRY(tokenPtrResult, DEFER_BREAK(0, RET_ERROR_S()));
+                    operatorNext = nextToken->TokenType == TokenType_Operator;
                 }
                 
                 //If we reached the end of continuous operator tokens,
@@ -607,14 +605,14 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
                         tokenPtrResult = ModC_StatementTokensUnion_GetTokenAt(  &statement->Tokens, 
                                                                                 tokens, 
                                                                                 j);
-                        ModC_Token* lookBackToken = *RESULT_TRY(tokenPtrResult, 
+                        Token* lookBackToken = *RESULT_TRY(tokenPtrResult, 
                                                                 DEFER_BREAK(0, RET_ERROR_S()));
                         
-                        CHECK( lookBackToken->TokenType == ModC_TokenType_Operator, 
+                        CHECK( lookBackToken->TokenType == TokenType_Operator, 
                                 (""), 
                                 DEFER_BREAK(0, RET_ERROR_S()));
                         
-                        ConstStringView opChar = ModC_Token_TokenTextView(lookBackToken);
+                        ConstStringView opChar = Token_TokenTextView(lookBackToken);
                         CHECK(  opChar.Length == 1, 
                                 ("Unexpected operator text length: %"PRIu32, 
                                 opChar.Length),
@@ -633,8 +631,8 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
                         tokenPtrResult = ModC_StatementTokensUnion_GetTokenAt(  &statement->Tokens, 
                                                                                 tokens, 
                                                                                 minLookBack);
-                        ModC_Token* minLookBackToken = *RESULT_TRY( tokenPtrResult, 
-                                                                    DEFER_BREAK(0, RET_ERROR_S()));
+                        Token* minLookBackToken = *RESULT_TRY(  tokenPtrResult, 
+                                                                DEFER_BREAK(0, RET_ERROR_S()));
                         
                         //Modify current token to concatenated operator string
                         if(currentToken->TokenText.Type == TU_TYPE(StringUnion, String))
@@ -689,9 +687,9 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
                                                                 DEFER_BREAK(0, RET_ERROR_S()));
                     ModC_Uint32List_AddValue(&tokenIndices, currentTokenIndex);
                 }
-            } //if(currentToken->TokenType == ModC_TokenType_Operator)
+            } //if(currentToken->TokenType == TokenType_Operator)
             //Skip all comments, spaces, newlines, etc...
-            else if(ModC_Token_IsSkippable(currentToken))
+            else if(Token_IsSkippable(currentToken))
             {
                 //TODO: Attach comments to statements
                 skipped = true;
@@ -713,10 +711,10 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
         //with the new token list for this statement
         if(skipped)
         {
-            statement->Tokens = TU_INIT_S(  ModC_TokenIndexList, 
+            statement->Tokens = TU_INIT_S(  TokenIndexList, 
                                             ModC_Uint32List_Create( statementsArena, 
                                                                     tokenIndices.Length));
-            ModC_Uint32List_AddRange(   &statement->Tokens.TU_DATA_S(ModC_TokenIndexList),
+            ModC_Uint32List_AddRange(   &statement->Tokens.TU_DATA_S(TokenIndexList),
                                         tokenIndices.Data,
                                         tokenIndices.Length);
         }
@@ -807,7 +805,7 @@ static inline ModC_Result_Uint32 ModC_EndCurrentStatement(  bool countCurrentTok
                                                             uint32_t i, 
                                                             uint32_t currentParentIndex,
                                                             Allocator sharedArena,
-                                                            const ModC_TokenList* tokens,
+                                                            const TokenList* tokens,
                                                             uint32_t* startTokenIndex,
                                                             ModC_StatementList* statementList)
 {
@@ -820,9 +818,9 @@ static inline ModC_Result_Uint32 ModC_EndCurrentStatement(  bool countCurrentTok
     uint32_t endIndex = countCurrentToken ? i + 1 : i;
     for(uint32_t checkIndex = *startTokenIndex; checkIndex < endIndex; ++checkIndex)
     {
-        if( tokens->Data[checkIndex].TokenType != ModC_TokenType_Space &&
-            tokens->Data[checkIndex].TokenType != ModC_TokenType_Newline &&
-            tokens->Data[checkIndex].TokenType != ModC_TokenType_Comment)
+        if( tokens->Data[checkIndex].TokenType != TokenType_Space &&
+            tokens->Data[checkIndex].TokenType != TokenType_Newline &&
+            tokens->Data[checkIndex].TokenType != TokenType_Comment)
         {
             allWhiteSpaceOrNewline = false;
             break;
@@ -839,8 +837,8 @@ static inline ModC_Result_Uint32 ModC_EndCurrentStatement(  bool countCurrentTok
                                                                             statementList,
                                                                             currentParentIndex);
     ModC_Statement* prevStatementPtr = *RESULT_TRY(statementPtrResult, RET_ERROR_S());
-    CHECK(prevStatementPtr->Tokens.Type == TU_TYPE_S(ModC_TokenIndexRange), (""), RET_ERROR_S());
-    ModC_TokenIndexRange* indexRange = &prevStatementPtr->Tokens.TU_DATA_S(ModC_TokenIndexRange);
+    CHECK(prevStatementPtr->Tokens.Type == TU_TYPE_S(TokenIndexRange), (""), RET_ERROR_S());
+    TokenIndexRange* indexRange = &prevStatementPtr->Tokens.TU_DATA_S(TokenIndexRange);
     
     indexRange->StartIndex = *startTokenIndex;
     indexRange->EndIndex = countCurrentToken ? i + 1 : i;
@@ -852,9 +850,9 @@ static inline ModC_Result_Uint32 ModC_EndCurrentStatement(  bool countCurrentTok
         uint32_t j = 0;
         for(j = indexRange->StartIndex; j < indexRange->EndIndex; ++j)
         {
-            if( tokens->Data[j].TokenType != ModC_TokenType_Space &&
-                tokens->Data[j].TokenType != ModC_TokenType_Newline &&
-                tokens->Data[j].TokenType != ModC_TokenType_Comment)
+            if( tokens->Data[j].TokenType != TokenType_Space &&
+                tokens->Data[j].TokenType != TokenType_Newline &&
+                tokens->Data[j].TokenType != TokenType_Comment)
             {
                 break;
             }
@@ -863,9 +861,9 @@ static inline ModC_Result_Uint32 ModC_EndCurrentStatement(  bool countCurrentTok
         
         for(j = indexRange->EndIndex - 1; j >= indexRange->StartIndex; --j)
         {
-            if( tokens->Data[j].TokenType != ModC_TokenType_Space &&
-                tokens->Data[j].TokenType != ModC_TokenType_Newline &&
-                tokens->Data[j].TokenType != ModC_TokenType_Comment)
+            if( tokens->Data[j].TokenType != TokenType_Space &&
+                tokens->Data[j].TokenType != TokenType_Newline &&
+                tokens->Data[j].TokenType != TokenType_Comment)
             {
                 break;
             }
@@ -885,7 +883,7 @@ static inline ModC_Result_Uint32 ModC_EndCurrentStatement(  bool countCurrentTok
     return RESULT_VALUE_S(i);
 }
 
-static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_TokenList* tokens, 
+static inline ModC_Result_StatementList ModC_CreateStatements(  const TokenList* tokens, 
                                                                 const ConstStringView source,
                                                                 Allocator scratchAllocator,
                                                                 Allocator* outStatementsArena)
@@ -928,7 +926,7 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
         { \
             if(!(cond)) \
             { \
-                String visualizeStr = ModC_Token_VisualizeLocation( &tokens->Data[i], \
+                String visualizeStr = Token_VisualizeLocation( &tokens->Data[i], \
                                                                     CreateHeapAllocator(), \
                                                                     false, \
                                                                     source); \
@@ -945,10 +943,10 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
     ModC_BoolList blockStartComplex = ModC_BoolList_Create(scratchAllocator, 16);
     for(uint32_t i = 0; i < tokens->Length; ++i)
     {
-        static_assert(ModC_TokenType_Count == 19, "");
-        switch((ModC_CharTokenType)tokens->Data[i].TokenType)
+        static_assert(TokenType_Count == 19, "");
+        switch((CharTokenType)tokens->Data[i].TokenType)
         {
-            case ModC_CharTokenType_Identifier:
+            case CharTokenType_Identifier:
             {
                 /*
                 Special case for "else". Since it can be like this
@@ -958,7 +956,7 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                 ```
                 where it can be mixed in with normal statement
                 */
-                ConstStringView tokenView = ModC_Token_TokenTextView(&tokens->Data[i]);
+                ConstStringView tokenView = Token_TokenTextView(&tokens->Data[i]);
                 if(!ConstStringView_IsEqualLiteral(&tokenView, "else"))
                     break;
                 
@@ -968,25 +966,25 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                 END_CURRENT_STATEMENT(true);
                 break;
             }
-            case ModC_CharTokenType_Operator:
+            case CharTokenType_Operator:
             {
                 //`case xxx:` count as a statement
-                ConstStringView tokenView = ModC_Token_TokenTextView(&tokens->Data[i]);
+                ConstStringView tokenView = Token_TokenTextView(&tokens->Data[i]);
                 if(!ConstStringView_IsEqualLiteral(&tokenView, ":"))
                     break;
                 
                 END_CURRENT_STATEMENT(true);
                 break;
             }
-            case ModC_CharTokenType_BlockStart:
+            case CharTokenType_BlockStart:
             {
                 //Find the first previous token that we care
                 uint32_t lastTokenIndex = i;
                 for(int32_t j = i - 1; j >= startTokenIndex; --j)
                 {
-                    if( tokens->Data[j].TokenType == ModC_TokenType_Space ||
-                        tokens->Data[j].TokenType == ModC_TokenType_Newline ||
-                        tokens->Data[j].TokenType == ModC_TokenType_Comment)
+                    if( tokens->Data[j].TokenType == TokenType_Space ||
+                        tokens->Data[j].TokenType == TokenType_Newline ||
+                        tokens->Data[j].TokenType == TokenType_Comment)
                     {
                         continue;
                     }
@@ -997,8 +995,8 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                 if(lastTokenIndex != i)
                 {
                     //Not complex statement
-                    if( tokens->Data[lastTokenIndex].TokenType != ModC_TokenType_Identifier &&
-                        tokens->Data[lastTokenIndex].TokenType != ModC_TokenType_InvokeEnd)
+                    if( tokens->Data[lastTokenIndex].TokenType != TokenType_Identifier &&
+                        tokens->Data[lastTokenIndex].TokenType != TokenType_InvokeEnd)
                     {
                         ModC_BoolList_AddValue(&blockStartComplex, false);
                         break;
@@ -1031,7 +1029,7 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                 currentParentIndex = statementList.Length - 1;
                 break;
             }
-            case ModC_CharTokenType_BlockEnd:
+            case CharTokenType_BlockEnd:
             {
                 if(blockStartComplex.Length == 0)   //Mismatching number of block start and ends
                     break;
@@ -1059,9 +1057,9 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                 currentParentIndex = parentStatement->ParentIndex;
                 break;
             }
-            case ModC_CharTokenType_InvokeStart:
+            case CharTokenType_InvokeStart:
                 break;
-            case ModC_CharTokenType_InvokeEnd:
+            case CharTokenType_InvokeEnd:
             {
                 //NOTE: This is wrong anyway, but deal with it at syntax analysis
                 if(i == startTokenIndex)
@@ -1075,9 +1073,9 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                 {
                     if(invokeCounter == 0)
                     {
-                        if( tokens->Data[j].TokenType == ModC_TokenType_Space ||
-                            tokens->Data[j].TokenType == ModC_TokenType_Newline ||
-                            tokens->Data[j].TokenType == ModC_TokenType_Comment)
+                        if( tokens->Data[j].TokenType == TokenType_Space ||
+                            tokens->Data[j].TokenType == TokenType_Newline ||
+                            tokens->Data[j].TokenType == TokenType_Comment)
                         {
                             continue;
                         }
@@ -1089,9 +1087,9 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                     }
                     else
                     {
-                        if(tokens->Data[j].TokenType == ModC_TokenType_InvokeEnd)
+                        if(tokens->Data[j].TokenType == TokenType_InvokeEnd)
                             ++invokeCounter;
-                        else if(tokens->Data[j].TokenType == ModC_TokenType_InvokeStart)
+                        else if(tokens->Data[j].TokenType == TokenType_InvokeStart)
                             --invokeCounter;
                     }
                 }
@@ -1101,28 +1099,28 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                     break;
                 
                 //Keyword must be an identifier
-                if(tokens->Data[invokeStartIndex].TokenType != ModC_TokenType_Identifier)
+                if(tokens->Data[invokeStartIndex].TokenType != TokenType_Identifier)
                     break;
                 
                 //If the token before invoke start is a keyword, end the current statement
-                if(ModC_IsInvokableKeyword(ModC_Token_TokenTextView(&tokens->Data[invokeStartIndex])))
+                if(ModC_IsInvokableKeyword(Token_TokenTextView(&tokens->Data[invokeStartIndex])))
                     END_CURRENT_STATEMENT(true);
                 break;
             }
-            case ModC_CharTokenType_Semicolon:
+            case CharTokenType_Semicolon:
             {
                 END_CURRENT_STATEMENT(true);
                 break;
             }
-            case ModC_CharTokenType_StringLiteral:
+            case CharTokenType_StringLiteral:
                 break;
-            case ModC_CharTokenType_CharLiteral:
+            case CharTokenType_CharLiteral:
                 break;
-            case ModC_CharTokenType_IntLiteral:
+            case CharTokenType_IntLiteral:
                 break;
-            case ModC_CharTokenType_Space:
+            case CharTokenType_Space:
                 break;
-            case ModC_CharTokenType_Newline:
+            case CharTokenType_Newline:
             {
                 if(i == startTokenIndex)
                     break;
@@ -1131,7 +1129,7 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                 uint32_t lineFirstToken = startTokenIndex;
                 for(int64_t j = i - 1; j >= 0; --j)
                 {
-                    if(tokens->Data[j].TokenType == ModC_TokenType_Newline)
+                    if(tokens->Data[j].TokenType == TokenType_Newline)
                     {
                         lineFirstToken = j + 1;
                         break;
@@ -1142,7 +1140,7 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                 //uint32_t firstParsableToken = startTokenIndex;
                 for(uint32_t j = lineFirstToken; j < i; ++j)
                 {
-                    if(!ModC_Token_IsSkippable(&tokens->Data[j]))
+                    if(!Token_IsSkippable(&tokens->Data[j]))
                     {
                         lineFirstToken = j;
                         break;
@@ -1150,9 +1148,9 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                 }
                 
                 //Check compiler directives (#)
-                if( tokens->Data[lineFirstToken].TokenType == ModC_TokenType_Operator &&
-                    ModC_Token_TokenTextView(&tokens->Data[lineFirstToken]).Length == 1 &&
-                    ModC_Token_TokenTextView(&tokens->Data[lineFirstToken]).Data[0] == '#')
+                if( tokens->Data[lineFirstToken].TokenType == TokenType_Operator &&
+                    Token_TokenTextView(&tokens->Data[lineFirstToken]).Length == 1 &&
+                    Token_TokenTextView(&tokens->Data[lineFirstToken]).Data[0] == '#')
                 {
                     END_CURRENT_STATEMENT(true);
                     //NOTE: We know it is a compiler directive statement, but we will classify it later.
@@ -1160,9 +1158,9 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                 
                 break;
             }
-            case ModC_CharTokenType_Undef:
+            case CharTokenType_Undef:
                 break;
-        } //switch((ModC_CharTokenType)tokens->Data[i].TokenType)
+        } //switch((CharTokenType)tokens->Data[i].TokenType)
     } //for(uint32_t i = 0; i < tokens->Length; ++i)
     
     //Last statement, check empty case as well

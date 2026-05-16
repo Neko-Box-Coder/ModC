@@ -15,68 +15,68 @@
 #include <ctype.h>
 #include <stdbool.h>
 
-typedef enum ModC_TokenType
+typedef enum TokenType
 {
-    ModC_TokenType_Type,
-    ModC_TokenType_Keyword,
-    ModC_TokenType_Identifier,
-    ModC_TokenType_Operator,
-    ModC_TokenType_BlockStart,
-    ModC_TokenType_BlockEnd,
-    ModC_TokenType_InvokeStart,
-    ModC_TokenType_InvokeEnd,
-    ModC_TokenType_Semicolon,
-    ModC_TokenType_StringLiteral,
-    ModC_TokenType_CharLiteral,
-    ModC_TokenType_IntLiteral,
-    ModC_TokenType_FloatLiteral,
-    ModC_TokenType_DoubleLiteral,
-    ModC_TokenType_BoolLiteral,
-    ModC_TokenType_Space,
-    ModC_TokenType_Newline,
-    ModC_TokenType_Comment,
-    ModC_TokenType_Undef,
-    ModC_TokenType_Count,   //19
-} ModC_TokenType;
+    TokenType_Type,
+    TokenType_Keyword,
+    TokenType_Identifier,
+    TokenType_Operator,
+    TokenType_BlockStart,
+    TokenType_BlockEnd,
+    TokenType_InvokeStart,
+    TokenType_InvokeEnd,
+    TokenType_Semicolon,
+    TokenType_StringLiteral,
+    TokenType_CharLiteral,
+    TokenType_IntLiteral,
+    TokenType_FloatLiteral,
+    TokenType_DoubleLiteral,
+    TokenType_BoolLiteral,
+    TokenType_Space,
+    TokenType_Newline,
+    TokenType_Comment,
+    TokenType_Undef,
+    TokenType_Count,   //19
+} TokenType;
 
-typedef enum ModC_CharTokenType
+typedef enum CharTokenType
 {
-    ModC_CharTokenType_Identifier = ModC_TokenType_Identifier,
-    ModC_CharTokenType_Operator = ModC_TokenType_Operator,
-    ModC_CharTokenType_BlockStart = ModC_TokenType_BlockStart,
-    ModC_CharTokenType_BlockEnd = ModC_TokenType_BlockEnd,
-    ModC_CharTokenType_InvokeStart = ModC_TokenType_InvokeStart,
-    ModC_CharTokenType_InvokeEnd = ModC_TokenType_InvokeEnd,
-    ModC_CharTokenType_Semicolon = ModC_TokenType_Semicolon,
-    ModC_CharTokenType_StringLiteral = ModC_TokenType_StringLiteral,
-    ModC_CharTokenType_CharLiteral = ModC_TokenType_CharLiteral,
-    ModC_CharTokenType_IntLiteral = ModC_TokenType_IntLiteral,
-    ModC_CharTokenType_Space = ModC_TokenType_Space,
-    ModC_CharTokenType_Newline = ModC_TokenType_Newline,
-    ModC_CharTokenType_Undef = ModC_TokenType_Undef,
-} ModC_CharTokenType;
+    CharTokenType_Identifier = TokenType_Identifier,
+    CharTokenType_Operator = TokenType_Operator,
+    CharTokenType_BlockStart = TokenType_BlockStart,
+    CharTokenType_BlockEnd = TokenType_BlockEnd,
+    CharTokenType_InvokeStart = TokenType_InvokeStart,
+    CharTokenType_InvokeEnd = TokenType_InvokeEnd,
+    CharTokenType_Semicolon = TokenType_Semicolon,
+    CharTokenType_StringLiteral = TokenType_StringLiteral,
+    CharTokenType_CharLiteral = TokenType_CharLiteral,
+    CharTokenType_IntLiteral = TokenType_IntLiteral,
+    CharTokenType_Space = TokenType_Space,
+    CharTokenType_Newline = TokenType_Newline,
+    CharTokenType_Undef = TokenType_Undef,
+} CharTokenType;
 
-typedef struct ModC_Token
+typedef struct Token
 {
-    ModC_TokenType TokenType;
+    TokenType TokenType;
     StringUnion TokenText;
     int LineIndex;
     int ColumnIndex;
     int SourceIndex;
-} ModC_Token;
+} Token;
 
-static inline void ModC_Token_Free(ModC_Token* this);
+static inline void Token_Free(Token* this);
 
-#define LIST_NAME ModC_TokenList
-#define VALUE_TYPE ModC_Token
-#define VALUE_FREE(ptr) ModC_Token_Free(ptr)
+#define LIST_NAME TokenList
+#define VALUE_TYPE Token
+#define VALUE_FREE(ptr) Token_Free(ptr)
 #include "ModC/List.h"
 
-DEFINE_RESULT_STRUCT(ModC_Result_TokenList, ModC_TokenList)
-DEFINE_RESULT_STRUCT(ModC_Result_Token, ModC_Token)
-DEFINE_RESULT_STRUCT(ModC_Result_TokenPtr, ModC_Token*)
+DEFINE_RESULT_STRUCT(ModC_Result_TokenList, TokenList)
+DEFINE_RESULT_STRUCT(ModC_Result_Token, Token)
+DEFINE_RESULT_STRUCT(ModC_Result_TokenPtr, Token*)
 
-static inline ConstStringView ModC_Token_TokenTextView(const ModC_Token* this)
+static inline ConstStringView Token_TokenTextView(const Token* this)
 {
     #undef TaggedUnionNameState
     #define TaggedUnionNameState StringUnion
@@ -87,10 +87,10 @@ static inline ConstStringView ModC_Token_TokenTextView(const ModC_Token* this)
     return StringUnion_GetConstView(&this->TokenText);
 }
 
-static inline String ModC_Token_VisualizeLocation(  const ModC_Token* this, 
-                                                    Allocator allocator, 
-                                                    bool spanWholeLine,
-                                                    const ConstStringView source)
+static inline String Token_VisualizeLocation(   const Token* this, 
+                                                Allocator allocator, 
+                                                bool spanWholeLine,
+                                                const ConstStringView source)
 {
     if(!this || source.Length <= this->SourceIndex)
     {
@@ -147,96 +147,96 @@ static inline String ModC_Token_VisualizeLocation(  const ModC_Token* this,
     }
 }
 
-static inline void ModC_Token_Free(ModC_Token* this)
+static inline void Token_Free(Token* this)
 {
     if(!this)
         return;
     if(this->TokenText.Type != TU_TYPE_S(String))
     {
-        *this = (ModC_Token){0};
+        *this = (Token){0};
         return;
     }
     
     String_Free(&this->TokenText.TU_DATA_S(String));
 }
 
-static inline ModC_Token ModC_Token_FromString(ModC_TokenType type, String str)
+static inline Token Token_FromString(TokenType type, String str)
 {
-    return (ModC_Token){ .TokenType = type, .TokenText = TU_INIT_S(String, str) };
+    return (Token){ .TokenType = type, .TokenText = TU_INIT_S(String, str) };
 }
 
-static inline ModC_Token ModC_Token_FromView(ModC_TokenType type, ConstStringView view)
+static inline Token Token_FromView(TokenType type, ConstStringView view)
 {
-    return  (ModC_Token)
+    return  (Token)
             { 
                 .TokenType = type, 
                 .TokenText = TU_INIT_S(ConstStringView, view)
             };
 }
 
-static inline bool ModC_Token_IsSkippable(const ModC_Token* this)
+static inline bool Token_IsSkippable(const Token* this)
 {
     return  !this || 
-            this->TokenType == ModC_TokenType_Space || 
-            this->TokenType == ModC_TokenType_Newline ||
-            this->TokenType == ModC_TokenType_Comment;
+            this->TokenType == TokenType_Space || 
+            this->TokenType == TokenType_Newline ||
+            this->TokenType == TokenType_Comment;
 }
 
-static inline ConstStringView ModC_TokenType_ToCStr(ModC_TokenType type)
+static inline ConstStringView TokenType_ToCStr(TokenType type)
 {
-    static_assert((int)ModC_TokenType_Count == 19, "");
+    static_assert((int)TokenType_Count == 19, "");
     switch(type)
     {
-        case ModC_TokenType_Type:
-            return ConstStringView_FromLiteral("ModC_TokenType_Type");
-        case ModC_TokenType_Keyword:
-            return ConstStringView_FromLiteral("ModC_TokenType_Keyword");
-        case ModC_TokenType_Identifier:
-            return ConstStringView_FromLiteral("ModC_TokenType_Identifier");
-        case ModC_TokenType_Operator:
-            return ConstStringView_FromLiteral("ModC_TokenType_Operator");
-        case ModC_TokenType_BlockStart:
-            return ConstStringView_FromLiteral("ModC_TokenType_BlockStart");
-        case ModC_TokenType_BlockEnd:
-            return ConstStringView_FromLiteral("ModC_TokenType_BlockEnd");
-        case ModC_TokenType_InvokeStart:
-            return ConstStringView_FromLiteral("ModC_TokenType_InvokeStart");
-        case ModC_TokenType_InvokeEnd:
-            return ConstStringView_FromLiteral("ModC_TokenType_InvokeEnd");
-        case ModC_TokenType_Semicolon:
-            return ConstStringView_FromLiteral("ModC_TokenType_Semicolon");
-        case ModC_TokenType_StringLiteral:
-            return ConstStringView_FromLiteral("ModC_TokenType_StringLiteral");
-        case ModC_TokenType_CharLiteral:
-            return ConstStringView_FromLiteral("ModC_TokenType_CharLiteral");
-        case ModC_TokenType_IntLiteral:
-            return ConstStringView_FromLiteral("ModC_TokenType_IntLiteral");
-        case ModC_TokenType_FloatLiteral:
-            return ConstStringView_FromLiteral("ModC_TokenType_FloatLiteral");
-        case ModC_TokenType_DoubleLiteral:
-            return ConstStringView_FromLiteral("ModC_TokenType_DoubleLiteral");
-        case ModC_TokenType_BoolLiteral:
-            return ConstStringView_FromLiteral("ModC_TokenType_BoolLiteral");
-        case ModC_TokenType_Space:
-            return ConstStringView_FromLiteral("ModC_TokenType_Space");
-        case ModC_TokenType_Newline:
-            return ConstStringView_FromLiteral("ModC_TokenType_Newline");
-        case ModC_TokenType_Comment:
-            return ConstStringView_FromLiteral("ModC_TokenType_Comment");
-        case ModC_TokenType_Undef:
-            return ConstStringView_FromLiteral("ModC_TokenType_Undef");
-        case ModC_TokenType_Count:
-            return ConstStringView_FromLiteral("ModC_TokenType_Count");
+        case TokenType_Type:
+            return ConstStringView_FromLiteral("TokenType_Type");
+        case TokenType_Keyword:
+            return ConstStringView_FromLiteral("TokenType_Keyword");
+        case TokenType_Identifier:
+            return ConstStringView_FromLiteral("TokenType_Identifier");
+        case TokenType_Operator:
+            return ConstStringView_FromLiteral("TokenType_Operator");
+        case TokenType_BlockStart:
+            return ConstStringView_FromLiteral("TokenType_BlockStart");
+        case TokenType_BlockEnd:
+            return ConstStringView_FromLiteral("TokenType_BlockEnd");
+        case TokenType_InvokeStart:
+            return ConstStringView_FromLiteral("TokenType_InvokeStart");
+        case TokenType_InvokeEnd:
+            return ConstStringView_FromLiteral("TokenType_InvokeEnd");
+        case TokenType_Semicolon:
+            return ConstStringView_FromLiteral("TokenType_Semicolon");
+        case TokenType_StringLiteral:
+            return ConstStringView_FromLiteral("TokenType_StringLiteral");
+        case TokenType_CharLiteral:
+            return ConstStringView_FromLiteral("TokenType_CharLiteral");
+        case TokenType_IntLiteral:
+            return ConstStringView_FromLiteral("TokenType_IntLiteral");
+        case TokenType_FloatLiteral:
+            return ConstStringView_FromLiteral("TokenType_FloatLiteral");
+        case TokenType_DoubleLiteral:
+            return ConstStringView_FromLiteral("TokenType_DoubleLiteral");
+        case TokenType_BoolLiteral:
+            return ConstStringView_FromLiteral("TokenType_BoolLiteral");
+        case TokenType_Space:
+            return ConstStringView_FromLiteral("TokenType_Space");
+        case TokenType_Newline:
+            return ConstStringView_FromLiteral("TokenType_Newline");
+        case TokenType_Comment:
+            return ConstStringView_FromLiteral("TokenType_Comment");
+        case TokenType_Undef:
+            return ConstStringView_FromLiteral("TokenType_Undef");
+        case TokenType_Count:
+            return ConstStringView_FromLiteral("TokenType_Count");
         default:
             return (ConstStringView){0};
     }
 }
 
-static inline ModC_Result_Void ModC_Token_AppendChar(   ModC_Token* this, 
-                                                        const ConstStringView source, 
-                                                        char c,
-                                                        Allocator allocator,
-                                                        bool forceString)
+static inline ModC_Result_Void Token_AppendChar(Token* this, 
+                                                const ConstStringView source, 
+                                                char c,
+                                                Allocator allocator,
+                                                bool forceString)
 {
     #undef ResultNameState
     #define ResultNameState ModC_Result_Void
@@ -276,34 +276,34 @@ static inline ModC_Result_Void ModC_Token_AppendChar(   ModC_Token* this,
     return RESULT_VALUE_S(0);
 }
 
-static inline ModC_CharTokenType ModC_CharTokenType_FromChar(char c)
+static inline CharTokenType CharTokenType_FromChar(char c)
 {
-    static_assert((int)ModC_TokenType_Count == 19, "");
+    static_assert((int)TokenType_Count == 19, "");
     if(isalpha(c) || c == '_')
-        return ModC_CharTokenType_Identifier;
+        return CharTokenType_Identifier;
     else if(isdigit(c))
-        return ModC_CharTokenType_IntLiteral;
+        return CharTokenType_IntLiteral;
     else if(c == ' ' || c == '\t' || c == '\r')
-        return ModC_CharTokenType_Space;
+        return CharTokenType_Space;
     
     switch(c)
     {
         case '\n':
-            return ModC_CharTokenType_Newline;
+            return CharTokenType_Newline;
         case '(':
-            return ModC_CharTokenType_InvokeStart;
+            return CharTokenType_InvokeStart;
         case ')':
-            return ModC_CharTokenType_InvokeEnd;
+            return CharTokenType_InvokeEnd;
         case '{':
-            return ModC_CharTokenType_BlockStart;
+            return CharTokenType_BlockStart;
         case '}':
-            return ModC_CharTokenType_BlockEnd;
+            return CharTokenType_BlockEnd;
         case '"':
-            return ModC_CharTokenType_StringLiteral;
+            return CharTokenType_StringLiteral;
         case '\'':
-            return ModC_CharTokenType_CharLiteral;
+            return CharTokenType_CharLiteral;
         case ';':
-            return ModC_CharTokenType_Semicolon;
+            return CharTokenType_Semicolon;
         case '#':
         case '[':
         case ']':
@@ -323,9 +323,9 @@ static inline ModC_CharTokenType ModC_CharTokenType_FromChar(char c)
         case '~':
         case '?':
         case ':':
-            return ModC_CharTokenType_Operator;
+            return CharTokenType_Operator;
         default:
-            return ModC_CharTokenType_Undef;
+            return CharTokenType_Undef;
     }
 }
 
@@ -350,43 +350,41 @@ static inline bool IsLastCharEscaped(ConstStringView view)
 }
 
 
-static inline ModC_Result_Bool ModC_Token_IsCharPossible(   const ModC_Token* this, 
-                                                            char c, 
-                                                            ModC_CharTokenType cType)
+static inline ModC_Result_Bool Token_IsCharPossible(const Token* this, char c, CharTokenType cType)
 {
     #undef ResultNameState
     #define ResultNameState ModC_Result_Bool
     
     CHECK(this != NULL, (""), RET_ERROR_S());
     
-    static_assert((int)ModC_TokenType_Count == 19, "");
-    ConstStringView tokenStringView = ModC_Token_TokenTextView(this);
+    static_assert((int)TokenType_Count == 19, "");
+    ConstStringView tokenStringView = Token_TokenTextView(this);
     CHECK(tokenStringView.Length > 0, (""), RET_ERROR_S());
     
-    switch((ModC_CharTokenType)this->TokenType)
+    switch((CharTokenType)this->TokenType)
     {
-        case ModC_CharTokenType_Identifier:
+        case CharTokenType_Identifier:
         {
-            if(cType == ModC_CharTokenType_Identifier || cType == ModC_CharTokenType_IntLiteral)
+            if(cType == CharTokenType_Identifier || cType == CharTokenType_IntLiteral)
                 return RESULT_VALUE_S(true);
             else
                 return RESULT_VALUE_S(false);
         }
-        case ModC_CharTokenType_Operator:
-        case ModC_CharTokenType_BlockStart:
-        case ModC_CharTokenType_BlockEnd:
-        case ModC_CharTokenType_InvokeStart:
-        case ModC_CharTokenType_InvokeEnd:
-        case ModC_CharTokenType_Semicolon:
+        case CharTokenType_Operator:
+        case CharTokenType_BlockStart:
+        case CharTokenType_BlockEnd:
+        case CharTokenType_InvokeStart:
+        case CharTokenType_InvokeEnd:
+        case CharTokenType_Semicolon:
             return RESULT_VALUE_S(false);
-        case ModC_CharTokenType_StringLiteral:
-        case ModC_CharTokenType_CharLiteral:
+        case CharTokenType_StringLiteral:
+        case CharTokenType_CharLiteral:
         {
             if(c == '\n')   //You can't have newline in string or char literal
                 return RESULT_VALUE_S(false);
             else
             {
-                if((ModC_CharTokenType)this->TokenType == ModC_CharTokenType_CharLiteral)
+                if((CharTokenType)this->TokenType == CharTokenType_CharLiteral)
                 {
                     if(tokenStringView.Data[tokenStringView.Length - 1] == '\'')
                         return RESULT_VALUE_S(IsLastCharEscaped(tokenStringView));
@@ -402,44 +400,42 @@ static inline ModC_Result_Bool ModC_Token_IsCharPossible(   const ModC_Token* th
                 }
             }
         }
-        case ModC_CharTokenType_IntLiteral:
-        case ModC_CharTokenType_Space:
-        case ModC_CharTokenType_Newline:
-        case ModC_CharTokenType_Undef:
-            return RESULT_VALUE_S(cType == (ModC_CharTokenType)this->TokenType);
+        case CharTokenType_IntLiteral:
+        case CharTokenType_Space:
+        case CharTokenType_Newline:
+        case CharTokenType_Undef:
+            return RESULT_VALUE_S(cType == (CharTokenType)this->TokenType);
         default:
             return ERROR_CSTR_S("Huh?");
-    } //switch((ModC_CharTokenType)this->TokenType)
+    } //switch((CharTokenType)this->TokenType)
     
     return RESULT_VALUE_S(false);
 }
 
 
-//Returns list of tokens that are types in `ModC_CharTokenType` or `ModC_TokenType_Comment`
-static inline ModC_Result_TokenList ModC_Tokenization(  const ConstStringView fileContent, 
-                                                        Allocator allocator)
+//Returns list of tokens that are types in `CharTokenType` or `TokenType_Comment`
+static inline ModC_Result_TokenList Tokenization(   const ConstStringView fileContent, 
+                                                    Allocator allocator)
 {
     #undef ResultNameState
     #define ResultNameState ModC_Result_TokenList
     
     if(fileContent.Length == 0)
-        return RESULT_VALUE_S( (ModC_TokenList){0} );
+        return RESULT_VALUE_S( (TokenList){0} );
     
-    ModC_TokenList tokenList = ModC_TokenList_Create(   Allocator_Share(&allocator), 
-                                                        fileContent.Length / 16);
-    ModC_TokenList retList = {0};
+    TokenList tokenList = TokenList_Create(Allocator_Share(&allocator), fileContent.Length / 16);
+    TokenList retList = {0};
     
     DEFER_SCOPE_START(0)
     {
-        ModC_Token currentToken = 
-            ModC_Token_FromView((ModC_TokenType)ModC_CharTokenType_FromChar(fileContent.Data[0]), 
-                                ConstStringView_Create(&fileContent.Data[0], 1));
-        DEFER(0, ModC_TokenList_Free(&tokenList));
+        Token currentToken = Token_FromView((TokenType)CharTokenType_FromChar(fileContent.Data[0]), 
+                                            ConstStringView_Create(&fileContent.Data[0], 1));
+        DEFER(0, TokenList_Free(&tokenList));
         
         if(fileContent.Length == 1)
         {
-            ModC_TokenList_AddValue(&tokenList, currentToken);
-            MOVE(ModC_TokenList, retList, tokenList);
+            TokenList_AddValue(&tokenList, currentToken);
+            MOVE(TokenList, retList, tokenList);
             DEFER_BREAK(0, );
         }
     
@@ -448,16 +444,16 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ConstStringView fi
         bool lineComment = false;
         for(int i = 1; i < fileContent.Length; ++i)
         {
-            ModC_CharTokenType charTokenType = ModC_CharTokenType_FromChar(fileContent.Data[i]);
+            CharTokenType charTokenType = CharTokenType_FromChar(fileContent.Data[i]);
             
             #define APPEND_CHAR_TO_TOKEN() \
                 do \
                 { \
-                    ModC_Result_Void voidResult = ModC_Token_AppendChar(&currentToken, \
-                                                                        fileContent, \
-                                                                        fileContent.Data[i], \
-                                                                        allocator, \
-                                                                        false); \
+                    ModC_Result_Void voidResult = Token_AppendChar( &currentToken, \
+                                                                    fileContent, \
+                                                                    fileContent.Data[i], \
+                                                                    allocator, \
+                                                                    false); \
                     (void)RESULT_TRY(voidResult, DEFER_BREAK(0, RET_ERROR_S())); \
                 } while(0)
             
@@ -466,7 +462,7 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ConstStringView fi
                 { \
                     /* Create new token */ \
                     currentToken = \
-                        ModC_Token_FromView((ModC_TokenType)charTokenType, \
+                        Token_FromView((TokenType)charTokenType, \
                                             ConstStringView_Create(&fileContent.Data[i], 1)); \
                     currentToken.LineIndex = currentLineIndex; \
                     currentToken.ColumnIndex = currentColumnIndex; \
@@ -497,18 +493,18 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ConstStringView fi
             bool inComment = false;
             
             //Check if we are entering line or block comment, if so change type to comment
-            if( currentToken.TokenType == ModC_TokenType_Operator && 
-                ModC_Token_TokenTextView(&currentToken).Length == 1 &&
-                ModC_Token_TokenTextView(&currentToken).Data[0] == '/' &&
+            if( currentToken.TokenType == TokenType_Operator && 
+                Token_TokenTextView(&currentToken).Length == 1 &&
+                Token_TokenTextView(&currentToken).Data[0] == '/' &&
                 (fileContent.Data[i] == '*' || fileContent.Data[i] == '/'))
             {
                 inComment = true;
-                currentToken.TokenType = ModC_TokenType_Comment;
+                currentToken.TokenType = TokenType_Comment;
                 APPEND_CHAR_TO_TOKEN();
                 lineComment = fileContent.Data[i] == '/';
             }
             //Check if have finished line comment or block comment
-            else if(currentToken.TokenType == ModC_TokenType_Comment)
+            else if(currentToken.TokenType == TokenType_Comment)
             {
                 if(i == fileContent.Length - 1)
                 {
@@ -522,7 +518,7 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ConstStringView fi
                 {
                     if(fileContent.Data[i] == '\n')
                     {
-                        ModC_TokenList_AddValue(&tokenList, currentToken);
+                        TokenList_AddValue(&tokenList, currentToken);
                         CREATE_NEW_TOKEN();
                     }
                     else
@@ -531,12 +527,12 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ConstStringView fi
                 //Block comment
                 else
                 {
-                    ConstStringView tokenView = ModC_Token_TokenTextView(&currentToken);
+                    ConstStringView tokenView = Token_TokenTextView(&currentToken);
                     if( tokenView.Length >= 4 && 
                         tokenView.Data[tokenView.Length - 2] == '*' &&
                         tokenView.Data[tokenView.Length - 1] == '/')
                     {
-                        ModC_TokenList_AddValue(&tokenList, currentToken);
+                        TokenList_AddValue(&tokenList, currentToken);
                         CREATE_NEW_TOKEN();
                     }
                     else
@@ -546,13 +542,13 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ConstStringView fi
             
             if(!inComment)
             {
-                ModC_Result_Bool boolResult = ModC_Token_IsCharPossible(&currentToken, 
-                                                                        fileContent.Data[i], 
-                                                                        charTokenType);
+                ModC_Result_Bool boolResult = Token_IsCharPossible( &currentToken, 
+                                                                    fileContent.Data[i], 
+                                                                    charTokenType);
                 bool possible = *RESULT_TRY(boolResult, DEFER_BREAK(0, RET_ERROR_S()));
                 if(!possible)
                 {
-                    ModC_TokenList_AddValue(&tokenList, currentToken);
+                    TokenList_AddValue(&tokenList, currentToken);
                     CREATE_NEW_TOKEN();
                 }
                 else
@@ -562,8 +558,8 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ConstStringView fi
             NEXT_CHAR();
         } //for(int i = 1; i < fileContent.Length; ++i)
         
-        ModC_TokenList_AddValue(&tokenList, currentToken);
-        MOVE(ModC_TokenList, retList, tokenList);
+        TokenList_AddValue(&tokenList, currentToken);
+        MOVE(TokenList, retList, tokenList);
         DEFER_BREAK(0, );
     }
     DEFER_SCOPE_END(0)
