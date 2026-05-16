@@ -87,6 +87,66 @@ static inline ModC_ConstStringView ModC_Token_TokenTextView(const ModC_Token* th
     return ModC_StringUnion_GetConstView(&this->TokenText);
 }
 
+static inline ModC_String ModC_Token_VisualizeLocation( const ModC_Token* this, 
+                                                        ModC_Allocator allocator, 
+                                                        bool spanWholeLine,
+                                                        const ModC_ConstStringView source)
+{
+    if(!this || source.Length <= this->SourceIndex)
+    {
+        return ModC_String_FromLiteral( allocator, 
+                                        "INTERNAL FAILURE: !this || source.Length <= "
+                                        "this->SourceIndex");
+    }
+    
+    int sourceIndex =   source.Data[this->SourceIndex] == '\n' ? 
+                        this->SourceIndex - 1 :
+                        this->SourceIndex;
+
+    int charAfter = 0;
+    for(int i = sourceIndex; i < source.Length; ++i)
+    {
+        if(source.Data[i] == '\n')
+            break;
+        ++charAfter;
+    }
+    
+    int charBefore = 0;
+    for(int i = sourceIndex - 1; i >= 0; --i)
+    {
+        if(source.Data[i] == '\n')
+            break;
+        ++charBefore;
+    }
+    
+    if(sourceIndex < 0)
+        return ModC_String_FromFormat(allocator, "Line %d", this->LineIndex + 1);
+    
+    if(!spanWholeLine)
+    {
+        return ModC_String_FromFormat(  allocator, 
+                                        "%5d | %.*s\n      | %*s", 
+                                        this->LineIndex + 1, 
+                                        charBefore + charAfter, 
+                                        &source.Data[sourceIndex - charBefore],
+                                        charBefore + 1,
+                                        "^");
+    }
+    else
+    {
+        ModC_String retStr = ModC_String_FromFormat(allocator, 
+                                                    "%5d | %.*s\n      | %*s", 
+                                                    this->LineIndex + 1, 
+                                                    charBefore + charAfter, 
+                                                    &source.Data[sourceIndex - charBefore],
+                                                    charBefore + 1,
+                                                    "^");
+        for(int i = 0; i < charAfter - 1; ++i)
+            ModC_String_AddValue(&retStr, '~');
+        return retStr;
+    }
+}
+
 static inline void ModC_Token_Free(ModC_Token* this)
 {
     if(!this)

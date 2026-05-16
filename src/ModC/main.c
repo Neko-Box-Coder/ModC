@@ -110,10 +110,10 @@ ModC_Result_Void Main(int argc, char* argv[])
                     (" actuallyRead: %"PRIu64", fileSize: %"PRIi64, actuallyRead, fileSize),
                     MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
     
-        ModC_Result_TokenList tokenListResult = 
-            ModC_Tokenization(  ModC_ConstStringView_Create(fileContent.Data, fileContent.Length),
-                                //ModC_CreateHeapAllocator());
-                                ModC_Allocator_Share(&mainArena));
+        ModC_ConstStringView sourceView = ModC_ConstStringView_Create(  fileContent.Data, 
+                                                                        fileContent.Length);
+        ModC_Result_TokenList tokenListResult = ModC_Tokenization(  sourceView, 
+                                                                    ModC_Allocator_Share(&mainArena));
         ModC_TokenList* tokenList = MODC_RESULT_TRY(tokenListResult, 
                                                     MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
         
@@ -130,7 +130,10 @@ ModC_Result_Void Main(int argc, char* argv[])
         }
         
         ModC_Result_StatementList statementListResult = 
-            ModC_CreateStatements(tokenList, ModC_Allocator_Share(&mainArena), &statementListArena);
+            ModC_CreateStatements(  tokenList, 
+                                    sourceView, 
+                                    ModC_Allocator_Share(&mainArena), 
+                                    &statementListArena);
         ModC_StatementList* statementList = MODC_RESULT_TRY(statementListResult, 
                                                             MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
         MODC_DEFER(0, ModC_Allocator_Destroy(&statementListArena));
@@ -140,6 +143,7 @@ ModC_Result_Void Main(int argc, char* argv[])
                                             ModC_Allocator_Share(&mainArena),
                                             ModC_Allocator_Share(&statementListArena),
                                             tokenList,
+                                            sourceView,
                                             //TODO: Use scratch arena.
                                             ModC_Allocator_Share(&mainArena));
         (void)MODC_RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));

@@ -905,6 +905,7 @@ static inline ModC_Result_Uint32 ModC_EndCurrentStatement(  bool countCurrentTok
 }
 
 static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_TokenList* tokens, 
+                                                                const ModC_ConstStringView source,
                                                                 ModC_Allocator scratchAllocator,
                                                                 ModC_Allocator* outStatementsArena)
 {
@@ -940,6 +941,23 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
             i = *MODC_RESULT_TRY(uint32Result, MODC_RET_ERROR_S()); \
         } \
         while(false)
+    
+    #define CHECK_AND_VISUALIZE_ERROR(cond, msg) \
+        do \
+        { \
+            if(!(cond)) \
+            { \
+                ModC_String visualizeStr = ModC_Token_VisualizeLocation(&tokens->Data[i], \
+                                                                        ModC_CreateHeapAllocator(), \
+                                                                        false, \
+                                                                        source); \
+                \
+                return MODC_ERROR_STR_FMT_S((   msg "\n%.*s", \
+                                                visualizeStr.Length, \
+                                                visualizeStr.Data)); \
+            } \
+        } \
+        while(0)
     
     uint32_t startTokenIndex = 0;
     uint32_t currentParentIndex = 0;
@@ -1017,9 +1035,9 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                                                                     false,
                                                                     32);
                 ModC_Statement* newStatement = *MODC_RESULT_TRY(statementPtrResult, MODC_RET_ERROR_S());
-                MODC_CHECK( newStatement->Tokens.Type == MODC_TAG_TYPE_S(ModC_CompoundStatement),
-                            ("Unexpected type"),
-                            MODC_RET_ERROR_S());
+                CHECK_AND_VISUALIZE_ERROR(  newStatement->Tokens.Type == 
+                                            MODC_TAG_TYPE_S(ModC_CompoundStatement),
+                                            "Unexpected type");
                 ModC_Result_Void voidResult = ModC_AddStatementToParent(statementList.Length - 1,
                                                                         currentParentIndex,
                                                                         &statementList);
@@ -1047,15 +1065,14 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                 //Finish compound parent
                 END_CURRENT_STATEMENT(false);
                 ModC_Statement* parentStatement = &statementList.Data[currentParentIndex];
-                MODC_CHECK( parentStatement->Tokens.Type == MODC_TAG_TYPE_S(ModC_CompoundStatement),
-                            ("Unexpected type"),
-                            MODC_RET_ERROR_S());
+                CHECK_AND_VISUALIZE_ERROR(  parentStatement->Tokens.Type == 
+                                            MODC_TAG_TYPE_S(ModC_CompoundStatement), 
+                                            "Unexpected type");
                 
                 ModC_CompoundStatement* parentCompound = 
                     &parentStatement->Tokens.MODC_TAG_DATA_S(ModC_CompoundStatement);
-                MODC_CHECK( !parentCompound->Implicit,
-                            ("Expected non implicit for parent when block end"),
-                            MODC_RET_ERROR_S());
+                CHECK_AND_VISUALIZE_ERROR(  !parentCompound->Implicit,
+                                            "Expected non implicit for parent when block end");
                 parentCompound->EndTokenIndex = i;
                 startTokenIndex = i + 1;
                 currentParentIndex = parentStatement->ParentIndex;
@@ -1173,6 +1190,9 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
         uint32_t i = tokens->Length - 1;
         END_CURRENT_STATEMENT(true);
     }
+    
+    #undef END_CURRENT_STATEMENT
+    #undef CHECK_AND_VISUALIZE_ERROR
     
     return MODC_RESULT_VALUE_S(statementList);
 }

@@ -18,8 +18,24 @@ typedef struct ModC_TypeEntry
     UT_hash_handle hh;
 } ModC_TypeEntry;
 
+#define RETURN_VISUALIZED_ERROR(tokenPtr, source, spanLine, fmtMsg, ...) \
+        do \
+        { \
+            ModC_String visualizeStr = ModC_Token_VisualizeLocation(tokenPtr, \
+                                                                    ModC_CreateHeapAllocator(), \
+                                                                    spanLine, \
+                                                                    source); \
+            \
+            return MODC_ERROR_STR_FMT_S((   fmtMsg "\n%.*s", \
+                                            __VA_ARGS__, \
+                                            visualizeStr.Length, \
+                                            visualizeStr.Data)); \
+        } \
+        while(0)
+
 static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   ModC_Statement* statement,
                                                                     const ModC_TokenList* tokens,
+                                                                    const ModC_ConstStringView source,
                                                                     ModC_Allocator statementsArena,
                                                                     ModC_Allocator scratchAllocator,
                                                                     bool inTypeDecl,
@@ -64,12 +80,21 @@ static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   ModC_Stateme
         return MODC_RESULT_VALUE_S(0);
     
     if(tokenCount == 1)
-        return MODC_ERROR_CSTR_S("Missing identifier when declaring struct or enum");
+    {
+        ModC_Result_TokenPtr tokenPtrResult = 
+            ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, 0);
+        ModC_Token* tokenPtr = *MODC_RESULT_TRY(tokenPtrResult, MODC_RET_ERROR_S());
+        RETURN_VISUALIZED_ERROR(tokenPtr, 
+                                source, 
+                                false,
+                                "%s", 
+                                "Missing identifier when declaring struct or enum");
+    }
     
     constStringViewResult = ModC_StatementTokensUnion_GetTokenTextViewAt(   &statement->Tokens, 
                                                                             tokens, 
                                                                             1);
-    ModC_ConstStringView typeNameTextView = *MODC_RESULT_TRY(constStringViewResult, 
+    ModC_ConstStringView typeNameTextView = *MODC_RESULT_TRY(   constStringViewResult, 
                                                                 MODC_RET_ERROR_S());
     {
         ModC_TypeDeclarationInfo* typeDeclInfo = 
@@ -88,13 +113,19 @@ static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   ModC_Stateme
     
     if(foundEntry)
     {
-        return MODC_ERROR_STR_FMT_S(("Type %.*s already defined", 
-                                    typeNameTextView.Length,
-                                    typeNameTextView.Data));
+        ModC_Result_TokenPtr tokenPtrResult = 
+            ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, 1);
+        ModC_Token* tokenPtr = *MODC_RESULT_TRY(tokenPtrResult, MODC_RET_ERROR_S());
+        RETURN_VISUALIZED_ERROR(tokenPtr, 
+                                source, 
+                                false,
+                                "Type %.*s already defined", 
+                                typeNameTextView.Length,
+                                typeNameTextView.Data);
     }
     
     ModC_TypeEntry* entry = ModC_Allocator_Malloc(&scratchAllocator, sizeof(ModC_TypeEntry));
-    MODC_CHECK(entry, (""), MODC_RET_ERROR_S());    
+    MODC_CHECK(entry, (""), MODC_RET_ERROR_S());
     entry->Type = ModC_String_FromData( scratchAllocator, 
                                         typeNameTextView.Data, 
                                         typeNameTextView.Length);
@@ -184,6 +215,7 @@ static inline ModC_Result_Void ModC_TryClassifyAsCompilerDirective( ModC_Stateme
 static inline ModC_Result_Void 
 ModC_TryClassifyAsVariableDeclareAssignment(ModC_Statement* statement,
                                             const ModC_TokenList* tokens,
+                                            const ModC_ConstStringView source,
                                             bool inTypeDecl,
                                             bool inFuncImpl,
                                             ModC_TypeEntry** rootTypeHashSet,
@@ -253,9 +285,12 @@ ModC_TryClassifyAsVariableDeclareAssignment(ModC_Statement* statement,
     
     if(!typeExist)
     {
-        return MODC_ERROR_STR_FMT_S(("Failed to find type %.*s", 
-                                    typeTokenText.Length, 
-                                    typeTokenText.Data));
+        RETURN_VISUALIZED_ERROR(typeToken, 
+                                source, 
+                                false,
+                                "Failed to find type %.*s", 
+                                typeTokenText.Length, 
+                                typeTokenText.Data);
     }
     
     ModC_Result_Uint32 uint32Result = 
@@ -269,7 +304,16 @@ ModC_TryClassifyAsVariableDeclareAssignment(ModC_Statement* statement,
     if(foundIndex != tokenCount)
     {
         if(inTypeDecl)
-            return MODC_ERROR_CSTR_S("Assignment cannot happen in type declaration");
+        {
+            ModC_Result_TokenPtr tokenPtrResult =
+                ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, foundIndex);
+            ModC_Token* tokenPtr = *MODC_RESULT_TRY(tokenPtrResult, MODC_RET_ERROR_S());
+            RETURN_VISUALIZED_ERROR(tokenPtr, 
+                                    source, 
+                                    false,
+                                    "%s", 
+                                    "Assignment cannot happen in type declaration");
+        }
         
         statement->StatementType = ModC_StatementType_VariableDeclareAssignment;
         statement->Info = MODC_TAG_INIT_S(  ModC_VariableDeclareAssignInfo, 
@@ -299,6 +343,7 @@ ModC_TryClassifyAsVariableDeclareAssignment(ModC_Statement* statement,
 static inline ModC_Result_Void 
 ModC_TryClassifyAsFunctionDeclaration(  ModC_Statement* statement,
                                         const ModC_TokenList* tokens,
+                                        const ModC_ConstStringView source,
                                         bool inTypeDecl,
                                         bool inFuncImpl,
                                         ModC_TypeEntry** rootTypeHashSet)
@@ -369,9 +414,12 @@ ModC_TryClassifyAsFunctionDeclaration(  ModC_Statement* statement,
         
         if(!foundEntry)
         {
-            return MODC_ERROR_STR_FMT_S(("Failed to find type %.*s", 
-                                        typeTokenText.Length, 
-                                        typeTokenText.Data));
+            RETURN_VISUALIZED_ERROR(typeToken, 
+                                    source, 
+                                    false,
+                                    "Failed to find type %.*s", 
+                                    typeTokenText.Length,
+                                    typeTokenText.Data);
         }
     }
     
@@ -598,6 +646,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                                                                 ModC_Allocator tokensAllcoator,
                                                                 ModC_Allocator statementsArena,
                                                                 ModC_TokenList* tokens,
+                                                                const ModC_ConstStringView source,
                                                                 ModC_Allocator scratchAllocator)
 {
     #undef ModC_ResultName_State
@@ -737,6 +786,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                 { \
                     voidResult = ModC_TryClassifyAsTypeDeclaration( statement, \
                                                                     tokens, \
+                                                                    source, \
                                                                     statementsArena, \
                                                                     scratchAllocator, \
                                                                     typeScope != -1, \
@@ -766,6 +816,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                 { \
                     voidResult = ModC_TryClassifyAsVariableDeclareAssignment(   statement, \
                                                                                 tokens, \
+                                                                                source, \
                                                                                 typeScope != -1, \
                                                                                 funcScope != -1, \
                                                                                 &rootTypeHashSet, \
@@ -778,6 +829,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                 { \
                     voidResult = ModC_TryClassifyAsFunctionDeclaration( statement, \
                                                                         tokens, \
+                                                                        source, \
                                                                         typeScope != -1, \
                                                                         funcScope != -1, \
                                                                         &rootTypeHashSet); \
@@ -834,6 +886,16 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                     (void)MODC_RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR_S())); \
                 }
             
+            #define REPORT_FAILURE() \
+                do \
+                { \
+                    ModC_Result_TokenPtr tokenPtrResult = \
+                        ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, 0); \
+                    ModC_Token* tokenPtr = *MODC_RESULT_TRY(tokenPtrResult, \
+                                                            MODC_DEFER_BREAK(0, MODC_RET_ERROR_S())); \
+                    RETURN_VISUALIZED_ERROR(tokenPtr, source, true, "%s", "Can't classify expression"); \
+                } \
+                while(0)
             
             //Root
             if(typeScope == -1 && funcScope == -1)
@@ -851,7 +913,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                 TRY_CLASSIFY_VAR_DECLARE_ASSIGN();
                 TRY_CLASSIFY_FUNC_DECLARE();
                 if(statement->StatementType == ModC_StatementType_Unknown)
-                    return MODC_ERROR_CSTR_S("Can't classify expression");
+                    REPORT_FAILURE();
             }
             //Inside struct or enum (Which can be inside function impl as well)
             else if(typeScope != -1)
@@ -859,7 +921,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                 TRY_CLASSIFY_VAR_DECLARE_ASSIGN();
                 TRY_CLASSIFY_ENUM_VALUES();
                 if(statement->StatementType == ModC_StatementType_Unknown)
-                    return MODC_ERROR_CSTR_S("Can't classify expression");
+                    REPORT_FAILURE();
             }
             //Inside function impl
             else if(funcScope != -1)
@@ -895,6 +957,20 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
     MODC_DEFER_SCOPE_END(0)
     
     return MODC_RESULT_VALUE_S(0);
+
+    #undef TRY_CLASSIFY_TYPE_DECLARATION
+    #undef TRY_CLASSIFY_ENUM_VALUES
+    #undef TRY_CLASSIFY_COMPILER_DIRECTIVE
+    #undef TRY_CLASSIFY_VAR_DECLARE_ASSIGN
+    #undef TRY_CLASSIFY_FUNC_DECLARE
+    #undef TRY_CLASSIFY_RETURN
+    #undef TRY_CLASSIFY_INVOKABLE
+    #undef TRY_CLASSIFY_ELSE
+    #undef TRY_CLASSIFY_ASSIGNMENT
+    #undef TRY_CLASSIFY_CASE
+    #undef REPORT_FAILURE
 }
+
+#undef RETURN_VISUALIZED_ERROR
 
 #endif

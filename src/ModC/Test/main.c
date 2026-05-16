@@ -32,6 +32,12 @@ int main(int argc, char** argv)
     
     if(argc == 2)
         printf("2 args");
+    else if(argc == 3)
+        printf("3 args");
+    else if(argc == 4)
+    {
+        printf("4 args");
+    }
     else
         printf("other args");
     
