@@ -42,19 +42,19 @@ static inline ModC_ConstStringView ModC_StringUnion_GetConstView(const ModC_Stri
 #define ModC_String_AppendLiteral(stringObj, cstr) \
     ModC_String_AddRange((stringObj), cstr, sizeof(cstr) - 1)
 
-static inline ModC_String ModC_String_FromData( ModC_Allocator allocator, 
+static inline ModC_String ModC_String_FromData( Allocator allocator, 
                                                 const char* data, 
                                                 uint64_t length);
 
 #define ModC_String_FromLiteral(allocator, cstr) \
     ModC_String_FromData(allocator, cstr, sizeof(cstr) - 1)
     
-static inline ModC_String ModC_String_FromFormat(   ModC_Allocator allocator, 
+static inline ModC_String ModC_String_FromFormat(   Allocator allocator, 
                                                     const char* format, 
                                                     ...);
 static inline ModC_String* ModC_String_AppendFormat(ModC_String* this, const char* format, ...);
 
-static inline ModC_String ModC_String_FromVFormat(  ModC_Allocator allocator, 
+static inline ModC_String ModC_String_FromVFormat(  Allocator allocator, 
                                                     const char* format, 
                                                     va_list args);
 static inline ModC_String* ModC_String_AppendVFormat(   ModC_String* this, 
@@ -89,7 +89,7 @@ static inline ModC_ConstStringView ModC_StringUnion_GetConstView(const ModC_Stri
             this->TU_DATA_S(ModC_ConstStringView);
 }
 
-static inline ModC_String ModC_String_FromData( ModC_Allocator allocator, 
+static inline ModC_String ModC_String_FromData( Allocator allocator, 
                                                 const char* data, 
                                                 uint64_t length)
 {
@@ -98,7 +98,7 @@ static inline ModC_String ModC_String_FromData( ModC_Allocator allocator,
     return retStr;
 }
 
-static inline ModC_String ModC_String_FromFormat(   ModC_Allocator allocator, 
+static inline ModC_String ModC_String_FromFormat(   Allocator allocator, 
                                                     const char* format, 
                                                     ...)
 {
@@ -118,7 +118,7 @@ static inline ModC_String* ModC_String_AppendFormat(ModC_String* this, const cha
     return this;
 }
 
-static inline ModC_String ModC_String_FromVFormat(  ModC_Allocator allocator, 
+static inline ModC_String ModC_String_FromVFormat(  Allocator allocator, 
                                                     const char* format, 
                                                     va_list args)
 {

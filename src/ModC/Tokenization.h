@@ -2,7 +2,7 @@
 #define MODC_TOKENIZATION_H
 
 #ifndef DEFAULT_ALLOC
-    #define DEFAULT_ALLOC() ModC_CreateHeapAllocator()
+    #define DEFAULT_ALLOC() CreateHeapAllocator()
 #endif
 
 #include "ModC/Strings/Strings.h"
@@ -88,7 +88,7 @@ static inline ModC_ConstStringView ModC_Token_TokenTextView(const ModC_Token* th
 }
 
 static inline ModC_String ModC_Token_VisualizeLocation( const ModC_Token* this, 
-                                                        ModC_Allocator allocator, 
+                                                        Allocator allocator, 
                                                         bool spanWholeLine,
                                                         const ModC_ConstStringView source)
 {
@@ -235,7 +235,7 @@ static inline ModC_ConstStringView ModC_TokenType_ToCStr(ModC_TokenType type)
 static inline ModC_Result_Void ModC_Token_AppendChar(   ModC_Token* this, 
                                                         const ModC_ConstStringView source, 
                                                         char c,
-                                                        ModC_Allocator allocator,
+                                                        Allocator allocator,
                                                         bool forceString)
 {
     #undef ResultNameState
@@ -420,7 +420,7 @@ static inline ModC_Result_Bool ModC_Token_IsCharPossible(   const ModC_Token* th
 
 //Returns list of tokens that are types in `ModC_CharTokenType` or `ModC_TokenType_Comment`
 static inline ModC_Result_TokenList ModC_Tokenization(  const ModC_ConstStringView fileContent, 
-                                                        ModC_Allocator allocator)
+                                                        Allocator allocator)
 {
     #undef ResultNameState
     #define ResultNameState ModC_Result_TokenList
@@ -428,7 +428,7 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ModC_ConstStringVi
     if(fileContent.Length == 0)
         return RESULT_VALUE_S( (ModC_TokenList){0} );
     
-    ModC_TokenList tokenList = ModC_TokenList_Create(   ModC_Allocator_Share(&allocator), 
+    ModC_TokenList tokenList = ModC_TokenList_Create(   Allocator_Share(&allocator), 
                                                         fileContent.Length / 16);
     ModC_TokenList retList = {0};
     

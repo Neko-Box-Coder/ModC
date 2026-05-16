@@ -29,7 +29,7 @@ Just read the code for the functions
 #if NO_TYPEDEF
     struct LIST_NAME
     {
-        ModC_Allocator Allocator;
+        Allocator Allocator;
         VALUE_TYPE* Data;
         uint64_t Length;
         uint64_t Cap;
@@ -37,7 +37,7 @@ Just read the code for the functions
 #else
     typedef struct LIST_NAME
     {
-        ModC_Allocator Allocator;
+        Allocator Allocator;
         VALUE_TYPE* Data;
         uint64_t Length;
         uint64_t Cap;
@@ -51,10 +51,8 @@ MPT_DELAYED_CONCAT(LIST_NAME, _Reserve)(LIST_NAME* this, uint32_t reserveSize)
         return this;
     
     void* dataPtr = this->Cap == 0 ? 
-                    ModC_Allocator_Malloc(&this->Allocator, sizeof(VALUE_TYPE) * reserveSize) :
-                    ModC_Allocator_Realloc( &this->Allocator, 
-                                            this->Data, 
-                                            sizeof(VALUE_TYPE) * reserveSize);
+                    Allocator_Malloc(&this->Allocator, sizeof(VALUE_TYPE) * reserveSize) :
+                    Allocator_Realloc(&this->Allocator, this->Data, sizeof(VALUE_TYPE) * reserveSize);
     if(!dataPtr)
         return this;
     this->Data = dataPtr;
@@ -63,7 +61,7 @@ MPT_DELAYED_CONCAT(LIST_NAME, _Reserve)(LIST_NAME* this, uint32_t reserveSize)
 }
 
 static inline LIST_NAME 
-MPT_DELAYED_CONCAT(LIST_NAME, _Create)(ModC_Allocator allocator, uint64_t cap)
+MPT_DELAYED_CONCAT(LIST_NAME, _Create)(Allocator allocator, uint64_t cap)
 {
     LIST_NAME retList = { .Allocator = allocator };
     MPT_DELAYED_CONCAT(LIST_NAME, _Reserve)(&retList, cap);
@@ -87,8 +85,8 @@ static inline void MPT_DELAYED_CONCAT(LIST_NAME, _Free)(LIST_NAME* this)
         *this = (LIST_NAME){0};
         return;
     }
-    ModC_Allocator_Free(&this->Allocator, this->Data);
-    ModC_Allocator_Destroy(&this->Allocator);
+    Allocator_Free(&this->Allocator, this->Data);
+    Allocator_Destroy(&this->Allocator);
     *this = (LIST_NAME){0};
     return;
 }
@@ -135,8 +133,8 @@ MPT_DELAYED_CONCAT(LIST_NAME, _Resize)(LIST_NAME* this, uint64_t resizeLength)
                                 )
                             );
     void* dataPtr = empty ? 
-                    ModC_Allocator_Malloc(&this->Allocator, newCap * sizeof(VALUE_TYPE)) :
-                    ModC_Allocator_Realloc(&this->Allocator, this->Data, newCap * sizeof(VALUE_TYPE));
+                    Allocator_Malloc(&this->Allocator, newCap * sizeof(VALUE_TYPE)) :
+                    Allocator_Realloc(&this->Allocator, this->Data, newCap * sizeof(VALUE_TYPE));
     if(!dataPtr)
         return this;
     this->Data = dataPtr;

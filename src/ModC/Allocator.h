@@ -2,7 +2,7 @@
 #define MODC_ALLOCATOR_H
 
 /* Docs
-Define `MODC_ALLOCATOR_NO_CANARY` to disable canary checks
+Define `ALLOCATOR_NO_CANARY` to disable canary checks
 
 Just read the code
 */
@@ -19,40 +19,40 @@ Just read the code
 #include <string.h>
 #include <stdbool.h>
 
-typedef enum ModC_AllocatorType
+typedef enum AllocatorType
 {
-    ModC_AllocatorType_Invalid,
-    ModC_AllocatorType_Heap,
-    ModC_AllocatorType_SharedArena,
-    ModC_AllocatorType_OwnedArena,
-    ModC_AllocatorType_Count,   //4
-} ModC_AllocatorType;
+    AllocatorType_Invalid,
+    AllocatorType_Heap,
+    AllocatorType_SharedArena,
+    AllocatorType_OwnedArena,
+    AllocatorType_Count,   //4
+} AllocatorType;
 
-typedef struct ModC_Allocator
+typedef struct Allocator
 {
-    ModC_AllocatorType Type;
+    AllocatorType Type;
     void* Allocator;
-} ModC_Allocator;
+} Allocator;
 
-struct ModC_ArenaWrapper;
+struct ArenaWrapper;
 
-typedef struct ModC_ArenaWrapper
+typedef struct ArenaWrapper
 {
     Arena* CurrentArena;
-    struct ModC_ArenaWrapper* NextArena;
-    struct ModC_ArenaWrapper* PrevArena;
-} ModC_ArenaWrapper;
+    struct ArenaWrapper* NextArena;
+    struct ArenaWrapper* PrevArena;
+} ArenaWrapper;
 
 
 
 
-#define INTERN_MODC_DEBUG_PRINT_ALLOC 0
-#if INTERN_MODC_DEBUG_PRINT_ALLOC
+#define INTERN_DEBUG_PRINT_ALLOC 0
+#if INTERN_DEBUG_PRINT_ALLOC
     #include <stdio.h>
     #include <inttypes.h>
     
-    #ifndef INTERN_PRINT_MODC_PRINT_TRACE
-        #define INTERN_PRINT_MODC_PRINT_TRACE(...) \
+    #ifndef INTERN_PRINT_PRINT_TRACE
+        #define INTERN_PRINT_PRINT_TRACE(...) \
             do \
             { \
                 printf("%s: \n", __func__); \
@@ -64,8 +64,8 @@ typedef struct ModC_ArenaWrapper
     #define INTERN_PRINT_CALL(callFunc, ...) \
         (printf("Calling " #callFunc " from %s()\n", __func__), fflush(stdout), callFunc(__VA_ARGS__))
 #else
-    #ifndef INTERN_PRINT_MODC_PRINT_TRACE
-        #define INTERN_PRINT_MODC_PRINT_TRACE(...) do {} while(0)
+    #ifndef INTERN_PRINT_PRINT_TRACE
+        #define INTERN_PRINT_PRINT_TRACE(...) do {} while(0)
     #endif
     
     #define INTERN_PRINT_CALL(callFunc, ...) callFunc(__VA_ARGS__)
@@ -77,19 +77,19 @@ typedef union
     uint64_t Size;
 } PtrOrSize;
 
-#if MODC_ALLOCATOR_NO_CANARY
-    #define ModC_FrontCanarySize() 0
-    #define ModC_BackCanarySize() 0
+#if ALLOCATOR_NO_CANARY
+    #define FrontCanarySize() 0
+    #define BackCanarySize() 0
 #else
-    #define ModC_FrontCanarySize() ((sizeof("cana") - 1) + sizeof(uint64_t) + (sizeof("ries") - 1))
-    #define ModC_BackCanarySize() (sizeof("cana") - 1)
+    #define FrontCanarySize() ((sizeof("cana") - 1) + sizeof(uint64_t) + (sizeof("ries") - 1))
+    #define BackCanarySize() (sizeof("cana") - 1)
 #endif
 
 //When `NULL` is passed to `allocPtr`, it returns additional bytes needed.
 //Otherwise, returns the pointer for `allocSize`
-static inline PtrOrSize ModC_SetupCanariesAndSize(void* allocPtr, uint64_t allocSize)
+static inline PtrOrSize SetupCanariesAndSize(void* allocPtr, uint64_t allocSize)
 {
-    #if MODC_ALLOCATOR_NO_CANARY
+    #if ALLOCATOR_NO_CANARY
     {
         if(!allocPtr)
             return (PtrOrSize){ .Size = allocSize + sizeof(uint64_t) };
@@ -102,7 +102,7 @@ static inline PtrOrSize ModC_SetupCanariesAndSize(void* allocPtr, uint64_t alloc
     #else
     {
         if(!allocPtr)
-            return (PtrOrSize){ .Size = ModC_FrontCanarySize() + allocSize + ModC_BackCanarySize() };
+            return (PtrOrSize){ .Size = FrontCanarySize() + allocSize + BackCanarySize() };
         
         static_assert(sizeof("canaries") - 1 == 8, "");
         
@@ -133,9 +133,9 @@ static inline PtrOrSize ModC_SetupCanariesAndSize(void* allocPtr, uint64_t alloc
     #endif
 }
 
-static inline bool ModC_CheckFrontCanary(void* allocPtr)
+static inline bool CheckFrontCanary(void* allocPtr)
 {
-    #if MODC_ALLOCATOR_NO_CANARY
+    #if ALLOCATOR_NO_CANARY
         return true;
     #else
         char* canaryPtr = allocPtr;
@@ -148,7 +148,7 @@ static inline bool ModC_CheckFrontCanary(void* allocPtr)
     #endif
 }
 
-static inline uint64_t ModC_GetAllocSize(void* allocPtr)
+static inline uint64_t GetAllocSize(void* allocPtr)
 {
     allocPtr = (char*)allocPtr - (sizeof("ries") - 1) - sizeof(uint64_t);
     uint64_t retSize = 0;
@@ -156,9 +156,9 @@ static inline uint64_t ModC_GetAllocSize(void* allocPtr)
     return retSize;
 }
 
-static inline bool ModC_CheckBackCanary(void* allocPtr, uint64_t allocSize)
+static inline bool CheckBackCanary(void* allocPtr, uint64_t allocSize)
 {
-    #if MODC_ALLOCATOR_NO_CANARY
+    #if ALLOCATOR_NO_CANARY
         return true;
     #else
         char* canaryPtr = allocPtr;
@@ -167,37 +167,37 @@ static inline bool ModC_CheckBackCanary(void* allocPtr, uint64_t allocSize)
     #endif
 }
 
-static inline ModC_Allocator ModC_CreateArenaAllocator(uint64_t allocateSize);
+static inline Allocator CreateArenaAllocator(uint64_t allocateSize);
 
-static inline void* ModC_Allocator_Malloc(const ModC_Allocator* this, uint64_t size)
+static inline void* Allocator_Malloc(const Allocator* this, uint64_t size)
 {
     void* retPtr = NULL;
     if(!this)
         goto ret;
     
-    static_assert((int)ModC_AllocatorType_Count == 4, "");
+    static_assert((int)AllocatorType_Count == 4, "");
     switch(this->Type)
     {
-        case ModC_AllocatorType_Heap:
+        case AllocatorType_Heap:
             retPtr = malloc(size);
             break;
-        case ModC_AllocatorType_SharedArena:
-        case ModC_AllocatorType_OwnedArena:
+        case AllocatorType_SharedArena:
+        case AllocatorType_OwnedArena:
         {
             if(!this->Allocator)
             {
-                INTERN_PRINT_MODC_PRINT_TRACE("Trying to allocate with NULL arena wrapper\n");
+                INTERN_PRINT_PRINT_TRACE("Trying to allocate with NULL arena wrapper\n");
                 goto ret;
             }
             
-            ModC_ArenaWrapper* arenaWrapper = this->Allocator;
+            ArenaWrapper* arenaWrapper = this->Allocator;
             if(!arenaWrapper->CurrentArena)
             {
-                INTERN_PRINT_MODC_PRINT_TRACE("Trying to allocate with NULL arena\n");
+                INTERN_PRINT_PRINT_TRACE("Trying to allocate with NULL arena\n");
                 goto ret;
             }
             
-            uint64_t minRequiredSize = ModC_SetupCanariesAndSize(NULL, size).Size;
+            uint64_t minRequiredSize = SetupCanariesAndSize(NULL, size).Size;
             retPtr = arena_alloc(arenaWrapper->CurrentArena, minRequiredSize);
             
             //If we failed to allocate in the current arena, use/create next arena
@@ -209,21 +209,19 @@ static inline void* ModC_Allocator_Malloc(const ModC_Allocator* this, uint64_t s
                 //Try create next arena
                 else
                 {
-                    INTERN_PRINT_MODC_PRINT_TRACE(  "Creating child arena from %p...\n", 
-                                                    (void*)arenaWrapper);
+                    INTERN_PRINT_PRINT_TRACE("Creating child arena from %p...\n", (void*)arenaWrapper);
                     
                     //If doubling overflows or doubling is not enough
                     if( SIZE_MAX / 2 < arenaWrapper->CurrentArena->size ||
                         arenaWrapper->CurrentArena->size * 2 < minRequiredSize)
                     {
-                        arenaWrapper->NextArena = 
-                            ModC_CreateArenaAllocator(minRequiredSize).Allocator;
+                        arenaWrapper->NextArena = CreateArenaAllocator(minRequiredSize).Allocator;
                     }
                     //Otherwise just double the current size
                     else
                     {
                         arenaWrapper->NextArena = 
-                            ModC_CreateArenaAllocator(arenaWrapper->CurrentArena->size * 2).Allocator;
+                            CreateArenaAllocator(arenaWrapper->CurrentArena->size * 2).Allocator;
                     }
                     
                     //Exit if we fail to create the next arena
@@ -233,8 +231,8 @@ static inline void* ModC_Allocator_Malloc(const ModC_Allocator* this, uint64_t s
                     //Set the previous arena entry for the next arena to this, and go to it
                     arenaWrapper->NextArena->PrevArena = arenaWrapper;
                     arenaWrapper = arenaWrapper->NextArena;
-                    //INTERN_PRINT_MODC_PRINT_TRACE(  "Child arena prev arena: %p\n", 
-                    //                                (void*)arenaWrapper->PrevArena);
+                    //INTERN_PRINT_PRINT_TRACE(   "Child arena prev arena: %p\n", 
+                    //                            (void*)arenaWrapper->PrevArena);
                 }
                 
                 ASSERT(arenaWrapper->PrevArena);
@@ -242,8 +240,8 @@ static inline void* ModC_Allocator_Malloc(const ModC_Allocator* this, uint64_t s
                 retPtr = arena_alloc(arenaWrapper->CurrentArena, minRequiredSize);
             }
             
-            retPtr = ModC_SetupCanariesAndSize(retPtr, size).Ptr;
-        } //case ModC_AllocatorType_OwnedArena:
+            retPtr = SetupCanariesAndSize(retPtr, size).Ptr;
+        } //case AllocatorType_OwnedArena:
         default:
             break;
     } //switch(this->Type)
@@ -251,37 +249,37 @@ static inline void* ModC_Allocator_Malloc(const ModC_Allocator* this, uint64_t s
     ret:;
     if(!retPtr)
     {
-        INTERN_PRINT_MODC_PRINT_TRACE(  "Allocation failed for allocator: %p, "
-                                        "with size %" PRIu64 "\n", this->Allocator, size);
+        INTERN_PRINT_PRINT_TRACE(   "Allocation failed for allocator: %p, "
+                                    "with size %" PRIu64 "\n", this->Allocator, size);
     }
     else
-        INTERN_PRINT_MODC_PRINT_TRACE("retPtr: %p, %" PRIu64 "\n", retPtr, size);
+        INTERN_PRINT_PRINT_TRACE("retPtr: %p, %" PRIu64 "\n", retPtr, size);
     return retPtr;
 }
 
-#define ModC_Allocator_Malloc(...) INTERN_PRINT_CALL(ModC_Allocator_Malloc, __VA_ARGS__)
+#define Allocator_Malloc(...) INTERN_PRINT_CALL(Allocator_Malloc, __VA_ARGS__)
 
-static inline void* ModC_Allocator_Realloc(const ModC_Allocator* this, void* data, uint64_t size)
+static inline void* Allocator_Realloc(const Allocator* this, void* data, uint64_t size)
 {
     void* retPtr = NULL;
     if(!this)
         goto ret;
     
-    static_assert((int)ModC_AllocatorType_Count == 4, "");
+    static_assert((int)AllocatorType_Count == 4, "");
     switch(this->Type)
     {
-        case ModC_AllocatorType_Heap:
+        case AllocatorType_Heap:
             retPtr = realloc(data, size);
             break;
-        case ModC_AllocatorType_SharedArena:
-        case ModC_AllocatorType_OwnedArena:
+        case AllocatorType_SharedArena:
+        case AllocatorType_OwnedArena:
         {
-            ASSERT( ModC_CheckFrontCanary(data) && 
-                    ModC_CheckBackCanary(data, ModC_GetAllocSize(data)) &&
+            ASSERT( CheckFrontCanary(data) && 
+                    CheckBackCanary(data, GetAllocSize(data)) &&
                     "Canary check broken, out-of-bound write detected");
             
-            uint64_t origSize = ModC_GetAllocSize(data);
-            retPtr = ModC_Allocator_Malloc(this, size);
+            uint64_t origSize = GetAllocSize(data);
+            retPtr = Allocator_Malloc(this, size);
             memcpy(retPtr, data, origSize);
             break;
         }
@@ -292,36 +290,36 @@ static inline void* ModC_Allocator_Realloc(const ModC_Allocator* this, void* dat
     ret:;
     if(!retPtr)
     {
-        INTERN_PRINT_MODC_PRINT_TRACE(  "Reallocation failed for allocator: %p, "
-                                        "with size %" PRIu64 "\n", this->Allocator, size);
+        INTERN_PRINT_PRINT_TRACE(   "Reallocation failed for allocator: %p, "
+                                    "with size %" PRIu64 "\n", this->Allocator, size);
     }
     else
-        INTERN_PRINT_MODC_PRINT_TRACE("retPtr: %p, %" PRIu64 "\n", retPtr, size);
+        INTERN_PRINT_PRINT_TRACE("retPtr: %p, %" PRIu64 "\n", retPtr, size);
     return retPtr;
 }
 
-#define ModC_Allocator_Realloc(...) INTERN_PRINT_CALL(ModC_Allocator_Realloc, __VA_ARGS__)
+#define Allocator_Realloc(...) INTERN_PRINT_CALL(Allocator_Realloc, __VA_ARGS__)
 
-static inline void ModC_Allocator_Free(const ModC_Allocator* this, void* data)
+static inline void Allocator_Free(const Allocator* this, void* data)
 {
     if(!this)
         return;
     
-    static_assert((int)ModC_AllocatorType_Count == 4, "");
+    static_assert((int)AllocatorType_Count == 4, "");
     switch(this->Type)
     {
-        case ModC_AllocatorType_Heap:
-            INTERN_PRINT_MODC_PRINT_TRACE("Free: %p\n", data);
+        case AllocatorType_Heap:
+            INTERN_PRINT_PRINT_TRACE("Free: %p\n", data);
             free(data);
             break;
-        case ModC_AllocatorType_SharedArena:
-        case ModC_AllocatorType_OwnedArena:
+        case AllocatorType_SharedArena:
+        case AllocatorType_OwnedArena:
         {
-            ASSERT( ModC_CheckFrontCanary(data) && 
-                    ModC_CheckBackCanary(data, ModC_GetAllocSize(data)) &&
+            ASSERT( CheckFrontCanary(data) && 
+                    CheckBackCanary(data, GetAllocSize(data)) &&
                     "Canary check broken, out-of-bound write detected");
             
-            ModC_ArenaWrapper* currentNode = this->Allocator;
+            ArenaWrapper* currentNode = this->Allocator;
             char* byteDataPtr = data;
             while(currentNode->NextArena)
             {
@@ -333,7 +331,7 @@ static inline void ModC_Allocator_Free(const ModC_Allocator* this, void* data)
                     break;
                 }
                 
-                ModC_ArenaWrapper* prevArena = currentNode;
+                ArenaWrapper* prevArena = currentNode;
                 currentNode = currentNode->NextArena;
                 ASSERT(prevArena == currentNode->PrevArena);
             }
@@ -341,14 +339,14 @@ static inline void ModC_Allocator_Free(const ModC_Allocator* this, void* data)
             
             //TODO: Use walkable allocation list
             if( currentNode->CurrentArena->region + currentNode->CurrentArena->index ==
-                byteDataPtr + ModC_GetAllocSize(data) + ModC_BackCanarySize())
+                byteDataPtr + GetAllocSize(data) + BackCanarySize())
             {
-                currentNode->CurrentArena->index -= (ModC_FrontCanarySize() + 
-                                                    ModC_GetAllocSize(data) + 
-                                                    ModC_BackCanarySize());
+                currentNode->CurrentArena->index -= (FrontCanarySize() + 
+                                                    GetAllocSize(data) + 
+                                                    BackCanarySize());
                 ASSERT( currentNode->CurrentArena->region + 
                         currentNode->CurrentArena->index + 
-                        ModC_FrontCanarySize() == byteDataPtr);
+                        FrontCanarySize() == byteDataPtr);
             }
             
             break;
@@ -358,31 +356,31 @@ static inline void ModC_Allocator_Free(const ModC_Allocator* this, void* data)
     }
 }
 
-#define ModC_Allocator_Free(...) INTERN_PRINT_CALL(ModC_Allocator_Free, __VA_ARGS__)
+#define Allocator_Free(...) INTERN_PRINT_CALL(Allocator_Free, __VA_ARGS__)
 
-//TODO: ModC_Allocator_Reset
+//TODO: Allocator_Reset
 
-static inline void ModC_Allocator_Destroy(ModC_Allocator* this)
+static inline void Allocator_Destroy(Allocator* this)
 {
     if(!this)
         return;
     
-    static_assert((int)ModC_AllocatorType_Count == 4, "");
+    static_assert((int)AllocatorType_Count == 4, "");
     switch(this->Type)
     {
-        case ModC_AllocatorType_Heap:
-        case ModC_AllocatorType_SharedArena:
+        case AllocatorType_Heap:
+        case AllocatorType_SharedArena:
             break;
-        case ModC_AllocatorType_OwnedArena:
+        case AllocatorType_OwnedArena:
         {
             if(!this->Allocator)
                 return;
             
             //Find the last linked arena wrapper
-            ModC_ArenaWrapper* currentNode = this->Allocator;
+            ArenaWrapper* currentNode = this->Allocator;
             while(currentNode->NextArena)
             {
-                ModC_ArenaWrapper* prevArena = currentNode;
+                ArenaWrapper* prevArena = currentNode;
                 currentNode = currentNode->NextArena;
                 ASSERT(prevArena == currentNode->PrevArena);
             }
@@ -390,15 +388,15 @@ static inline void ModC_Allocator_Destroy(ModC_Allocator* this)
             //Free from back to front
             while(currentNode->PrevArena)
             {
-                ModC_ArenaWrapper* prevArena = currentNode->PrevArena;
-                INTERN_PRINT_MODC_PRINT_TRACE("Destroying child: %p\n", (void*)currentNode);
+                ArenaWrapper* prevArena = currentNode->PrevArena;
+                INTERN_PRINT_PRINT_TRACE("Destroying child: %p\n", (void*)currentNode);
                 ASSERT(currentNode->CurrentArena);
                 arena_destroy(currentNode->CurrentArena);
                 currentNode = prevArena;
             }
             
             //Free first wrapper
-            INTERN_PRINT_MODC_PRINT_TRACE("Destroying: %p\n", this->Allocator);
+            INTERN_PRINT_PRINT_TRACE("Destroying: %p\n", this->Allocator);
             ASSERT(currentNode->CurrentArena);
             arena_destroy(currentNode->CurrentArena);
             break;
@@ -406,51 +404,51 @@ static inline void ModC_Allocator_Destroy(ModC_Allocator* this)
         default:
             break;
     }
-    *this = (ModC_Allocator){0};
+    *this = (Allocator){0};
 }
 
-#define ModC_Allocator_Destroy(...) INTERN_PRINT_CALL(ModC_Allocator_Destroy, __VA_ARGS__)
+#define Allocator_Destroy(...) INTERN_PRINT_CALL(Allocator_Destroy, __VA_ARGS__)
 
-static inline ModC_Allocator ModC_Allocator_Share(ModC_Allocator* this)
+static inline Allocator Allocator_Share(Allocator* this)
 {
     if(!this)
-        return (ModC_Allocator){0};
+        return (Allocator){0};
     
-    //INTERN_PRINT_MODC_PRINT_TRACE(this);
+    //INTERN_PRINT_PRINT_TRACE(this);
     
-    static_assert((int)ModC_AllocatorType_Count == 4, "");
+    static_assert((int)AllocatorType_Count == 4, "");
     switch(this->Type)
     {
-        case ModC_AllocatorType_Heap:
+        case AllocatorType_Heap:
             return *this;
-        case ModC_AllocatorType_SharedArena:
+        case AllocatorType_SharedArena:
             return *this;
-        case ModC_AllocatorType_OwnedArena:
+        case AllocatorType_OwnedArena:
         {
-            ModC_Allocator retAlloc = *this;
-            retAlloc.Type = ModC_AllocatorType_SharedArena;
+            Allocator retAlloc = *this;
+            retAlloc.Type = AllocatorType_SharedArena;
             return retAlloc;
         }
         default:
-            return (ModC_Allocator){0};
+            return (Allocator){0};
     }
 }
 
-#define ModC_Allocator_Share(...) INTERN_PRINT_CALL(ModC_Allocator_Share, __VA_ARGS__)
+#define Allocator_Share(...) INTERN_PRINT_CALL(Allocator_Share, __VA_ARGS__)
 
-static inline ModC_Allocator ModC_CreateArenaAllocator(uint64_t allocateSize)
+static inline Allocator CreateArenaAllocator(uint64_t allocateSize)
 {
-    ModC_Allocator retAlloc =
+    Allocator retAlloc =
     {
-        .Type = ModC_AllocatorType_OwnedArena,
+        .Type = AllocatorType_OwnedArena,
         .Allocator = NULL
     };
     
-    Arena* arena = arena_create(allocateSize + sizeof(ModC_ArenaWrapper) + 64);
+    Arena* arena = arena_create(allocateSize + sizeof(ArenaWrapper) + 64);
     if(!arena)
         return retAlloc;
     
-    ModC_ArenaWrapper* arenaWrapper = arena_alloc(arena, sizeof(ModC_ArenaWrapper));
+    ArenaWrapper* arenaWrapper = arena_alloc(arena, sizeof(ArenaWrapper));
     retAlloc.Allocator = arenaWrapper;
     if(!retAlloc.Allocator)
     {
@@ -458,18 +456,18 @@ static inline ModC_Allocator ModC_CreateArenaAllocator(uint64_t allocateSize)
         return retAlloc;
     }
     
-    *arenaWrapper = (ModC_ArenaWrapper){0};
+    *arenaWrapper = (ArenaWrapper){0};
     arenaWrapper->CurrentArena = arena;
     
-    INTERN_PRINT_MODC_PRINT_TRACE(  "retAlloc.Allocator: %p with size %"PRIu64"\n", 
-                                    retAlloc.Allocator, allocateSize + sizeof(ModC_ArenaWrapper) + 64);
+    INTERN_PRINT_PRINT_TRACE(   "retAlloc.Allocator: %p with size %"PRIu64"\n", 
+                                retAlloc.Allocator, allocateSize + sizeof(ArenaWrapper) + 64);
     return retAlloc;
 }
 
-#define ModC_CreateArenaAllocator(...) INTERN_PRINT_CALL(ModC_CreateArenaAllocator, __VA_ARGS__)
+#define CreateArenaAllocator(...) INTERN_PRINT_CALL(CreateArenaAllocator, __VA_ARGS__)
 
-static inline ModC_Allocator ModC_CreateArenaAllocator_PreAllocated(void* preAllocatedData, 
-                                                                    uint64_t allocatedSize)
+static inline Allocator CreateArenaAllocator_PreAllocated(  void* preAllocatedData, 
+                                                            uint64_t allocatedSize)
 {
     #if defined(__clang__)
         uint64_t arenaOffset = __extension__ offsetof(struct { char c; Arena d; }, d);
@@ -480,7 +478,7 @@ static inline ModC_Allocator ModC_CreateArenaAllocator_PreAllocated(void* preAll
     uint64_t alignPadding = arenaOffset - ((uint64_t)byteDataPtr % arenaOffset);
     uint64_t minDataNeeded = alignPadding + sizeof(Arena);
     if(allocatedSize <= minDataNeeded)
-        return (ModC_Allocator){0};
+        return (Allocator){0};
     
     byteDataPtr += alignPadding;
     allocatedSize -= alignPadding;
@@ -491,42 +489,41 @@ static inline ModC_Allocator ModC_CreateArenaAllocator_PreAllocated(void* preAll
     allocatedSize -= sizeof(Arena);
     
     arena_init(retArena, byteDataPtr, allocatedSize);
-    
-    ModC_Allocator retAlloc =
+    Allocator retAlloc =
     {
-        .Type = ModC_AllocatorType_OwnedArena,
+        .Type = AllocatorType_OwnedArena,
         .Allocator = NULL
     };
     
-    ModC_ArenaWrapper* arenaWrapper = arena_alloc(retArena, sizeof(ModC_ArenaWrapper));
+    ArenaWrapper* arenaWrapper = arena_alloc(retArena, sizeof(ArenaWrapper));
     retAlloc.Allocator = arenaWrapper;
     if(!retAlloc.Allocator)
     {
         arena_destroy(retArena);
-        return (ModC_Allocator){0};
+        return (Allocator){0};
     }
     
-    *arenaWrapper = (ModC_ArenaWrapper){0};
+    *arenaWrapper = (ArenaWrapper){0};
     arenaWrapper->CurrentArena = retArena;
     
-    INTERN_PRINT_MODC_PRINT_TRACE(  "retAlloc.Allocator: %p with size %"PRIu64"\n", 
-                                    retAlloc.Allocator, 
-                                    allocatedSize + sizeof(ModC_ArenaWrapper) + 64);
+    INTERN_PRINT_PRINT_TRACE(   "retAlloc.Allocator: %p with size %"PRIu64"\n", 
+                                retAlloc.Allocator, 
+                                allocatedSize + sizeof(ArenaWrapper) + 64);
     return retAlloc;
 }
 
-#define ModC_CreateArenaAllocator_PreAllocated(...) \
-    INTERN_PRINT_CALL(ModC_CreateArenaAllocator_PreAllocated, __VA_ARGS__)
+#define CreateArenaAllocator_PreAllocated(...) \
+    INTERN_PRINT_CALL(CreateArenaAllocator_PreAllocated, __VA_ARGS__)
 
-static inline ModC_Allocator ModC_CreateHeapAllocator(void)
+static inline Allocator CreateHeapAllocator(void)
 {
-    return  (ModC_Allocator)
+    return  (Allocator)
             {
-                .Type = ModC_AllocatorType_Heap,
+                .Type = AllocatorType_Heap,
                 .Allocator = NULL,
             };
 }
 
-#define ModC_CreateHeapAllocator(...) INTERN_PRINT_CALL(ModC_CreateHeapAllocator, __VA_ARGS__)
+#define CreateHeapAllocator(...) INTERN_PRINT_CALL(CreateHeapAllocator, __VA_ARGS__)
 
 #endif

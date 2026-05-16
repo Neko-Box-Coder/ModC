@@ -2,7 +2,7 @@
 #define MODC_CLASSIFICATION_H
 
 #ifndef DEFAULT_ALLOC
-    #define DEFAULT_ALLOC() ModC_CreateHeapAllocator()
+    #define DEFAULT_ALLOC() CreateHeapAllocator()
 #endif
 
 #include "ModC/Statement.h"
@@ -22,7 +22,7 @@ typedef struct ModC_TypeEntry
         do \
         { \
             ModC_String visualizeStr = ModC_Token_VisualizeLocation(tokenPtr, \
-                                                                    ModC_CreateHeapAllocator(), \
+                                                                    CreateHeapAllocator(), \
                                                                     spanLine, \
                                                                     source); \
             \
@@ -36,8 +36,8 @@ typedef struct ModC_TypeEntry
 static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   ModC_Statement* statement,
                                                                     const ModC_TokenList* tokens,
                                                                     const ModC_ConstStringView source,
-                                                                    ModC_Allocator statementsArena,
-                                                                    ModC_Allocator scratchAllocator,
+                                                                    Allocator statementsArena,
+                                                                    Allocator scratchAllocator,
                                                                     bool inTypeDecl,
                                                                     bool inFuncImpl,
                                                                     ModC_TypeEntry** rootTypeHashSet,
@@ -48,9 +48,9 @@ static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   ModC_Stateme
     #undef TaggedUnionNameState
     #define TaggedUnionNameState ModC_StatementInfoUnion
     #undef uthash_malloc
-    #define uthash_malloc(sz) ModC_Allocator_Malloc(&scratchAllocator, sz)
+    #define uthash_malloc(sz) Allocator_Malloc(&scratchAllocator, sz)
     #undef uthash_free
-    #define uthash_free(ptr, sz) ModC_Allocator_Free(&scratchAllocator, ptr)
+    #define uthash_free(ptr, sz) Allocator_Free(&scratchAllocator, ptr)
     
     if(statement->StatementType == ModC_StatementType_Compound || inTypeDecl)
         return RESULT_VALUE_S(0);
@@ -118,7 +118,7 @@ static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   ModC_Stateme
                                 typeNameTextView.Data);
     }
     
-    ModC_TypeEntry* entry = ModC_Allocator_Malloc(&scratchAllocator, sizeof(ModC_TypeEntry));
+    ModC_TypeEntry* entry = Allocator_Malloc(&scratchAllocator, sizeof(ModC_TypeEntry));
     CHECK(entry, (""), RET_ERROR_S());
     entry->Type = ModC_String_FromData( scratchAllocator, 
                                         typeNameTextView.Data, 
@@ -634,11 +634,11 @@ static inline ModC_Result_Void ModC_TryClassifyCase(ModC_Statement* statement,
 
 
 static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementList* statements, 
-                                                                ModC_Allocator tokensAllcoator,
-                                                                ModC_Allocator statementsArena,
+                                                                Allocator tokensAllcoator,
+                                                                Allocator statementsArena,
                                                                 ModC_TokenList* tokens,
                                                                 const ModC_ConstStringView source,
-                                                                ModC_Allocator scratchAllocator)
+                                                                Allocator scratchAllocator)
 {
     #undef ResultNameState
     #define ResultNameState ModC_Result_Void
@@ -647,8 +647,8 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
     
     CHECK(statements != NULL, (""), RET_ERROR_S());
     CHECK(tokens != NULL, (""), RET_ERROR_S());
-    CHECK(  statementsArena.Type == ModC_AllocatorType_SharedArena ||
-            statementsArena.Type == ModC_AllocatorType_OwnedArena, 
+    CHECK(  statementsArena.Type == AllocatorType_SharedArena ||
+            statementsArena.Type == AllocatorType_OwnedArena, 
             (""),
             RET_ERROR_S());
     
@@ -683,15 +683,14 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
     };
     
     #undef uthash_malloc
-    #define uthash_malloc(sz) ModC_Allocator_Malloc(&scratchAllocator, sz)
+    #define uthash_malloc(sz) Allocator_Malloc(&scratchAllocator, sz)
     #undef uthash_free
-    #define uthash_free(ptr, sz) ModC_Allocator_Free(&scratchAllocator, ptr)
+    #define uthash_free(ptr, sz) Allocator_Free(&scratchAllocator, ptr)
     
     for(int i = 0; i < sizeof(defaultTypes) / sizeof(defaultTypes[0]); ++i)
     {
         //printf("i: %d\n", i);
-        ModC_TypeEntry* defaultTypeEntry = ModC_Allocator_Malloc(   &scratchAllocator, 
-                                                                    sizeof(ModC_TypeEntry));
+        ModC_TypeEntry* defaultTypeEntry = Allocator_Malloc(&scratchAllocator, sizeof(ModC_TypeEntry));
         defaultTypeEntry->Type = ModC_String_FromData(  scratchAllocator, 
                                                         defaultTypes[i], 
                                                         strlen(defaultTypes[i]));

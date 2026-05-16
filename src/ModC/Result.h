@@ -67,22 +67,22 @@ Macro:
 ```c
 ResultName ERROR_MSG_EC_ALLOC(  ResultName,
                                 ModC_StringUnion msg,
-                                ModC_Allocator allocator,
+                                Allocator allocator,
                                 int32_t errorCode);
 ResultName ERROR_MSG_EC(ResultName, ModC_StringUnion msg,int32_t errorCode);
 
 ResultName ERROR_MSG_EC_ALLOC_S(ModC_StringUnion msg,
-                                ModC_Allocator allocator,
+                                Allocator allocator,
                                 int32_t errorCode);
 ResultName ERROR_MSG_EC_S(ModC_StringUnion msg, int32_t errorCode);
 ```
 
 Macro:
 ```c
-ResultName ERROR_MSG_ALLOC(ResultName, ModC_StringUnion msg, ModC_Allocator allocator);
+ResultName ERROR_MSG_ALLOC(ResultName, ModC_StringUnion msg, Allocator allocator);
 ResultName ERROR_MSG(ResultName, ModC_StringUnion msg);
 
-ResultName ERROR_MSG_ALLOC_S(ModC_StringUnion msg, ModC_Allocator allocator);
+ResultName ERROR_MSG_ALLOC_S(ModC_StringUnion msg, Allocator allocator);
 ResultName ERROR_MSG_S(ModC_StringUnion msg);
 ```
 
@@ -98,26 +98,26 @@ Macro:
 ResultName ERROR_STR_FMT(ResultName, (format, ...));
 ResultName ERROR_STR_FMT(ResultName, (format, ...), int32_t errorCode);
 
-ResultName ERROR_STR_FMT_ALLOC(ResultName, ModC_Allocator allocator, (format, ...));
-ResultName ERROR_STR_FMT_ALLOC(ResultName, ModC_Allocator allocator, (format, ...), int32_t errorCode);
+ResultName ERROR_STR_FMT_ALLOC(ResultName, Allocator allocator, (format, ...));
+ResultName ERROR_STR_FMT_ALLOC(ResultName, Allocator allocator, (format, ...), int32_t errorCode);
 
 ResultName ERROR_CSTR(ResultName, cstr);
 ResultName ERROR_CSTR(ResultName, cstr, int32_t errorCode);
 
-ResultName ERROR_CSTR_ALLOC(ResultName, ModC_Allocator allocator, cstr);
-ResultName ERROR_CSTR_ALLOC(ResultName, ModC_Allocator allocator, cstr, int32_t errorCode);
+ResultName ERROR_CSTR_ALLOC(ResultName, Allocator allocator, cstr);
+ResultName ERROR_CSTR_ALLOC(ResultName, Allocator allocator, cstr, int32_t errorCode);
 
 ResultName ERROR_STR_FMT_S((format, ...));
 ResultName ERROR_STR_FMT_S((format, ...), int32_t errorCode);
 
-ResultName ERROR_STR_FMT_ALLOC_S(ModC_Allocator allocator, (format, ...));
-ResultName ERROR_STR_FMT_ALLOC_S(ModC_Allocator allocator, (format, ...), int32_t errorCode);
+ResultName ERROR_STR_FMT_ALLOC_S(Allocator allocator, (format, ...));
+ResultName ERROR_STR_FMT_ALLOC_S(Allocator allocator, (format, ...), int32_t errorCode);
 
 ResultName ERROR_CSTR_S(cstr);
 ResultName ERROR_CSTR_S(cstr, int32_t errorCode);
 
-ResultName ERROR_CSTR_ALLOC_S(ModC_Allocator allocator, cstr);
-ResultName ERROR_CSTR_ALLOC_S(ModC_Allocator allocator, cstr, int32_t errorCode);
+ResultName ERROR_CSTR_ALLOC_S(Allocator allocator, cstr);
+ResultName ERROR_CSTR_ALLOC_S(Allocator allocator, cstr, int32_t errorCode);
 
 ```
 
@@ -133,11 +133,11 @@ Macro:
 ```c
 ModC_String RESULT_TO_STRING_ALLOC(ResultName, 
                                         ResultName resultVal, 
-                                        ModC_Allocator allocator);
+                                        Allocator allocator);
 ModC_String RESULT_TO_STRING(ResultName, ResultName resultVal);
 
 ModC_String RESULT_TO_STRING_ALLOC_S(  ResultName resultVal, 
-                                            ModC_Allocator allocator);
+                                            Allocator allocator);
 ModC_String RESULT_TO_STRING_S(ResultName resultVal);
 ```
 
@@ -215,7 +215,7 @@ static inline void TraceCreate(const char* file, const char* function, int line,
 typedef struct Error
 {
     Trace Traces[MAX_TRACES];
-    ModC_Allocator Allocator;
+    Allocator Allocator;
     ModC_String ErrorMsg;
     uint8_t TracesSize;
     int32_t ErrorCode;
@@ -257,7 +257,7 @@ static Error* GlobalRetError = NULL;
     \
     static inline ModC_String \
     MPT_CONCAT(ModC_DefResultName, _ToString)( const ModC_DefResultName result, \
-                                            ModC_Allocator allocator) \
+                                            Allocator allocator) \
     { \
         if(!result.HasError) \
             return (ModC_String){0}; \
@@ -289,9 +289,9 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion msg,
                                     const char* func,
                                     int32_t line,
                                     int32_t errorCode,
-                                    ModC_Allocator allocator)
+                                    Allocator allocator)
 {
-    Error* modcErrorPtr = ModC_Allocator_Malloc(&allocator, sizeof(Error));
+    Error* modcErrorPtr = Allocator_Malloc(&allocator, sizeof(Error));
     if(modcErrorPtr)
     {
         *modcErrorPtr = (Error){0};
@@ -418,8 +418,8 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion msg,
 #define INTERN_ERROR_STR_FMT_ALLOC_3(ResultName, allocator, strfmts) \
     INTERN_ERROR_STR_FMT_ALLOC_4(ResultName, allocator, strfmts, 0)
 
-//ResultName ERROR_STR_FMT_ALLOC(ResultName, ModC_Allocator allocator, (format, ...));
-//ResultName ERROR_STR_FMT_ALLOC(ResultName, ModC_Allocator allocator, (format, ...), int32_t errorCode);
+//ResultName ERROR_STR_FMT_ALLOC(ResultName, Allocator allocator, (format, ...));
+//ResultName ERROR_STR_FMT_ALLOC(ResultName, Allocator allocator, (format, ...), int32_t errorCode);
 #define ERROR_STR_FMT_ALLOC(...) \
     MPT_OVERLOAD_MACRO(INTERN_ERROR_STR_FMT_ALLOC, __VA_ARGS__)
 
@@ -446,8 +446,8 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion msg,
 #define INTERN_ERROR_CSTR_ALLOC_3(ResultName, allocator, cstr) \
     INTERN_ERROR_CSTR_ALLOC_4(ResultName, allocator, cstr, 0)
 
-//ResultName ERROR_CSTR_ALLOC(ResultName, ModC_Allocator allocator, cstr);
-//ResultName ERROR_CSTR_ALLOC(ResultName, ModC_Allocator allocator, cstr, int32_t errorCode);
+//ResultName ERROR_CSTR_ALLOC(ResultName, Allocator allocator, cstr);
+//ResultName ERROR_CSTR_ALLOC(ResultName, Allocator allocator, cstr, int32_t errorCode);
 #define ERROR_CSTR_ALLOC(...) MPT_OVERLOAD_MACRO(INTERN_ERROR_CSTR_ALLOC, __VA_ARGS__)
 
 #define ERROR_CSTR_ALLOC_S(...) ERROR_CSTR_ALLOC(ResultNameState, __VA_ARGS__)
@@ -477,9 +477,9 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion msg,
             break; \
         } \
         ModC_String_Free(&(resultPtr)->ValueOrError.Error->ErrorMsg); \
-        ModC_Allocator errorAllocator = (resultPtr)->ValueOrError.Error->Allocator; \
-        ModC_Allocator_Free(&errorAllocator, (resultPtr)->ValueOrError.Error); \
-        ModC_Allocator_Destroy(&errorAllocator); \
+        Allocator errorAllocator = (resultPtr)->ValueOrError.Error->Allocator; \
+        Allocator_Free(&errorAllocator, (resultPtr)->ValueOrError.Error); \
+        Allocator_Destroy(&errorAllocator); \
         *(resultPtr) = (ResultName){0}; \
         break; \
     } while(0)

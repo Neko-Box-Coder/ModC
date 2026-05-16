@@ -28,7 +28,7 @@ static_assert(sizeof(int) == sizeof(int32_t), "");
 #endif
 
 #ifndef DEFAULT_ALLOC
-    #define DEFAULT_ALLOC() ModC_CreateHeapAllocator()
+    #define DEFAULT_ALLOC() CreateHeapAllocator()
 #endif
 
 static inline ModC_Result_Int32 TestResult(void)
@@ -58,8 +58,8 @@ ModC_Result_Void Main(int argc, char* argv[])
     #define TaggedUnionNameState ModC_StatementTokensUnion
     
     FILE* modcFile = NULL;
-    ModC_Allocator mainArena;
-    ModC_Allocator statementListArena;
+    Allocator mainArena;
+    Allocator statementListArena;
     ModC_String fileContent;
     ModC_String printString;
     
@@ -91,10 +91,10 @@ ModC_Result_Void Main(int argc, char* argv[])
         }
         
         fseek(modcFile, 0, 0);
-        mainArena = ModC_CreateArenaAllocator(fileSize);
-        DEFER(0, ModC_Allocator_Destroy(&mainArena));
+        mainArena = CreateArenaAllocator(fileSize);
+        DEFER(0, Allocator_Destroy(&mainArena));
         
-        fileContent = ModC_String_Create(ModC_Allocator_Share(&mainArena), fileSize);
+        fileContent = ModC_String_Create(Allocator_Share(&mainArena), fileSize);
         ModC_String_Resize(&fileContent, fileSize);
         CHECK(fileContent.Length == fileSize, "", DEFER_BREAK(0, RET_ERROR_S()));
         
@@ -106,7 +106,7 @@ ModC_Result_Void Main(int argc, char* argv[])
         ModC_ConstStringView sourceView = ModC_ConstStringView_Create(  fileContent.Data, 
                                                                         fileContent.Length);
         ModC_Result_TokenList tokenListResult = ModC_Tokenization(  sourceView, 
-                                                                    ModC_Allocator_Share(&mainArena));
+                                                                    Allocator_Share(&mainArena));
         ModC_TokenList* tokenList = RESULT_TRY(tokenListResult, DEFER_BREAK(0, RET_ERROR_S()));
         
         DEFER(0, ModC_TokenList_Free(tokenList));
@@ -124,24 +124,24 @@ ModC_Result_Void Main(int argc, char* argv[])
         ModC_Result_StatementList statementListResult = 
             ModC_CreateStatements(  tokenList, 
                                     sourceView, 
-                                    ModC_Allocator_Share(&mainArena), 
+                                    Allocator_Share(&mainArena), 
                                     &statementListArena);
         ModC_StatementList* statementList = RESULT_TRY( statementListResult, 
                                                         DEFER_BREAK(0, RET_ERROR_S()));
-        DEFER(0, ModC_Allocator_Destroy(&statementListArena));
+        DEFER(0, Allocator_Destroy(&statementListArena));
         
         ModC_Result_Void voidResult = 
             ModC_CleanAndClassifyStatements(statementList, 
-                                            ModC_Allocator_Share(&mainArena),
-                                            ModC_Allocator_Share(&statementListArena),
+                                            Allocator_Share(&mainArena),
+                                            Allocator_Share(&statementListArena),
                                             tokenList,
                                             sourceView,
                                             //TODO: Use scratch arena.
-                                            ModC_Allocator_Share(&mainArena));
+                                            Allocator_Share(&mainArena));
         (void)RESULT_TRY(voidResult, DEFER_BREAK(0, RET_ERROR_S()));
         
         
-        printString = ModC_String_Create(ModC_Allocator_Share(&mainArena), 64);
+        printString = ModC_String_Create(Allocator_Share(&mainArena), 64);
         for(int i = 0; i < statementList->Length; ++i)
         {
             voidResult = ModC_Statement_ToString(   &statementList->Data[i],

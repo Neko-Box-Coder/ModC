@@ -2,7 +2,7 @@
 #define MODC_STATEMENT_H
 
 #ifndef DEFAULT_ALLOC
-    #define DEFAULT_ALLOC() ModC_CreateHeapAllocator()
+    #define DEFAULT_ALLOC() CreateHeapAllocator()
 #endif
 
 #include "ModC/Tokenization.h"
@@ -309,7 +309,7 @@ static inline ModC_ConstStringView ModC_StatementType_ToConstStringView(ModC_Sta
 }
 
 
-static inline ModC_ResultStatementPtr ModC_Statement_CreateCompound(ModC_Allocator allocator, 
+static inline ModC_ResultStatementPtr ModC_Statement_CreateCompound(Allocator allocator, 
                                                                     ModC_StatementList* statementList,
                                                                     uint32_t parentIndex,
                                                                     bool implicit,
@@ -321,7 +321,7 @@ static inline ModC_ResultStatementPtr ModC_Statement_CreateCompound(ModC_Allocat
     #define TaggedUnionNameState ModC_StatementTokensUnion
     
     CHECK(statementList != NULL, (""), RET_ERROR_S());
-    CHECK(allocator.Type == ModC_AllocatorType_SharedArena, (""), RET_ERROR_S());
+    CHECK(allocator.Type == AllocatorType_SharedArena, (""), RET_ERROR_S());
     
     uint64_t oldLength = statementList->Length;
     ModC_StatementIndexList childStatements = ModC_Uint32List_Create(   allocator, 
@@ -349,7 +349,7 @@ static inline ModC_ResultStatementPtr ModC_Statement_CreateCompound(ModC_Allocat
     return RESULT_VALUE_S(retStatementPtr);
 }
 
-static inline ModC_ResultStatementPtr ModC_Statement_CreatePlain(   ModC_Allocator allocator, 
+static inline ModC_ResultStatementPtr ModC_Statement_CreatePlain(   Allocator allocator, 
                                                                     ModC_StatementList* statementList,
                                                                     uint32_t parentIndex)
 {
@@ -359,7 +359,7 @@ static inline ModC_ResultStatementPtr ModC_Statement_CreatePlain(   ModC_Allocat
     #define TaggedUnionNameState ModC_StatementTokensUnion
     
     CHECK(statementList != NULL, (""), RET_ERROR_S());
-    CHECK(allocator.Type == ModC_AllocatorType_SharedArena, (""), RET_ERROR_S());
+    CHECK(allocator.Type == AllocatorType_SharedArena, (""), RET_ERROR_S());
     
     uint64_t oldLength = statementList->Length;
     ModC_StatementList_AddValue(statementList, 
@@ -549,10 +549,10 @@ static inline ModC_Result_Void ModC_AddStatementToParent(   uint32_t statementIn
 
 //Normalizes the statements by removing spaces, comments and newlines and merge operators if possible
 static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statement,
-                                                        ModC_Allocator tokensAllcoator,
-                                                        ModC_Allocator statementsArena,
+                                                        Allocator tokensAllcoator,
+                                                        Allocator statementsArena,
                                                         ModC_TokenList* tokens,
-                                                        ModC_Allocator scratchAllocator)
+                                                        Allocator scratchAllocator)
 {
     #undef ResultNameState
     #define ResultNameState ModC_Result_Void
@@ -807,7 +807,7 @@ static inline ModC_Result_Uint32 ModC_Statement_Next(   const ModC_Statement* st
 static inline ModC_Result_Uint32 ModC_EndCurrentStatement(  bool countCurrentToken, 
                                                             uint32_t i, 
                                                             uint32_t currentParentIndex,
-                                                            ModC_Allocator sharedArena,
+                                                            Allocator sharedArena,
                                                             const ModC_TokenList* tokens,
                                                             uint32_t* startTokenIndex,
                                                             ModC_StatementList* statementList)
@@ -888,8 +888,8 @@ static inline ModC_Result_Uint32 ModC_EndCurrentStatement(  bool countCurrentTok
 
 static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_TokenList* tokens, 
                                                                 const ModC_ConstStringView source,
-                                                                ModC_Allocator scratchAllocator,
-                                                                ModC_Allocator* outStatementsArena)
+                                                                Allocator scratchAllocator,
+                                                                Allocator* outStatementsArena)
 {
     #undef ResultNameState
     #define ResultNameState ModC_Result_StatementList
@@ -899,8 +899,8 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
     CHECK(tokens != NULL, (""), RET_ERROR_S());
     CHECK(outStatementsArena != NULL, (""), RET_ERROR_S());
     
-    *outStatementsArena = ModC_CreateArenaAllocator(1024);   //TODO: Proper reserve count
-    ModC_Allocator sharedArena = ModC_Allocator_Share(outStatementsArena);
+    *outStatementsArena = CreateArenaAllocator(1024);   //TODO: Proper reserve count
+    Allocator sharedArena = Allocator_Share(outStatementsArena);
     
     //TODO: Proper reserve count
     ModC_StatementList statementList = ModC_StatementList_Create(*outStatementsArena, 16);
@@ -930,7 +930,7 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
             if(!(cond)) \
             { \
                 ModC_String visualizeStr = ModC_Token_VisualizeLocation(&tokens->Data[i], \
-                                                                        ModC_CreateHeapAllocator(), \
+                                                                        CreateHeapAllocator(), \
                                                                         false, \
                                                                         source); \
                 \
