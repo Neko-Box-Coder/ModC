@@ -17,9 +17,9 @@ Other than that, this also contains various helper functions. Just read the code
 #include "ModC/List.h"
 
 
-#define MODC_VIEW_NAME ModC_StringView
-#define MODC_CONST_VIEW_NAME ModC_ConstStringView
-#define MODC_VALUE_TYPE char
+#define VIEW_NAME ModC_StringView
+#define CONST_VIEW_NAME ModC_ConstStringView
+#define VALUE_TYPE char
 #include "ModC/View.h"
 
 #include <stdbool.h>
