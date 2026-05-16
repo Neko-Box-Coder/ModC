@@ -18,12 +18,12 @@ MODC_DEFINE_RESULT_STRUCT(ModC_Result_Bool, uint8_t)
 typedef char ModC_Void;
 MODC_DEFINE_RESULT_STRUCT(ModC_Result_Void, ModC_Void)
 
-#define MODC_LIST_NAME ModC_Uint32List
-#define MODC_VALUE_TYPE uint32_t
+#define LIST_NAME ModC_Uint32List
+#define VALUE_TYPE uint32_t
 #include "ModC/List.h"
 
-#define MODC_LIST_NAME ModC_BoolList
-#define MODC_VALUE_TYPE bool
+#define LIST_NAME ModC_BoolList
+#define VALUE_TYPE bool
 #include "ModC/List.h"
 
 //#define MODC_LIST_NAME ModC_TestString

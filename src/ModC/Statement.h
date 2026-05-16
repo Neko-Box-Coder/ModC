@@ -111,9 +111,9 @@ struct ModC_Statement
     uint32_t ParentIndex;
 };
 
-#define MODC_LIST_NAME ModC_StatementList
-#define MODC_VALUE_TYPE ModC_Statement
-#define MODC_NO_TYPEDEF 1
+#define LIST_NAME ModC_StatementList
+#define VALUE_TYPE ModC_Statement
+#define NO_TYPEDEF 1
 //TODO: Value item free
 #include "ModC/List.h"
 

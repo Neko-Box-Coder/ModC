@@ -67,9 +67,9 @@ typedef struct ModC_Token
 
 static inline void ModC_Token_Free(ModC_Token* this);
 
-#define MODC_LIST_NAME ModC_TokenList
-#define MODC_VALUE_TYPE ModC_Token
-#define MODC_VALUE_FREE(ptr) ModC_Token_Free(ptr)
+#define LIST_NAME ModC_TokenList
+#define VALUE_TYPE ModC_Token
+#define VALUE_FREE(ptr) ModC_Token_Free(ptr)
 #include "ModC/List.h"
 
 MODC_DEFINE_RESULT_STRUCT(ModC_Result_TokenList, ModC_TokenList)
@@ -442,7 +442,7 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ModC_ConstStringVi
         if(fileContent.Length == 1)
         {
             ModC_TokenList_AddValue(&tokenList, currentToken);
-            MODC_MOVE(ModC_TokenList, retList, tokenList);
+            MOVE(ModC_TokenList, retList, tokenList);
             MODC_DEFER_BREAK(0, );
         }
     
@@ -566,7 +566,7 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ModC_ConstStringVi
         } //for(int i = 1; i < fileContent.Length; ++i)
         
         ModC_TokenList_AddValue(&tokenList, currentToken);
-        MODC_MOVE(ModC_TokenList, retList, tokenList);
+        MOVE(ModC_TokenList, retList, tokenList);
         MODC_DEFER_BREAK(0, );
     }
     MODC_DEFER_SCOPE_END(0)

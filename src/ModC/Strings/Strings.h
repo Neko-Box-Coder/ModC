@@ -12,8 +12,8 @@ Other than that, this also contains various helper functions. Just read the code
 
 #include "ModC/Allocator.h"
 
-#define MODC_LIST_NAME ModC_String
-#define MODC_VALUE_TYPE char
+#define LIST_NAME ModC_String
+#define VALUE_TYPE char
 #include "ModC/List.h"
 
 
