@@ -4,20 +4,20 @@
 /* Docs
 Use in a function like this. Will not work inside a switch statement
 ```c
-MODC_DEFER_SCOPE_START(scopeId)
+DEFER_SCOPE_START(scopeId)
 ...
-MODC_DEFER(scopeId, statements);     //Runs second
+DEFER(scopeId, statements);     //Runs second
 ...
-MODC_DEFER(scopeId, statements);     //Runs first
+DEFER(scopeId, statements);     //Runs first
 if(...)
 {
-    MODC_DEFER_BREAK(scopeId, return ...);
+    DEFER_BREAK(scopeId, return ...);
 }
 ...
-MODC_DEFER_SCOPE_END(scopeId)
+DEFER_SCOPE_END(scopeId)
 ```
 
-`MODC_DEFER_BREAK` will go to `MODC_DEFER_SCOPE_END` if it doesn't contain a return statement.
+`DEFER_BREAK` will go to `DEFER_SCOPE_END` if it doesn't contain a return statement.
 */
 
 
@@ -25,8 +25,8 @@ MODC_DEFER_SCOPE_END(scopeId)
 #include <stdbool.h>
 #include <assert.h>
 
-#ifndef MODC_MAX_DEFER_COUNT
-    #define MODC_MAX_DEFER_COUNT 32
+#ifndef MAX_DEFER_COUNT
+    #define MAX_DEFER_COUNT 32
 #endif
 
 //NOTE: Shit solution to silence c2y-extensions warnings caused by __COUNTER__ until 
@@ -36,15 +36,15 @@ MODC_DEFER_SCOPE_END(scopeId)
 #endif
 
 //Improvised from: https://btmc.substack.com/i/142434521/duffs-device-to-the-rescue
-#define MODC_DEFER_SCOPE_START(id) \
+#define DEFER_SCOPE_START(id) \
     { \
         /* We store a bunch of IDs for jumping with switch, but with -1 as normal executions and */ \
         /* 0 for just normal exit. Doing `__COUNTER__` here to make sure it starts from 1 */ \
         (void)__COUNTER__; \
         int modcDeferIndex = 0; \
-        /* We store `MODC_MAX_DEFER_COUNT + 1` where we executes the defers from back to front */ \
+        /* We store `MAX_DEFER_COUNT + 1` where we executes the defers from back to front */ \
         /* and index 0 will be our "exit" point which it could a return */ \
-        int modcDefers[MODC_MAX_DEFER_COUNT + 1] = {-1}; (void)modcDefers; \
+        int modcDefers[MAX_DEFER_COUNT + 1] = {-1}; (void)modcDefers; \
         uint8_t modcDefersCount = 1; (void)modcDefersCount; \
         modcDeferStart ## id: \
         switch(modcDefers[modcDeferIndex]) \
@@ -53,7 +53,7 @@ MODC_DEFER_SCOPE_END(scopeId)
                 /* Sets the final execution to 0 for normal exit */ \
                 modcDefers[0] = 0;
 
-#define INTERNAL_MODC_DEFER(id, counter, ... /* statements */) \
+#define INTERNAL_DEFER(id, counter, ... /* statements */) \
             do \
             { \
                 if(false) \
@@ -66,15 +66,15 @@ MODC_DEFER_SCOPE_END(scopeId)
                     goto modcDeferStart ## id; \
                 } \
                 /* Register defer */ \
-                assert((modcDefersCount < MODC_MAX_DEFER_COUNT + 1) && "Number of defers exceeds maximum"); \
+                assert((modcDefersCount < MAX_DEFER_COUNT + 1) && "Number of defers exceeds maximum"); \
                 modcDeferIndex = modcDefersCount; \
                 modcDefers[modcDefersCount++] = counter; \
             } \
             while(false)
 
-#define MODC_DEFER(id, ... /* statements */) INTERNAL_MODC_DEFER(id, __COUNTER__, __VA_ARGS__)
+#define DEFER(id, ... /* statements */) INTERNAL_DEFER(id, __COUNTER__, __VA_ARGS__)
 
-#define INTERN_MODC_DEFER_BREAK(id, counter, ... /* statements */) \
+#define INTERN_DEFER_BREAK(id, counter, ... /* statements */) \
             do \
             { \
                 /* Register return */ \
@@ -90,9 +90,9 @@ MODC_DEFER_SCOPE_END(scopeId)
             } \
             while(false)
 
-#define MODC_DEFER_BREAK(id, ... /* statements */) INTERN_MODC_DEFER_BREAK(id, __COUNTER__, __VA_ARGS__)
+#define DEFER_BREAK(id, ... /* statements */) INTERN_DEFER_BREAK(id, __COUNTER__, __VA_ARGS__)
 
-#define MODC_DEFER_SCOPE_END(id) \
+#define DEFER_SCOPE_END(id) \
             goto modcDeferStart ## id; \
         } /* switch(modcDefers[modcDeferIndex]) */ \
         goto modcDeferScopeEnd ## id; \

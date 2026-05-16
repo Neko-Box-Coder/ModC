@@ -566,14 +566,14 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
     ModC_TokenIndexList tokenIndices;
     ModC_String tempMergedOperator;
     
-    MODC_DEFER_SCOPE_START(0)
+    DEFER_SCOPE_START(0)
     {
         uint32_t tokensCount = ModC_StatementTokensUnion_GetTokenCount(&statement->Tokens);
         tokenIndices = ModC_Uint32List_Create(scratchAllocator, tokensCount);
-        MODC_DEFER(0, ModC_Uint32List_Free(&tokenIndices));
+        DEFER(0, ModC_Uint32List_Free(&tokenIndices));
         
         tempMergedOperator = ModC_String_Create(scratchAllocator, 3);
-        MODC_DEFER(0, ModC_String_Free(&tempMergedOperator));
+        DEFER(0, ModC_String_Free(&tempMergedOperator));
         
         uint32_t minLookBack = 0;
         bool skipped = false;
@@ -581,7 +581,7 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
         {
             ModC_Result_TokenPtr tokenPtrResult = 
                 ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, i);
-            ModC_Token* currentToken = *RESULT_TRY(tokenPtrResult, MODC_DEFER_BREAK(0, RET_ERROR_S()));
+            ModC_Token* currentToken = *RESULT_TRY(tokenPtrResult, DEFER_BREAK(0, RET_ERROR_S()));
             
             if(currentToken->TokenType == ModC_TokenType_Operator)
             {
@@ -591,8 +591,7 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
                     tokenPtrResult = ModC_StatementTokensUnion_GetTokenAt(  &statement->Tokens, 
                                                                             tokens, 
                                                                             i + 1);
-                    ModC_Token* nextToken = *RESULT_TRY(tokenPtrResult, 
-                                                        MODC_DEFER_BREAK(0, RET_ERROR_S()));
+                    ModC_Token* nextToken = *RESULT_TRY(tokenPtrResult, DEFER_BREAK(0, RET_ERROR_S()));
                     operatorNext = nextToken->TokenType == ModC_TokenType_Operator;
                 }
                 
@@ -600,7 +599,7 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
                 //merge operators tokens into a single token if possible
                 if(!operatorNext && minLookBack != i)
                 {
-                    CHECK(minLookBack < i, (""), MODC_DEFER_BREAK(0, RET_ERROR_S()));
+                    CHECK(minLookBack < i, (""), DEFER_BREAK(0, RET_ERROR_S()));
                     
                     ModC_String_Resize(&tempMergedOperator, 0);
                     for(uint32_t j = minLookBack; j <= i; ++j)
@@ -608,18 +607,18 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
                         tokenPtrResult = ModC_StatementTokensUnion_GetTokenAt(  &statement->Tokens, 
                                                                                 tokens, 
                                                                                 j);
-                        ModC_Token* lookBackToken = 
-                            *RESULT_TRY(tokenPtrResult, MODC_DEFER_BREAK(0, RET_ERROR_S()));
+                        ModC_Token* lookBackToken = *RESULT_TRY(tokenPtrResult, 
+                                                                DEFER_BREAK(0, RET_ERROR_S()));
                         
                         CHECK( lookBackToken->TokenType == ModC_TokenType_Operator, 
                                 (""), 
-                                MODC_DEFER_BREAK(0, RET_ERROR_S()));
+                                DEFER_BREAK(0, RET_ERROR_S()));
                         
                         ModC_ConstStringView opChar = ModC_Token_TokenTextView(lookBackToken);
                         CHECK(  opChar.Length == 1, 
                                 ("Unexpected operator text length: %"PRIu32, 
                                 opChar.Length),
-                                MODC_DEFER_BREAK(0, RET_ERROR_S()));
+                                DEFER_BREAK(0, RET_ERROR_S()));
                         
                         ModC_String_AddValue(&tempMergedOperator, opChar.Data[0]);
                     }
@@ -634,8 +633,8 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
                         tokenPtrResult = ModC_StatementTokensUnion_GetTokenAt(  &statement->Tokens, 
                                                                                 tokens, 
                                                                                 minLookBack);
-                        ModC_Token* minLookBackToken = 
-                            *RESULT_TRY(tokenPtrResult, MODC_DEFER_BREAK(0, RET_ERROR_S()));
+                        ModC_Token* minLookBackToken = *RESULT_TRY( tokenPtrResult, 
+                                                                    DEFER_BREAK(0, RET_ERROR_S()));
                         
                         //Modify current token to concatenated operator string
                         if(currentToken->TokenText.Type == TU_TYPE(ModC_StringUnion, ModC_String))
@@ -661,8 +660,8 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
                             ModC_StatementTokensUnion_GetTokenIndexAt(  &statement->Tokens,
                                                                         tokens,
                                                                         minLookBack);
-                        uint32_t minLookBackTokenIndex = 
-                            *RESULT_TRY(uint32Result, MODC_DEFER_BREAK(0, RET_ERROR_S()));
+                        uint32_t minLookBackTokenIndex = *RESULT_TRY(   uint32Result, 
+                                                                        DEFER_BREAK(0, RET_ERROR_S()));
                         
                         ModC_Uint32List_AddValue(&tokenIndices, minLookBackTokenIndex);
                     }
@@ -677,8 +676,8 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
                                 ModC_StatementTokensUnion_GetTokenIndexAt(  &statement->Tokens, 
                                                                             tokens, 
                                                                             j);
-                            uint32_t lookBackTokenIndex = 
-                                *RESULT_TRY(uint32Result, MODC_DEFER_BREAK(0, RET_ERROR_S()));
+                            uint32_t lookBackTokenIndex = *RESULT_TRY(  uint32Result, 
+                                                                        DEFER_BREAK(0, RET_ERROR_S()));
                             ModC_Uint32List_AddValue(&tokenIndices, lookBackTokenIndex);
                         }
                     }
@@ -687,8 +686,8 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
                 {
                     ModC_Result_Uint32 uint32Result = 
                         ModC_StatementTokensUnion_GetTokenIndexAt(&statement->Tokens, tokens, i);
-                    uint32_t currentTokenIndex = 
-                        *RESULT_TRY(uint32Result, MODC_DEFER_BREAK(0, RET_ERROR_S()));
+                    uint32_t currentTokenIndex = *RESULT_TRY(   uint32Result, 
+                                                                DEFER_BREAK(0, RET_ERROR_S()));
                     ModC_Uint32List_AddValue(&tokenIndices, currentTokenIndex);
                 }
             } //if(currentToken->TokenType == ModC_TokenType_Operator)
@@ -706,7 +705,7 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
                 ModC_Result_Uint32 uint32Result = 
                     ModC_StatementTokensUnion_GetTokenIndexAt(&statement->Tokens, tokens, i);
                 uint32_t currentTokenIndex = *RESULT_TRY(   uint32Result, 
-                                                            MODC_DEFER_BREAK(0, RET_ERROR_S()));
+                                                            DEFER_BREAK(0, RET_ERROR_S()));
                 ModC_Uint32List_AddValue(&tokenIndices, currentTokenIndex);
             }
         } //for(uint32_t i = 0; i < tokensCount; ++i)
@@ -723,7 +722,7 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
                                         tokenIndices.Length);
         }
     }
-    MODC_DEFER_SCOPE_END(0)
+    DEFER_SCOPE_END(0)
     
     return RESULT_VALUE_S(0);
 }

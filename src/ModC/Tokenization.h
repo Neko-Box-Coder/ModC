@@ -432,18 +432,18 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ModC_ConstStringVi
                                                         fileContent.Length / 16);
     ModC_TokenList retList = {0};
     
-    MODC_DEFER_SCOPE_START(0)
+    DEFER_SCOPE_START(0)
     {
         ModC_Token currentToken = 
             ModC_Token_FromView((ModC_TokenType)ModC_CharTokenType_FromChar(fileContent.Data[0]), 
                                 ModC_ConstStringView_Create(&fileContent.Data[0], 1));
-        MODC_DEFER(0, ModC_TokenList_Free(&tokenList));
+        DEFER(0, ModC_TokenList_Free(&tokenList));
         
         if(fileContent.Length == 1)
         {
             ModC_TokenList_AddValue(&tokenList, currentToken);
             MOVE(ModC_TokenList, retList, tokenList);
-            MODC_DEFER_BREAK(0, );
+            DEFER_BREAK(0, );
         }
     
         int currentLineIndex = fileContent.Data[0] == '\n';
@@ -461,7 +461,7 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ModC_ConstStringVi
                                                                         fileContent.Data[i], \
                                                                         allocator, \
                                                                         false); \
-                    (void)RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, RET_ERROR_S())); \
+                    (void)RESULT_TRY(voidResult, DEFER_BREAK(0, RET_ERROR_S())); \
                 } while(0)
             
             #define CREATE_NEW_TOKEN() \
@@ -552,7 +552,7 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ModC_ConstStringVi
                 ModC_Result_Bool boolResult = ModC_Token_IsCharPossible(&currentToken, 
                                                                         fileContent.Data[i], 
                                                                         charTokenType);
-                bool possible = *RESULT_TRY(boolResult, MODC_DEFER_BREAK(0, RET_ERROR_S()));
+                bool possible = *RESULT_TRY(boolResult, DEFER_BREAK(0, RET_ERROR_S()));
                 if(!possible)
                 {
                     ModC_TokenList_AddValue(&tokenList, currentToken);
@@ -567,9 +567,9 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ModC_ConstStringVi
         
         ModC_TokenList_AddValue(&tokenList, currentToken);
         MOVE(ModC_TokenList, retList, tokenList);
-        MODC_DEFER_BREAK(0, );
+        DEFER_BREAK(0, );
     }
-    MODC_DEFER_SCOPE_END(0)
+    DEFER_SCOPE_END(0)
     
     return RESULT_VALUE_S(retList);
 }

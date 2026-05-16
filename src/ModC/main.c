@@ -63,12 +63,12 @@ ModC_Result_Void Main(int argc, char* argv[])
     ModC_String fileContent;
     ModC_String printString;
     
-    MODC_DEFER_SCOPE_START(0)
+    DEFER_SCOPE_START(0)
     {
         if(argc == 1)
         {
             printf("Usage: %s <path>\n", argv[0]);
-            MODC_DEFER_BREAK(0, return RESULT_VALUE_S(0));
+            DEFER_BREAK(0, return RESULT_VALUE_S(0));
         }
         
         ModC_StringView filePath = ModC_StringView_Create(argv[1], strlen(argv[1]));
@@ -76,44 +76,40 @@ ModC_Result_Void Main(int argc, char* argv[])
         
         modcFile = fopen(filePath.Data, "r");
         if(!modcFile)
-            MODC_DEFER_BREAK(0, return ERROR_STR_FMT_S(("Failed to open file: %s", strerror(errno))));
+            DEFER_BREAK(0, return ERROR_STR_FMT_S(("Failed to open file: %s", strerror(errno))));
         
-        MODC_DEFER(0, { fclose(modcFile); modcFile = NULL; });
+        DEFER(0, { fclose(modcFile); modcFile = NULL; });
         
         //Get file size
         int64_t fileSize;
         {
             int fseekResult = fseek(modcFile, 0, SEEK_END);
-            CHECK(  fseekResult == 0, 
-                    (" fseekResult: %i.", fseekResult), 
-                    MODC_DEFER_BREAK(0, RET_ERROR_S()));
+            CHECK(fseekResult == 0, (" fseekResult: %i.", fseekResult), DEFER_BREAK(0, RET_ERROR_S()));
             
             fileSize = ftell(modcFile);
-            CHECK(  fileSize >= 0, 
-                    (" fileSize: "PRIi64".", fileSize), 
-                    MODC_DEFER_BREAK(0, RET_ERROR_S()));
+            CHECK(fileSize >= 0, (" fileSize: "PRIi64".", fileSize), DEFER_BREAK(0, RET_ERROR_S()));
         }
         
         fseek(modcFile, 0, 0);
         mainArena = ModC_CreateArenaAllocator(fileSize);
-        MODC_DEFER(0, ModC_Allocator_Destroy(&mainArena));
+        DEFER(0, ModC_Allocator_Destroy(&mainArena));
         
         fileContent = ModC_String_Create(ModC_Allocator_Share(&mainArena), fileSize);
         ModC_String_Resize(&fileContent, fileSize);
-        CHECK(fileContent.Length == fileSize, "", MODC_DEFER_BREAK(0, RET_ERROR_S()));
+        CHECK(fileContent.Length == fileSize, "", DEFER_BREAK(0, RET_ERROR_S()));
         
         uint32_t actuallyRead = fread(fileContent.Data, 1, fileSize, modcFile);
         CHECK(  actuallyRead == fileSize, 
                 (" actuallyRead: %"PRIu64", fileSize: %"PRIi64, actuallyRead, fileSize),
-                MODC_DEFER_BREAK(0, RET_ERROR_S()));
+                DEFER_BREAK(0, RET_ERROR_S()));
     
         ModC_ConstStringView sourceView = ModC_ConstStringView_Create(  fileContent.Data, 
                                                                         fileContent.Length);
         ModC_Result_TokenList tokenListResult = ModC_Tokenization(  sourceView, 
                                                                     ModC_Allocator_Share(&mainArena));
-        ModC_TokenList* tokenList = RESULT_TRY(tokenListResult, MODC_DEFER_BREAK(0, RET_ERROR_S()));
+        ModC_TokenList* tokenList = RESULT_TRY(tokenListResult, DEFER_BREAK(0, RET_ERROR_S()));
         
-        MODC_DEFER(0, ModC_TokenList_Free(tokenList));
+        DEFER(0, ModC_TokenList_Free(tokenList));
         
         for(int i = 0; i < tokenList->Length; ++i)
         {
@@ -130,9 +126,9 @@ ModC_Result_Void Main(int argc, char* argv[])
                                     sourceView, 
                                     ModC_Allocator_Share(&mainArena), 
                                     &statementListArena);
-        ModC_StatementList* statementList = RESULT_TRY(statementListResult, 
-                                                            MODC_DEFER_BREAK(0, RET_ERROR_S()));
-        MODC_DEFER(0, ModC_Allocator_Destroy(&statementListArena));
+        ModC_StatementList* statementList = RESULT_TRY( statementListResult, 
+                                                        DEFER_BREAK(0, RET_ERROR_S()));
+        DEFER(0, ModC_Allocator_Destroy(&statementListArena));
         
         ModC_Result_Void voidResult = 
             ModC_CleanAndClassifyStatements(statementList, 
@@ -142,7 +138,7 @@ ModC_Result_Void Main(int argc, char* argv[])
                                             sourceView,
                                             //TODO: Use scratch arena.
                                             ModC_Allocator_Share(&mainArena));
-        (void)RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, RET_ERROR_S()));
+        (void)RESULT_TRY(voidResult, DEFER_BREAK(0, RET_ERROR_S()));
         
         
         printString = ModC_String_Create(ModC_Allocator_Share(&mainArena), 64);
@@ -153,11 +149,11 @@ ModC_Result_Void Main(int argc, char* argv[])
                                                     &printString,
                                                     false);
             
-            (void)RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, RET_ERROR_S()));
+            (void)RESULT_TRY(voidResult, DEFER_BREAK(0, RET_ERROR_S()));
             printf("statementList[%i]: " "%.*s\n", i, (int)printString.Length, printString.Data);
         }
     }
-    MODC_DEFER_SCOPE_END(0)
+    DEFER_SCOPE_END(0)
     
     return RESULT_VALUE_S(0);
 }

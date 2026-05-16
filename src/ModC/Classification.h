@@ -702,12 +702,12 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                         defaultTypeEntry);
     }
     
-    MODC_DEFER_SCOPE_START(0)
+    DEFER_SCOPE_START(0)
     {
-        MODC_DEFER(0,   if(!rootTypeHashSet)
-                            HASH_CLEAR(hh, rootTypeHashSet);
-                        if(!funcTypeHashSet)
-                            HASH_CLEAR(hh, funcTypeHashSet));
+        DEFER(0,    if(!rootTypeHashSet)
+                        HASH_CLEAR(hh, rootTypeHashSet);
+                    if(!funcTypeHashSet)
+                        HASH_CLEAR(hh, funcTypeHashSet));
         
         int funcScope = -1;
         int typeScope = -1;
@@ -761,10 +761,10 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                                                                     statementsArena,
                                                                     tokens,
                                                                     scratchAllocator);
-            (void)RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, RET_ERROR_S()));
+            (void)RESULT_TRY(voidResult, DEFER_BREAK(0, RET_ERROR_S()));
             
             uint32_t tokenCount = ModC_StatementTokensUnion_GetTokenCount(&statement->Tokens);
-            CHECK(tokenCount > 0, (""), MODC_DEFER_BREAK(0, RET_ERROR_S()));
+            CHECK(tokenCount > 0, (""), DEFER_BREAK(0, RET_ERROR_S()));
             
             //Classify statements
             static_assert((int)ModC_StatementType_Count == 18, "");
@@ -784,7 +784,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                                                                     funcScope != -1, \
                                                                     &rootTypeHashSet, \
                                                                     &funcTypeHashSet); \
-                    (void)RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, RET_ERROR_S())); \
+                    (void)RESULT_TRY(voidResult, DEFER_BREAK(0, RET_ERROR_S())); \
                 }
             
             #define TRY_CLASSIFY_ENUM_VALUES() \
@@ -799,7 +799,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                 if(statement->StatementType == ModC_StatementType_Unknown) \
                 { \
                     voidResult = ModC_TryClassifyAsCompilerDirective(statement, tokens); \
-                    (void)RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, RET_ERROR_S())); \
+                    (void)RESULT_TRY(voidResult, DEFER_BREAK(0, RET_ERROR_S())); \
                 }
             
             #define TRY_CLASSIFY_VAR_DECLARE_ASSIGN() \
@@ -812,7 +812,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                                                                                 funcScope != -1, \
                                                                                 &rootTypeHashSet, \
                                                                                 &funcTypeHashSet); \
-                    (void)RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, RET_ERROR_S())); \
+                    (void)RESULT_TRY(voidResult, DEFER_BREAK(0, RET_ERROR_S())); \
                 }
             
             #define TRY_CLASSIFY_FUNC_DECLARE() \
@@ -824,7 +824,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                                                                         typeScope != -1, \
                                                                         funcScope != -1, \
                                                                         &rootTypeHashSet); \
-                    (void)RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, RET_ERROR_S())); \
+                    (void)RESULT_TRY(voidResult, DEFER_BREAK(0, RET_ERROR_S())); \
                 }
             
             #define TRY_CLASSIFY_RETURN() \
@@ -834,7 +834,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                                                             tokens, \
                                                             typeScope != -1, \
                                                             funcScope != -1); \
-                    (void)RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, RET_ERROR_S())); \
+                    (void)RESULT_TRY(voidResult, DEFER_BREAK(0, RET_ERROR_S())); \
                 }
             
             #define TRY_CLASSIFY_INVOKABLE() \
@@ -844,7 +844,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                                                                     tokens, \
                                                                     typeScope != -1, \
                                                                     funcScope != -1); \
-                    (void)RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, RET_ERROR_S())); \
+                    (void)RESULT_TRY(voidResult, DEFER_BREAK(0, RET_ERROR_S())); \
                 }
             
             #define TRY_CLASSIFY_ELSE() \
@@ -854,7 +854,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                                                         tokens, \
                                                         typeScope != -1, \
                                                         funcScope != -1); \
-                    (void)RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, RET_ERROR_S())); \
+                    (void)RESULT_TRY(voidResult, DEFER_BREAK(0, RET_ERROR_S())); \
                 }
             
             #define TRY_CLASSIFY_ASSIGNMENT() \
@@ -864,7 +864,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                                                             tokens, \
                                                             typeScope != -1, \
                                                             funcScope != -1); \
-                    (void)RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, RET_ERROR_S())); \
+                    (void)RESULT_TRY(voidResult, DEFER_BREAK(0, RET_ERROR_S())); \
                 }
             
             #define TRY_CLASSIFY_CASE() \
@@ -874,7 +874,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                                                         tokens, \
                                                         typeScope != -1, \
                                                         funcScope != -1); \
-                    (void)RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, RET_ERROR_S())); \
+                    (void)RESULT_TRY(voidResult, DEFER_BREAK(0, RET_ERROR_S())); \
                 }
             
             #define REPORT_FAILURE() \
@@ -882,8 +882,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                 { \
                     ModC_Result_TokenPtr tokenPtrResult = \
                         ModC_StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, 0); \
-                    ModC_Token* tokenPtr = *RESULT_TRY( tokenPtrResult, \
-                                                        MODC_DEFER_BREAK(0, RET_ERROR_S())); \
+                    ModC_Token* tokenPtr = *RESULT_TRY(tokenPtrResult, DEFER_BREAK(0, RET_ERROR_S())); \
                     RETURN_VISUALIZED_ERROR(tokenPtr, source, true, "%s", "Can't classify expression"); \
                 } \
                 while(0)
@@ -945,7 +944,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
         } //do
         while(true);
     }
-    MODC_DEFER_SCOPE_END(0)
+    DEFER_SCOPE_END(0)
     
     return RESULT_VALUE_S(0);
 
