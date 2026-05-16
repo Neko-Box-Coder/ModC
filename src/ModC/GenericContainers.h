@@ -5,18 +5,18 @@
 Header containing different container types.
 All template definitions are defined here.
 
-Define `MODC_DEFAULT_ALLOC` and `MODC_DEFAULT_ALLOC_ARGS` to use non `_ALLOC` macro variants
+Define `DEFAULT_ALLOC` to use non `_ALLOC` macro variants
 */
 
 #include <stdbool.h>
 
 #include "ModC/Result.h"
-MODC_DEFINE_RESULT_STRUCT(ModC_Result_Int32, int32_t)
-MODC_DEFINE_RESULT_STRUCT(ModC_Result_Uint32, uint32_t)
-MODC_DEFINE_RESULT_STRUCT(ModC_Result_Bool, uint8_t)
+DEFINE_RESULT_STRUCT(ModC_Result_Int32, int32_t)
+DEFINE_RESULT_STRUCT(ModC_Result_Uint32, uint32_t)
+DEFINE_RESULT_STRUCT(ModC_Result_Bool, uint8_t)
 
-typedef char ModC_Void;
-MODC_DEFINE_RESULT_STRUCT(ModC_Result_Void, ModC_Void)
+typedef char Void;
+DEFINE_RESULT_STRUCT(ModC_Result_Void, Void)
 
 #define LIST_NAME ModC_Uint32List
 #define VALUE_TYPE uint32_t

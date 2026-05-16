@@ -27,33 +27,33 @@ static_assert(sizeof(int) == sizeof(int32_t), "");
     #error "__COUNTER__ needs to be supported"
 #endif
 
-#ifndef MODC_DEFAULT_ALLOC
-    #define MODC_DEFAULT_ALLOC() ModC_CreateHeapAllocator()
+#ifndef DEFAULT_ALLOC
+    #define DEFAULT_ALLOC() ModC_CreateHeapAllocator()
 #endif
 
 static inline ModC_Result_Int32 TestResult(void)
 {
-    #undef ModC_ResultName_State
-    #define ModC_ResultName_State ModC_Result_Int32
+    #undef ResultNameState
+    #define ResultNameState ModC_Result_Int32
     
     if(true)
-        return MODC_ERROR_CSTR_S("Failed to seek file");
+        return ERROR_CSTR_S("Failed to seek file");
     else
-        return MODC_RESULT_VALUE_S(5);
+        return RESULT_VALUE_S(5);
 }
 
 static inline ModC_Result_Int32 TestResult2(void)
 {
     ModC_Result_Int32 intResult = TestResult();
-    int32_t* unwrappedVal = MODC_RESULT_TRY(intResult, MODC_RET_ERROR_S());
-    return MODC_RESULT_VALUE_S(*unwrappedVal);
+    int32_t* unwrappedVal = RESULT_TRY(intResult, RET_ERROR_S());
+    return RESULT_VALUE_S(*unwrappedVal);
 }
 
 ModC_Result_Void Main(int argc, char* argv[])
 {
     (void)&TestResult2;
-    #undef ModC_ResultName_State
-    #define ModC_ResultName_State ModC_Result_Void
+    #undef ResultNameState
+    #define ResultNameState ModC_Result_Void
     #undef TaggedUnionNameState
     #define TaggedUnionNameState ModC_StatementTokensUnion
     
@@ -68,7 +68,7 @@ ModC_Result_Void Main(int argc, char* argv[])
         if(argc == 1)
         {
             printf("Usage: %s <path>\n", argv[0]);
-            MODC_DEFER_BREAK(0, return MODC_RESULT_VALUE_S(0));
+            MODC_DEFER_BREAK(0, return RESULT_VALUE_S(0));
         }
         
         ModC_StringView filePath = ModC_StringView_Create(argv[1], strlen(argv[1]));
@@ -76,10 +76,7 @@ ModC_Result_Void Main(int argc, char* argv[])
         
         modcFile = fopen(filePath.Data, "r");
         if(!modcFile)
-        {
-            MODC_DEFER_BREAK(0, return MODC_ERROR_STR_FMT_S(("Failed to open file: %s", 
-                                                            strerror(errno))));
-        }
+            MODC_DEFER_BREAK(0, return ERROR_STR_FMT_S(("Failed to open file: %s", strerror(errno))));
         
         MODC_DEFER(0, { fclose(modcFile); modcFile = NULL; });
         
@@ -87,14 +84,14 @@ ModC_Result_Void Main(int argc, char* argv[])
         int64_t fileSize;
         {
             int fseekResult = fseek(modcFile, 0, SEEK_END);
-            MODC_CHECK( fseekResult == 0, 
-                        (" fseekResult: %i.", fseekResult), 
-                        MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
+            CHECK(  fseekResult == 0, 
+                    (" fseekResult: %i.", fseekResult), 
+                    MODC_DEFER_BREAK(0, RET_ERROR_S()));
             
             fileSize = ftell(modcFile);
-            MODC_CHECK( fileSize >= 0, 
-                        (" fileSize: "PRIi64".", fileSize), 
-                        MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
+            CHECK(  fileSize >= 0, 
+                    (" fileSize: "PRIi64".", fileSize), 
+                    MODC_DEFER_BREAK(0, RET_ERROR_S()));
         }
         
         fseek(modcFile, 0, 0);
@@ -103,19 +100,18 @@ ModC_Result_Void Main(int argc, char* argv[])
         
         fileContent = ModC_String_Create(ModC_Allocator_Share(&mainArena), fileSize);
         ModC_String_Resize(&fileContent, fileSize);
-        MODC_CHECK( fileContent.Length == fileSize, "", MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
+        CHECK(fileContent.Length == fileSize, "", MODC_DEFER_BREAK(0, RET_ERROR_S()));
         
         uint32_t actuallyRead = fread(fileContent.Data, 1, fileSize, modcFile);
-        MODC_CHECK( actuallyRead == fileSize, 
-                    (" actuallyRead: %"PRIu64", fileSize: %"PRIi64, actuallyRead, fileSize),
-                    MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
+        CHECK(  actuallyRead == fileSize, 
+                (" actuallyRead: %"PRIu64", fileSize: %"PRIi64, actuallyRead, fileSize),
+                MODC_DEFER_BREAK(0, RET_ERROR_S()));
     
         ModC_ConstStringView sourceView = ModC_ConstStringView_Create(  fileContent.Data, 
                                                                         fileContent.Length);
         ModC_Result_TokenList tokenListResult = ModC_Tokenization(  sourceView, 
                                                                     ModC_Allocator_Share(&mainArena));
-        ModC_TokenList* tokenList = MODC_RESULT_TRY(tokenListResult, 
-                                                    MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
+        ModC_TokenList* tokenList = RESULT_TRY(tokenListResult, MODC_DEFER_BREAK(0, RET_ERROR_S()));
         
         MODC_DEFER(0, ModC_TokenList_Free(tokenList));
         
@@ -134,8 +130,8 @@ ModC_Result_Void Main(int argc, char* argv[])
                                     sourceView, 
                                     ModC_Allocator_Share(&mainArena), 
                                     &statementListArena);
-        ModC_StatementList* statementList = MODC_RESULT_TRY(statementListResult, 
-                                                            MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
+        ModC_StatementList* statementList = RESULT_TRY(statementListResult, 
+                                                            MODC_DEFER_BREAK(0, RET_ERROR_S()));
         MODC_DEFER(0, ModC_Allocator_Destroy(&statementListArena));
         
         ModC_Result_Void voidResult = 
@@ -146,7 +142,7 @@ ModC_Result_Void Main(int argc, char* argv[])
                                             sourceView,
                                             //TODO: Use scratch arena.
                                             ModC_Allocator_Share(&mainArena));
-        (void)MODC_RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
+        (void)RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, RET_ERROR_S()));
         
         
         printString = ModC_String_Create(ModC_Allocator_Share(&mainArena), 64);
@@ -157,13 +153,13 @@ ModC_Result_Void Main(int argc, char* argv[])
                                                     &printString,
                                                     false);
             
-            (void)MODC_RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
+            (void)RESULT_TRY(voidResult, MODC_DEFER_BREAK(0, RET_ERROR_S()));
             printf("statementList[%i]: " "%.*s\n", i, (int)printString.Length, printString.Data);
         }
     }
     MODC_DEFER_SCOPE_END(0)
     
-    return MODC_RESULT_VALUE_S(0);
+    return RESULT_VALUE_S(0);
 }
 
 int main(int argc, char* argv[])
@@ -172,33 +168,33 @@ int main(int argc, char* argv[])
     (void)argv;
     #if 1
     {
-        #undef ModC_ResultName_State
-        #define ModC_ResultName_State ModC_Result_Void
+        #undef ResultNameState
+        #define ResultNameState ModC_Result_Void
         
         ModC_Result_Void result = Main(argc, argv);
         if(result.HasError)
         {
-            MODC_ERROR_APPEND_TRACE(result.ValueOrError.Error);
-            ModC_String resultStr = MODC_RESULT_TO_STRING_S(result);
+            ERROR_APPEND_TRACE(result.ValueOrError.Error);
+            ModC_String resultStr = RESULT_TO_STRING_S(result);
             printf("%.*s\n", (int)resultStr.Length, resultStr.Data);
             ModC_String_Free(&resultStr);
         }
-        MODC_RESULT_FREE_RESOURCE_S(&result);
+        RESULT_FREE_RESOURCE_S(&result);
     }
     #else
     {
-        #undef ModC_ResultName_State
-        #define ModC_ResultName_State ModC_Result_Int32
+        #undef ResultNameState
+        #define ResultNameState ModC_Result_Int32
         
         ModC_Result_Int32 result = TestResult2();
         if(result.HasError)
         {
-            MODC_ERROR_APPEND_TRACE(result.ValueOrError.Error);
-            ModC_String resultStr = MODC_RESULT_TO_STRING_S(result);
+            ERROR_APPEND_TRACE(result.ValueOrError.Error);
+            ModC_String resultStr = RESULT_TO_STRING_S(result);
             printf("%.*s\n", (int)resultStr.Length, resultStr.Data);
             ModC_String_Free(&resultStr);
         }
-        MODC_RESULT_FREE_RESOURCE_S(&result);
+        RESULT_FREE_RESOURCE_S(&result);
     }
     #endif
     
