@@ -4,26 +4,26 @@
 #include <assert.h>
 
 #ifdef NDEBUG 
-    #ifndef MODC_ASSERT_HANDLER
+    #ifndef ASSERT_HANDLER
         #include <stdio.h>
         #include <stdlib.h>
-        #define MODC_ASSERT_HANDLER(fatalStr) \
+        #define ASSERT_HANDLER(fatalStr) \
             fprintf(stderr, "\""fatalStr "\" failed in " __FILE__ ":%i:%s()\n", __LINE__, __func__); \
             fflush(stderr); \
             abort()
     #endif
 #else
-    #ifndef MODC_ASSERT_HANDLER
-        #define MODC_ASSERT_HANDLER(...)
+    #ifndef ASSERT_HANDLER
+        #define ASSERT_HANDLER(...)
     #endif
 #endif
 
 
-#define MODC_ASSERT(expr) \
+#define ASSERT(expr) \
     if( !(expr) ) \
     { \
         assert(0 && #expr); \
-        MODC_ASSERT_HANDLER(#expr); \
+        ASSERT_HANDLER(#expr); \
     }
 
 

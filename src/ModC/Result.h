@@ -198,9 +198,8 @@ static inline void TraceCreate(const char* file, const char* function, int line,
     if(!outTrace)
         return;
     
-    ModC_ConstStringView constFileView = 
-        MODC_CHAIN( ModC_ConstStringView_Create, (file, strlen(file)),
-                    ModC_GetFileName, ());
+    ModC_ConstStringView constFileView = CHAIN( ModC_ConstStringView_Create, (file, strlen(file)),
+                                                ModC_GetFileName, ());
     ModC_ConstStringView constFuncView = ModC_ConstStringView_Create(function, strlen(function));
     *outTrace = (Trace)
                 {

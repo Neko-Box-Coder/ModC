@@ -237,8 +237,8 @@ static inline void* ModC_Allocator_Malloc(const ModC_Allocator* this, uint64_t s
                     //                                (void*)arenaWrapper->PrevArena);
                 }
                 
-                MODC_ASSERT(arenaWrapper->PrevArena);
-                MODC_ASSERT(arenaWrapper->PrevArena->NextArena == arenaWrapper);
+                ASSERT(arenaWrapper->PrevArena);
+                ASSERT(arenaWrapper->PrevArena->NextArena == arenaWrapper);
                 retPtr = arena_alloc(arenaWrapper->CurrentArena, minRequiredSize);
             }
             
@@ -276,9 +276,9 @@ static inline void* ModC_Allocator_Realloc(const ModC_Allocator* this, void* dat
         case ModC_AllocatorType_SharedArena:
         case ModC_AllocatorType_OwnedArena:
         {
-            MODC_ASSERT(ModC_CheckFrontCanary(data) && 
-                        ModC_CheckBackCanary(data, ModC_GetAllocSize(data)) &&
-                        "Canary check broken, out-of-bound write detected");
+            ASSERT( ModC_CheckFrontCanary(data) && 
+                    ModC_CheckBackCanary(data, ModC_GetAllocSize(data)) &&
+                    "Canary check broken, out-of-bound write detected");
             
             uint64_t origSize = ModC_GetAllocSize(data);
             retPtr = ModC_Allocator_Malloc(this, size);
@@ -317,16 +317,16 @@ static inline void ModC_Allocator_Free(const ModC_Allocator* this, void* data)
         case ModC_AllocatorType_SharedArena:
         case ModC_AllocatorType_OwnedArena:
         {
-            MODC_ASSERT(ModC_CheckFrontCanary(data) && 
-                        ModC_CheckBackCanary(data, ModC_GetAllocSize(data)) &&
-                        "Canary check broken, out-of-bound write detected");
+            ASSERT( ModC_CheckFrontCanary(data) && 
+                    ModC_CheckBackCanary(data, ModC_GetAllocSize(data)) &&
+                    "Canary check broken, out-of-bound write detected");
             
             ModC_ArenaWrapper* currentNode = this->Allocator;
             char* byteDataPtr = data;
             while(currentNode->NextArena)
             {
                 Arena* currentArena = currentNode->CurrentArena;
-                MODC_ASSERT(currentArena);
+                ASSERT(currentArena);
                 if( byteDataPtr >= currentArena->region && 
                     byteDataPtr < currentArena->region + currentArena->index)
                 {
@@ -335,9 +335,9 @@ static inline void ModC_Allocator_Free(const ModC_Allocator* this, void* data)
                 
                 ModC_ArenaWrapper* prevArena = currentNode;
                 currentNode = currentNode->NextArena;
-                MODC_ASSERT(prevArena == currentNode->PrevArena);
+                ASSERT(prevArena == currentNode->PrevArena);
             }
-            MODC_ASSERT(currentNode->CurrentArena);
+            ASSERT(currentNode->CurrentArena);
             
             //TODO: Use walkable allocation list
             if( currentNode->CurrentArena->region + currentNode->CurrentArena->index ==
@@ -346,9 +346,9 @@ static inline void ModC_Allocator_Free(const ModC_Allocator* this, void* data)
                 currentNode->CurrentArena->index -= (ModC_FrontCanarySize() + 
                                                     ModC_GetAllocSize(data) + 
                                                     ModC_BackCanarySize());
-                MODC_ASSERT(currentNode->CurrentArena->region + 
-                            currentNode->CurrentArena->index + 
-                            ModC_FrontCanarySize() == byteDataPtr);
+                ASSERT( currentNode->CurrentArena->region + 
+                        currentNode->CurrentArena->index + 
+                        ModC_FrontCanarySize() == byteDataPtr);
             }
             
             break;
@@ -384,7 +384,7 @@ static inline void ModC_Allocator_Destroy(ModC_Allocator* this)
             {
                 ModC_ArenaWrapper* prevArena = currentNode;
                 currentNode = currentNode->NextArena;
-                MODC_ASSERT(prevArena == currentNode->PrevArena);
+                ASSERT(prevArena == currentNode->PrevArena);
             }
             
             //Free from back to front
@@ -392,14 +392,14 @@ static inline void ModC_Allocator_Destroy(ModC_Allocator* this)
             {
                 ModC_ArenaWrapper* prevArena = currentNode->PrevArena;
                 INTERN_PRINT_MODC_PRINT_TRACE("Destroying child: %p\n", (void*)currentNode);
-                MODC_ASSERT(currentNode->CurrentArena);
+                ASSERT(currentNode->CurrentArena);
                 arena_destroy(currentNode->CurrentArena);
                 currentNode = prevArena;
             }
             
             //Free first wrapper
             INTERN_PRINT_MODC_PRINT_TRACE("Destroying: %p\n", this->Allocator);
-            MODC_ASSERT(currentNode->CurrentArena);
+            ASSERT(currentNode->CurrentArena);
             arena_destroy(currentNode->CurrentArena);
             break;
         }
@@ -484,7 +484,7 @@ static inline ModC_Allocator ModC_CreateArenaAllocator_PreAllocated(void* preAll
     
     byteDataPtr += alignPadding;
     allocatedSize -= alignPadding;
-    MODC_ASSERT((uint64_t)byteDataPtr % arenaOffset == 0);
+    ASSERT((uint64_t)byteDataPtr % arenaOffset == 0);
     
     Arena* retArena = (void*)byteDataPtr;
     byteDataPtr += sizeof(Arena);
