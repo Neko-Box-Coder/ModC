@@ -27,15 +27,15 @@ Other than that, this also contains various helper functions. Just read the code
 #include <stdio.h>
 #include <string.h>
 
-#define MODC_TAGGED_UNION_NAME ModC_StringUnion
-#define MODC_VALUE_TYPES ModC_String,ModC_StringView,ModC_ConstStringView
+#define TU_NAME ModC_StringUnion
+#define VALUE_TYPES ModC_String,ModC_StringView,ModC_ConstStringView
 #include "ModC/TaggedUnion.h"
 
 #define ModC_StringUnion_ViewFromLiteral(cstr) \
-    MODC_TAG_INIT(ModC_StringUnion, ModC_ConstStringView, ModC_ConstStringView_FromLiteral(cstr))
+    TU_INIT(ModC_StringUnion, ModC_ConstStringView, ModC_ConstStringView_FromLiteral(cstr))
 
 #define ModC_StringUnion_StringFromLiteral(allocator, cstr) \
-    MODC_TAG_INIT(ModC_StringUnion, ModC_String, ModC_String_FromLiteral(allocator, cstr))
+    TU_INIT(ModC_StringUnion, ModC_String, ModC_String_FromLiteral(allocator, cstr))
 
 static inline ModC_ConstStringView ModC_StringUnion_GetConstView(const ModC_StringUnion* this);
 
@@ -78,15 +78,15 @@ static inline ModC_String* ModC_String_AppendVFormat(   ModC_String* this,
 //=======================================================================================
 static inline ModC_ConstStringView ModC_StringUnion_GetConstView(const ModC_StringUnion* this)
 {
-    #undef ModC_TaggedUnionName_State
-    #define ModC_TaggedUnionName_State ModC_StringUnion
+    #undef TaggedUnionNameState
+    #define TaggedUnionNameState ModC_StringUnion
     if(!this)
         return (ModC_ConstStringView){0};
     
-    return  this->Type == MODC_TAG_TYPE_S(ModC_String) ?
-            ModC_ConstStringView_Create(this->MODC_TAG_DATA_S(ModC_String).Data,
-                                        this->MODC_TAG_DATA_S(ModC_String).Length) :
-            this->MODC_TAG_DATA_S(ModC_ConstStringView);
+    return  this->Type == TU_TYPE_S(ModC_String) ?
+            ModC_ConstStringView_Create(this->TU_DATA_S(ModC_String).Data,
+                                        this->TU_DATA_S(ModC_String).Length) :
+            this->TU_DATA_S(ModC_ConstStringView);
 }
 
 static inline ModC_String ModC_String_FromData( ModC_Allocator allocator, 

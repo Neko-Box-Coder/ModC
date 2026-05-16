@@ -45,8 +45,8 @@ static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   ModC_Stateme
 {
     #undef ModC_ResultName_State
     #define ModC_ResultName_State ModC_Result_Void
-    #undef ModC_TaggedUnionName_State
-    #define ModC_TaggedUnionName_State ModC_StatementInfoUnion
+    #undef TaggedUnionNameState
+    #define TaggedUnionNameState ModC_StatementInfoUnion
     #undef uthash_malloc
     #define uthash_malloc(sz) ModC_Allocator_Malloc(&scratchAllocator, sz)
     #undef uthash_free
@@ -67,14 +67,12 @@ static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   ModC_Stateme
     if(ModC_ConstStringView_IsEqualLiteral(&firstTokenTextView, "struct"))
     {
         statement->StatementType = ModC_StatementType_TypeDeclaration;
-        statement->Info = MODC_TAG_INIT_S(  ModC_TypeDeclarationInfo, 
-                                            { .Type = ModC_Type_Struct });
+        statement->Info = TU_INIT_S(ModC_TypeDeclarationInfo, { .Type = ModC_Type_Struct });
     }
     else if(ModC_ConstStringView_IsEqualLiteral(&firstTokenTextView, "enum"))
     {
         statement->StatementType = ModC_StatementType_TypeDeclaration;
-        statement->Info = MODC_TAG_INIT_S(  ModC_TypeDeclarationInfo, 
-                                            { .Type = ModC_Type_Enum });
+        statement->Info = TU_INIT_S(ModC_TypeDeclarationInfo, { .Type = ModC_Type_Enum });
     }
     else
         return MODC_RESULT_VALUE_S(0);
@@ -97,8 +95,7 @@ static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   ModC_Stateme
     ModC_ConstStringView typeNameTextView = *MODC_RESULT_TRY(   constStringViewResult, 
                                                                 MODC_RET_ERROR_S());
     {
-        ModC_TypeDeclarationInfo* typeDeclInfo = 
-            &statement->Info.MODC_TAG_DATA_S(ModC_TypeDeclarationInfo);
+        ModC_TypeDeclarationInfo* typeDeclInfo = &statement->Info.TU_DATA_S(ModC_TypeDeclarationInfo);
         typeDeclInfo->TypeName = ModC_String_FromData(  statementsArena, 
                                                         typeNameTextView.Data, 
                                                         typeNameTextView.Length);
@@ -143,8 +140,8 @@ static inline ModC_Result_Void ModC_TryClassifyEnumValues(  ModC_Statement* stat
 {
     #undef ModC_ResultName_State
     #define ModC_ResultName_State ModC_Result_Void
-    #undef ModC_TaggedUnionName_State
-    #define ModC_TaggedUnionName_State ModC_StatementTokensUnion
+    #undef TaggedUnionNameState
+    #define TaggedUnionNameState ModC_StatementTokensUnion
     
     if(statement->StatementType == ModC_StatementType_Compound || !inTypeDecl)
         return MODC_RESULT_VALUE_S(0);
@@ -153,9 +150,8 @@ static inline ModC_Result_Void ModC_TryClassifyEnumValues(  ModC_Statement* stat
     ModC_Statement* grandparent = &statements->Data[parent->ParentIndex];
     
     MODC_CHECK(grandparent->StatementType == ModC_StatementType_Compound, (""), MODC_RET_ERROR_S());
-    ModC_CompoundStatement* grandparentChildren = 
-        &grandparent->Tokens.MODC_TAG_DATA_S(ModC_CompoundStatement);
-    
+    ModC_CompoundStatement* grandparentChildren = &grandparent  ->Tokens
+                                                                .TU_DATA_S(ModC_CompoundStatement);
     uint64_t foundIndex = ModC_Uint32List_Find(&grandparentChildren->ChildStatements, &parent->Index);
     MODC_CHECK(foundIndex != grandparentChildren->ChildStatements.Length, (""), MODC_RET_ERROR_S());
     
@@ -168,8 +164,8 @@ static inline ModC_Result_Void ModC_TryClassifyEnumValues(  ModC_Statement* stat
     if(typeDecl->StatementType != ModC_StatementType_TypeDeclaration)
         return MODC_RESULT_VALUE_S(0);
     
-    if(typeDecl->Info.MODC_TAG_DATA(ModC_StatementInfoUnion, 
-                                    ModC_TypeDeclarationInfo).Type != ModC_Type_Enum)
+    if(typeDecl->Info.TU_DATA(  ModC_StatementInfoUnion, 
+                                ModC_TypeDeclarationInfo).Type != ModC_Type_Enum)
     {
         return MODC_RESULT_VALUE_S(0);
     }
@@ -223,8 +219,8 @@ ModC_TryClassifyAsVariableDeclareAssignment(ModC_Statement* statement,
 {
     #undef ModC_ResultName_State
     #define ModC_ResultName_State ModC_Result_Void
-    #undef ModC_TaggedUnionName_State
-    #define ModC_TaggedUnionName_State ModC_StatementInfoUnion
+    #undef TaggedUnionNameState
+    #define TaggedUnionNameState ModC_StatementInfoUnion
     
     if(statement->StatementType == ModC_StatementType_Compound)
         return MODC_RESULT_VALUE_S(0);
@@ -316,25 +312,25 @@ ModC_TryClassifyAsVariableDeclareAssignment(ModC_Statement* statement,
         }
         
         statement->StatementType = ModC_StatementType_VariableDeclareAssignment;
-        statement->Info = MODC_TAG_INIT_S(  ModC_VariableDeclareAssignInfo, 
-                                            {
-                                                .TypeIndexInStatement = 0,
-                                                .IdentifierIndexInStatement = 1,
-                                                .HasAsignment = true,
-                                                .AssignIndexInStatement = foundIndex
-                                            });
+        statement->Info = TU_INIT_S(ModC_VariableDeclareAssignInfo, 
+                                    {
+                                        .TypeIndexInStatement = 0,
+                                        .IdentifierIndexInStatement = 1,
+                                        .HasAsignment = true,
+                                        .AssignIndexInStatement = foundIndex
+                                    });
     }
     //Otherwise, maybe it is ModC_StatementType_VariableDeclaration
     else
     {
         statement->StatementType = ModC_StatementType_VariableDeclaration;
-        statement->Info = MODC_TAG_INIT_S(  ModC_VariableDeclareAssignInfo, 
-                                            {
-                                                .TypeIndexInStatement = 0,
-                                                .IdentifierIndexInStatement = 1,
-                                                .HasAsignment = false,
-                                                .AssignIndexInStatement = 0
-                                            });
+        statement->Info = TU_INIT_S(ModC_VariableDeclareAssignInfo, 
+                                    {
+                                        .TypeIndexInStatement = 0,
+                                        .IdentifierIndexInStatement = 1,
+                                        .HasAsignment = false,
+                                        .AssignIndexInStatement = 0
+                                    });
     }
     
     return MODC_RESULT_VALUE_S(0);
@@ -350,8 +346,8 @@ ModC_TryClassifyAsFunctionDeclaration(  ModC_Statement* statement,
 {
     #undef ModC_ResultName_State
     #define ModC_ResultName_State ModC_Result_Void
-    #undef ModC_TaggedUnionName_State
-    #define ModC_TaggedUnionName_State ModC_StatementInfoUnion
+    #undef TaggedUnionNameState
+    #define TaggedUnionNameState ModC_StatementInfoUnion
     
     if(statement->StatementType == ModC_StatementType_Compound || inTypeDecl || inFuncImpl)
         return MODC_RESULT_VALUE_S(0);
@@ -424,13 +420,13 @@ ModC_TryClassifyAsFunctionDeclaration(  ModC_Statement* statement,
     }
     
     statement->StatementType = ModC_StatementType_FunctionDeclaration;
-    statement->Info = MODC_TAG_INIT_S(  ModC_FunctionDeclarationInfo, 
-                                        {
-                                            .TypeIndexInStatement = 0,
-                                            .IdentifierIndexInStatement = 1,
-                                            .HaveArguments = argumentToken != NULL,
-                                            .ArgumentIndexInStatement = argumentToken != NULL ? 3 : 0
-                                        });
+    statement->Info = TU_INIT_S(ModC_FunctionDeclarationInfo, 
+                                {
+                                    .TypeIndexInStatement = 0,
+                                    .IdentifierIndexInStatement = 1,
+                                    .HaveArguments = argumentToken != NULL,
+                                    .ArgumentIndexInStatement = argumentToken != NULL ? 3 : 0
+                                });
     
     return MODC_RESULT_VALUE_S(0);
 }
@@ -555,8 +551,8 @@ static inline ModC_Result_Void ModC_TryClassifyAssignment(  ModC_Statement* stat
 {
     #undef ModC_ResultName_State
     #define ModC_ResultName_State ModC_Result_Void
-    #undef ModC_TaggedUnionName_State
-    #define ModC_TaggedUnionName_State ModC_StatementInfoUnion
+    #undef TaggedUnionNameState
+    #define TaggedUnionNameState ModC_StatementInfoUnion
     
     if(statement->StatementType == ModC_StatementType_Compound || inTypeDecl || !inFuncImpl)
         return MODC_RESULT_VALUE_S(0);
@@ -587,7 +583,7 @@ static inline ModC_Result_Void ModC_TryClassifyAssignment(  ModC_Statement* stat
         return MODC_RESULT_VALUE_S(0);
     
     statement->StatementType = ModC_StatementType_Assignment;
-    statement->Info = MODC_TAG_INIT_S(ModC_AssignmentInfo, { .AssignIndexInStatement = foundIndex });
+    statement->Info = TU_INIT_S(ModC_AssignmentInfo, { .AssignIndexInStatement = foundIndex });
     return MODC_RESULT_VALUE_S(0);
 }
 
@@ -651,8 +647,8 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
 {
     #undef ModC_ResultName_State
     #define ModC_ResultName_State ModC_Result_Void
-    #undef ModC_TaggedUnionName_State
-    #define ModC_TaggedUnionName_State ModC_StatementTokensUnion
+    #undef TaggedUnionNameState
+    #define TaggedUnionNameState ModC_StatementTokensUnion
     
     MODC_CHECK(statements != NULL, (""), MODC_RET_ERROR_S());
     MODC_CHECK(tokens != NULL, (""), MODC_RET_ERROR_S());
@@ -674,7 +670,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                     ("Root node must be compound statement"),
                     MODC_RET_ERROR_S());
         //Empty?
-        if(rootStatement->Tokens.MODC_TAG_DATA_S(ModC_CompoundStatement).ChildStatements.Length == 0)
+        if(rootStatement->Tokens.TU_DATA_S(ModC_CompoundStatement).ChildStatements.Length == 0)
             return MODC_RESULT_VALUE_S(0);
     }
     
@@ -778,8 +774,8 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
             //Classify statements
             static_assert((int)ModC_StatementType_Count == 18, "");
             
-            #undef ModC_TaggedUnionName_State
-            #define ModC_TaggedUnionName_State ModC_StatementInfoUnion
+            #undef TaggedUnionNameState
+            #define TaggedUnionNameState ModC_StatementInfoUnion
             
             #define TRY_CLASSIFY_TYPE_DECLARATION() \
                 if(statement->StatementType == ModC_StatementType_Unknown) \

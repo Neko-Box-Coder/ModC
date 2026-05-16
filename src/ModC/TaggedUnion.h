@@ -8,9 +8,9 @@
 #include <stdint.h>
 
 /* Docs
-Define `MODC_TAGGED_UNION_NAME` for the name of the tagged union.
-Define `MODC_VALUE_TYPES` for types of the tagged union. This is comma separated.
-Pointers need to be typedef to be passed to `MODC_VALUE_TYPES`.
+Define `TU_NAME` for the name of the tagged union.
+Define `VALUE_TYPES` for types of the tagged union. This is comma separated.
+Pointers need to be typedef to be passed to `VALUE_TYPES`.
 
 Then include this file
 
@@ -18,46 +18,46 @@ Then include this file
 The following types will be defined
 
 ```c
-typedef enum <MODC_TAGGED_UNION_NAME>Index
+typedef enum <TU_NAME>Index
 {
-    <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_1>Index,
-    <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_2>Index,
-    <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_3>Index,
+    <TU_NAME>_<MODC_VALUE_TYPE_1>Index,
+    <TU_NAME>_<MODC_VALUE_TYPE_2>Index,
+    <TU_NAME>_<MODC_VALUE_TYPE_3>Index,
     ...
-    <MODC_TAGGED_UNION_NAME>_CountIndex,
-} <MODC_TAGGED_UNION_NAME>Index
+    <TU_NAME>_CountIndex,
+} <TU_NAME>Index
 
-typedef struct <MODC_TAGGED_UNION_NAME>
+typedef struct <TU_NAME>
 {
-    <MODC_TAGGED_UNION_NAME>Index Type;
+    <TU_NAME>Index Type;
     
     union
     {
-        <MODC_VALUE_TYPE_1> <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_1>Field;
-        <MODC_VALUE_TYPE_2> <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_2>Field;
-        <MODC_VALUE_TYPE_3> <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_3>Field;
+        <MODC_VALUE_TYPE_1> <TU_NAME>_<MODC_VALUE_TYPE_1>Field;
+        <MODC_VALUE_TYPE_2> <TU_NAME>_<MODC_VALUE_TYPE_2>Field;
+        <MODC_VALUE_TYPE_3> <TU_NAME>_<MODC_VALUE_TYPE_3>Field;
         ...
     } Data;
-} <MODC_TAGGED_UNION_NAME>
+} <TU_NAME>
 ```
 
 ```c
-#define MODC_TAGGED_UNION_NAME MyUnion
-#define MODC_VALUE_TYPES int,char
+#define TU_NAME MyUnion
+#define VALUE_TYPES int,char
 #include "TaggedUnion.h"
 ```
 
 #### Functions:
 
-Define `ModC_TaggedUnionName_State` to use `_S` macro variants
+Define `TaggedUnionNameState` to use `_S` macro variants
 
 Macro:
     Use this macro to match `.Type` from the union object.
 ```c
-//MODC_TAG_TYPE(ModC_TaggedUnionName, typeName)
-//MODC_TAG_TYPE_S(typeName)
+//TU_TYPE(TaggedUnionName, typeName)
+//TU_TYPE_S(typeName)
 
-if(myUnion.Type == MODC_TAG_TYPE(MyUnion, int))
+if(myUnion.Type == TU_TYPE(MyUnion, int))
 {
     ...
 }
@@ -66,153 +66,153 @@ if(myUnion.Type == MODC_TAG_TYPE(MyUnion, int))
 Macro:
     Use this macro to get the data from the union object
 ```c
-//MODC_TAG_DATA(ModC_TaggedUnionName, typeName)
-//MODC_TAG_DATA_S(typeName)
+//TU_DATA(TaggedUnionName, typeName)
+//TU_DATA_S(typeName)
 
-int unionData = myUnion.MODC_TAG_DATA(MyUnion, int);
+int unionData = myUnion.TU_DATA(MyUnion, int);
 ```
 
 Macro:
     Use this macro to set the union value
 ```c
-//MODC_TAG_INIT(ModC_TaggedUnionName, typeName, value)
-//MODC_TAG_INIT_S(typeName, value) \
+//TU_INIT(TaggedUnionName, typeName, value)
+//TU_INIT_S(typeName, value) \
 
-MyUnion myUnion = MODC_TAG_INIT(MyUnion, int, 5);
+MyUnion myUnion = TU_INIT(MyUnion, int, 5);
 ```
 
 */
 
 
-#ifndef MODC_TAGGED_UNION_NAME
-    #error "MODC_TAGGED_UNION_NAME is not defined"
+#ifndef TU_NAME
+    #error "TU_NAME is not defined"
 #endif
 
-#ifndef MODC_VALUE_TYPES
-    #error "MODC_VALUE_TYPES is not defined"
+#ifndef VALUE_TYPES
+    #error "VALUE_TYPES is not defined"
 #endif
 
 #define INTERNAL_MODC_FIELD_NAMES \
-    MPT_CONCAT_LISTS_ITEMS( MODC_VALUE_TYPES, \
-                            MPT_REPEAT_WITH_COMMA( MPT_ARGS_COUNT(MODC_VALUE_TYPES), Field ))
+    MPT_CONCAT_LISTS_ITEMS( VALUE_TYPES, \
+                            MPT_REPEAT_WITH_COMMA( MPT_ARGS_COUNT(VALUE_TYPES), Field ))
 
-#define INTERNAL_MODC_FIELD_COUNT MPT_ARGS_COUNT(MODC_VALUE_TYPES)
+#define INTERNAL_MODC_FIELD_COUNT MPT_ARGS_COUNT(VALUE_TYPES)
 
 /*
 Expands to: 
 ```c
-typedef enum <MODC_TAGGED_UNION_NAME>Index
+typedef enum <TU_NAME>Index
 {
-    <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_1>Index,
-    <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_2>Index,
-    <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_3>Index,
+    <TU_NAME>_<MODC_VALUE_TYPE_1>Index,
+    <TU_NAME>_<MODC_VALUE_TYPE_2>Index,
+    <TU_NAME>_<MODC_VALUE_TYPE_3>Index,
     ...
-    <MODC_TAGGED_UNION_NAME>_CountIndex,
-} <MODC_TAGGED_UNION_NAME>Index
+    <TU_NAME>_CountIndex,
+} <TU_NAME>Index
 ```
 */
-typedef enum MPT_DELAYED_CONCAT( MODC_TAGGED_UNION_NAME, Index )
+typedef enum MPT_DELAYED_CONCAT( TU_NAME, Index )
 {
     MPT_CONCAT_LISTS_ITEMS
     (
-        MPT_REPEAT_WITH_COMMA(INTERNAL_MODC_FIELD_COUNT, MODC_TAGGED_UNION_NAME),
+        MPT_REPEAT_WITH_COMMA(INTERNAL_MODC_FIELD_COUNT, TU_NAME),
         MPT_CONCAT_LISTS_ITEMS
         (
             MPT_CONCAT_LISTS_ITEMS( MPT_REPEAT_WITH_COMMA(INTERNAL_MODC_FIELD_COUNT, _), 
-                                    MODC_VALUE_TYPES),
+                                    VALUE_TYPES),
             MPT_REPEAT_WITH_COMMA(INTERNAL_MODC_FIELD_COUNT, Index)
         )
     ),
-    MPT_DELAYED_CONCAT(MODC_TAGGED_UNION_NAME, _CountIndex)
-} MPT_DELAYED_CONCAT( MODC_TAGGED_UNION_NAME, Index );
+    MPT_DELAYED_CONCAT(TU_NAME, _CountIndex)
+} MPT_DELAYED_CONCAT( TU_NAME, Index );
 
 
 /*
 Expands to: 
 ```c
-typedef struct <MODC_TAGGED_UNION_NAME>
+typedef struct <TU_NAME>
 {
-    <MODC_TAGGED_UNION_NAME>Index Type;
+    <TU_NAME>Index Type;
     
     union
     {
-        <MODC_VALUE_TYPE_1> <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_1>Field;
-        <MODC_VALUE_TYPE_2> <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_2>Field;
-        <MODC_VALUE_TYPE_3> <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_3>Field;
+        <MODC_VALUE_TYPE_1> <TU_NAME>_<MODC_VALUE_TYPE_1>Field;
+        <MODC_VALUE_TYPE_2> <TU_NAME>_<MODC_VALUE_TYPE_2>Field;
+        <MODC_VALUE_TYPE_3> <TU_NAME>_<MODC_VALUE_TYPE_3>Field;
         ...
     } Data;
-} <MODC_TAGGED_UNION_NAME>
+} <TU_NAME>
 ```
 */
-typedef struct MODC_TAGGED_UNION_NAME
+typedef struct TU_NAME
 {
-    MPT_DELAYED_CONCAT( MODC_TAGGED_UNION_NAME, Index ) Type;
+    MPT_DELAYED_CONCAT( TU_NAME, Index ) Type;
     
     union
     {
-        //Expands to: <MODC_VALUE_TYPE_1> <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_1>Field; ...
+        //Expands to: <MODC_VALUE_TYPE_1> <TU_NAME>_<MODC_VALUE_TYPE_1>Field; ...
         MPT_SPLIT_LIST
         (
             ;, 
             
-            //Expands to: <MODC_VALUE_TYPE_1> <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_1>Field, ...
+            //Expands to: <MODC_VALUE_TYPE_1> <TU_NAME>_<MODC_VALUE_TYPE_1>Field, ...
             MPT_APPEND_LISTS_ITEMS
             (
-                MODC_VALUE_TYPES,
+                VALUE_TYPES,
                 
-                //Expands to: <MODC_TAGGED_UNION_NAME>_<MODC_VALUE_TYPE_1>Field, ...
+                //Expands to: <TU_NAME>_<MODC_VALUE_TYPE_1>Field, ...
                 MPT_CONCAT_LISTS_ITEMS
                 (
-                    //Expands to: <MODC_TAGGED_UNION_NAME>, <MODC_TAGGED_UNION_NAME>, ...
-                    MPT_REPEAT_WITH_COMMA(INTERNAL_MODC_FIELD_COUNT, MODC_TAGGED_UNION_NAME),
+                    //Expands to: <TU_NAME>, <TU_NAME>, ...
+                    MPT_REPEAT_WITH_COMMA(INTERNAL_MODC_FIELD_COUNT, TU_NAME),
                     
                     //Expands to: _<MODC_VALUE_TYPE_1>Field, _<MODC_VALUE_TYPE_2>Field, ...
                     MPT_CONCAT_LISTS_ITEMS
                     (
                         MPT_CONCAT_LISTS_ITEMS( MPT_REPEAT_WITH_COMMA(INTERNAL_MODC_FIELD_COUNT, _),
-                                                MODC_VALUE_TYPES),
+                                                VALUE_TYPES),
                         MPT_REPEAT_WITH_COMMA(INTERNAL_MODC_FIELD_COUNT, Field)
                     )
                 )
             )
         );
     } Data;
-} MODC_TAGGED_UNION_NAME;
+} TU_NAME;
 
-#undef MODC_TAG_TYPE
-//Expands to: <ModC_TaggedUnionName>_<typeName>Index
-#define MODC_TAG_TYPE(ModC_TaggedUnionName, typeName) \
-    MPT_DELAYED_CONCAT3(MPT_DELAYED_CONCAT2(MPT_DELAYED_CONCAT(ModC_TaggedUnionName, _), \
+#undef TU_TYPE
+//Expands to: <TaggedUnionName>_<typeName>Index
+#define TU_TYPE(TaggedUnionName, typeName) \
+    MPT_DELAYED_CONCAT3(MPT_DELAYED_CONCAT2(MPT_DELAYED_CONCAT(TaggedUnionName, _), \
                                             typeName), \
                         Index)
 
-#undef MODC_TAG_TYPE_S
-#define MODC_TAG_TYPE_S(typeName) MODC_TAG_TYPE(ModC_TaggedUnionName_State, typeName)
+#undef TU_TYPE_S
+#define TU_TYPE_S(typeName) TU_TYPE(TaggedUnionNameState, typeName)
 
-#undef MODC_TAG_DATA
-//Expands to: <ModC_TaggedUnionName>_<typeName>Field
-#define MODC_TAG_DATA(ModC_TaggedUnionName, typeName) \
-    Data.MPT_DELAYED_CONCAT3(   MPT_DELAYED_CONCAT2(MPT_DELAYED_CONCAT(ModC_TaggedUnionName, _), \
+#undef TU_DATA
+//Expands to: <TaggedUnionName>_<typeName>Field
+#define TU_DATA(TaggedUnionName, typeName) \
+    Data.MPT_DELAYED_CONCAT3(   MPT_DELAYED_CONCAT2(MPT_DELAYED_CONCAT(TaggedUnionName, _), \
                                                     typeName), \
                                 Field)
 
-#undef MODC_TAG_DATA_S
-#define MODC_TAG_DATA_S(typeName) MODC_TAG_DATA(ModC_TaggedUnionName_State, typeName) 
+#undef TU_DATA_S
+#define TU_DATA_S(typeName) TU_DATA(TaggedUnionNameState, typeName) 
 
-#undef MODC_TAG_INIT
-#define MODC_TAG_INIT(ModC_TaggedUnionName, typeName, ... /* value */) \
-        (ModC_TaggedUnionName) \
+#undef TU_INIT
+#define TU_INIT(TaggedUnionName, typeName, ... /* value */) \
+        (TaggedUnionName) \
         { \
-            .Type = MODC_TAG_TYPE(ModC_TaggedUnionName, typeName), \
-            .MODC_TAG_DATA(ModC_TaggedUnionName, typeName) = __VA_ARGS__ \
+            .Type = TU_TYPE(TaggedUnionName, typeName), \
+            .TU_DATA(TaggedUnionName, typeName) = __VA_ARGS__ \
         } \
 
-#undef MODC_TAG_INIT_S
-#define MODC_TAG_INIT_S(typeName, ... /* value */) \
-    MODC_TAG_INIT(ModC_TaggedUnionName_State, typeName, __VA_ARGS__)
+#undef TU_INIT_S
+#define TU_INIT_S(typeName, ... /* value */) \
+    TU_INIT(TaggedUnionNameState, typeName, __VA_ARGS__)
 
 
-#undef MODC_TAGGED_UNION_NAME
-#undef MODC_VALUE_TYPES
+#undef TU_NAME
+#undef VALUE_TYPES
 #undef INTERNAL_MODC_FIELD_NAMES
 #undef INTERNAL_MODC_FIELD_COUNT

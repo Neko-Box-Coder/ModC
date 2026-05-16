@@ -56,8 +56,8 @@ typedef struct ModC_CompoundStatement
 
 typedef ModC_Uint32List ModC_TokenIndexList;
 
-#define MODC_TAGGED_UNION_NAME ModC_StatementTokensUnion
-#define MODC_VALUE_TYPES ModC_CompoundStatement,ModC_TokenIndexList,ModC_TokenIndexRange
+#define TU_NAME ModC_StatementTokensUnion
+#define VALUE_TYPES ModC_CompoundStatement,ModC_TokenIndexList,ModC_TokenIndexRange
 #include "ModC/TaggedUnion.h"
 
 typedef struct ModC_TypeDeclarationInfo
@@ -93,12 +93,12 @@ typedef struct ModC_AssignmentInfo
 } ModC_AssignmentInfo;
 
 
-#define MODC_TAGGED_UNION_NAME ModC_StatementInfoUnion
-#define MODC_VALUE_TYPES    ModC_Void, \
-                            ModC_TypeDeclarationInfo, \
-                            ModC_VariableDeclareAssignInfo, \
-                            ModC_FunctionDeclarationInfo, \
-                            ModC_AssignmentInfo
+#define TU_NAME ModC_StatementInfoUnion
+#define VALUE_TYPES ModC_Void, \
+                    ModC_TypeDeclarationInfo, \
+                    ModC_VariableDeclareAssignInfo, \
+                    ModC_FunctionDeclarationInfo, \
+                    ModC_AssignmentInfo
 #include "ModC/TaggedUnion.h"
 
 typedef struct ModC_Statement ModC_Statement;
@@ -128,25 +128,26 @@ MODC_DEFINE_RESULT_STRUCT(ModC_Result_StatementList, ModC_StatementList)
 #include <stdbool.h>
 #include <stdint.h>
 
+//TODO: Use statement to get token count instead
 static inline uint32_t 
 ModC_StatementTokensUnion_GetTokenCount(const ModC_StatementTokensUnion* statementUnion)
 {
-    #undef ModC_TaggedUnionName_State
-    #define ModC_TaggedUnionName_State ModC_StatementTokensUnion
+    #undef TaggedUnionNameState
+    #define TaggedUnionNameState ModC_StatementTokensUnion
     
     if(!statementUnion)
         return 0;
     
     switch(statementUnion->Type)
     {
-        case MODC_TAG_TYPE_S(ModC_CompoundStatement):
+        case TU_TYPE_S(ModC_CompoundStatement):
             return 2;
-        case MODC_TAG_TYPE_S(ModC_TokenIndexList):
-            return statementUnion->MODC_TAG_DATA_S(ModC_TokenIndexList).Length;
-        case MODC_TAG_TYPE_S(ModC_TokenIndexRange):
+        case TU_TYPE_S(ModC_TokenIndexList):
+            return statementUnion->TU_DATA_S(ModC_TokenIndexList).Length;
+        case TU_TYPE_S(ModC_TokenIndexRange):
         {
             const ModC_TokenIndexRange* range = 
-                &statementUnion->MODC_TAG_DATA_S(ModC_TokenIndexRange);
+                &statementUnion->TU_DATA_S(ModC_TokenIndexRange);
             return range->EndIndex - range->StartIndex;
         }
         default:
@@ -161,8 +162,8 @@ ModC_StatementTokensUnion_GetTokenIndexAt(  const ModC_StatementTokensUnion* sta
 {
     #undef ModC_ResultName_State
     #define ModC_ResultName_State ModC_Result_Uint32
-    #undef ModC_TaggedUnionName_State
-    #define ModC_TaggedUnionName_State ModC_StatementTokensUnion
+    #undef TaggedUnionNameState
+    #define TaggedUnionNameState ModC_StatementTokensUnion
     
     MODC_CHECK(statementUnion != NULL, (""), MODC_RET_ERROR_S());
     MODC_CHECK(tokens != NULL, (""), MODC_RET_ERROR_S());
@@ -170,11 +171,11 @@ ModC_StatementTokensUnion_GetTokenIndexAt(  const ModC_StatementTokensUnion* sta
     uint32_t tokenIndex = 0;
     switch(statementUnion->Type)
     {
-        case MODC_TAG_TYPE_S(ModC_CompoundStatement):
+        case TU_TYPE_S(ModC_CompoundStatement):
         {
             //NOTE: Shouldn't use this function for compound statement..., but whatever
             const ModC_CompoundStatement* compound = 
-                &statementUnion->MODC_TAG_DATA_S(ModC_CompoundStatement);
+                &statementUnion->TU_DATA_S(ModC_CompoundStatement);
             if(indexInStatement == 0)
                 tokenIndex = compound->StartTokenIndex;
             else if(indexInStatement == 1)
@@ -183,10 +184,10 @@ ModC_StatementTokensUnion_GetTokenIndexAt(  const ModC_StatementTokensUnion* sta
                 return MODC_ERROR_STR_FMT_S("Invalid index for accessing %"PRIu32, indexInStatement);
             break;
         }
-        case MODC_TAG_TYPE_S(ModC_TokenIndexList):
+        case TU_TYPE_S(ModC_TokenIndexList):
         {
             const ModC_TokenIndexList* tokenIndexList = 
-                &statementUnion->MODC_TAG_DATA_S(ModC_TokenIndexList);
+                &statementUnion->TU_DATA_S(ModC_TokenIndexList);
             
             MODC_CHECK(tokenIndexList->Length > 0, ("Empty statement"), MODC_RET_ERROR_S());
             MODC_CHECK( indexInStatement < tokenIndexList->Length, 
@@ -196,11 +197,9 @@ ModC_StatementTokensUnion_GetTokenIndexAt(  const ModC_StatementTokensUnion* sta
             tokenIndex = tokenIndexList->Data[indexInStatement];
             break;
         }
-        case MODC_TAG_TYPE_S(ModC_TokenIndexRange):
+        case TU_TYPE_S(ModC_TokenIndexRange):
         {
-            const ModC_TokenIndexRange* range = 
-                &statementUnion->MODC_TAG_DATA_S(ModC_TokenIndexRange);
-            
+            const ModC_TokenIndexRange* range = &statementUnion->TU_DATA_S(ModC_TokenIndexRange);
             MODC_CHECK(range->EndIndex > range->StartIndex, ("Empty statement"), MODC_RET_ERROR_S());
             MODC_CHECK( indexInStatement < range->EndIndex - range->StartIndex, 
                         ("Invalid index for accessing, index: %"PRIu32", length: %"PRIu32,
@@ -321,8 +320,8 @@ static inline ModC_ResultStatementPtr ModC_Statement_CreateCompound(ModC_Allocat
 {
     #undef ModC_ResultName_State
     #define ModC_ResultName_State ModC_ResultStatementPtr
-    #undef ModC_TaggedUnionName_State
-    #define ModC_TaggedUnionName_State ModC_StatementTokensUnion
+    #undef TaggedUnionNameState
+    #define TaggedUnionNameState ModC_StatementTokensUnion
     
     MODC_CHECK(statementList != NULL, (""), MODC_RET_ERROR_S());
     MODC_CHECK(allocator.Type == ModC_AllocatorType_SharedArena, (""), MODC_RET_ERROR_S());
@@ -335,16 +334,14 @@ static inline ModC_ResultStatementPtr ModC_Statement_CreateCompound(ModC_Allocat
                                 (ModC_Statement)
                                 {
                                     .StatementType = ModC_StatementType_Compound,
-                                    .Tokens = 
-                                        MODC_TAG_INIT_S(ModC_CompoundStatement, 
+                                    .Tokens = TU_INIT_S(ModC_CompoundStatement, 
                                                         {
                                                             .StartTokenIndex = 0,
                                                             .ChildStatements = childStatements,
                                                             .EndTokenIndex = 0,
                                                             .Implicit = implicit
-                                                        }
-                                        ),
-                                    .Info = MODC_TAG_INIT(ModC_StatementInfoUnion, ModC_Void, 0),
+                                                        }),
+                                    .Info = TU_INIT(ModC_StatementInfoUnion, ModC_Void, 0),
                                     .Index = oldLength,
                                     .ParentIndex = parentIndex
                                 });
@@ -361,8 +358,8 @@ static inline ModC_ResultStatementPtr ModC_Statement_CreatePlain(   ModC_Allocat
 {
     #undef ModC_ResultName_State
     #define ModC_ResultName_State ModC_ResultStatementPtr
-    #undef ModC_TaggedUnionName_State
-    #define ModC_TaggedUnionName_State ModC_StatementTokensUnion
+    #undef TaggedUnionNameState
+    #define TaggedUnionNameState ModC_StatementTokensUnion
     
     MODC_CHECK(statementList != NULL, (""), MODC_RET_ERROR_S());
     MODC_CHECK(allocator.Type == ModC_AllocatorType_SharedArena, (""), MODC_RET_ERROR_S());
@@ -372,16 +369,16 @@ static inline ModC_ResultStatementPtr ModC_Statement_CreatePlain(   ModC_Allocat
                                 (ModC_Statement)
                                 {
                                     .StatementType = ModC_StatementType_Unknown,
-                                    .Tokens = MODC_TAG_INIT_S(ModC_TokenIndexRange, {0}),
-                                    .Info = MODC_TAG_INIT(ModC_StatementInfoUnion, ModC_Void, 0),
+                                    .Tokens = TU_INIT_S(ModC_TokenIndexRange, {0}),
+                                    .Info = TU_INIT(ModC_StatementInfoUnion, ModC_Void, 0),
                                     .Index = oldLength,
                                     .ParentIndex = parentIndex
                                 });
     MODC_CHECK(statementList->Length != oldLength, ("Failed to allocate"), MODC_RET_ERROR_S());
     
     ModC_Statement* retStatementPtr = &statementList->Data[statementList->Length - 1];
-    //MODC_CHECK( retStatementPtr->Tokens.MODC_TAG_DATA(  ModC_StatementTokensUnion, 
-    //                                                    ModC_TokenIndexList).Cap > 0,
+    //MODC_CHECK( retStatementPtr->Tokens.TU_DATA(ModC_StatementTokensUnion, 
+    //                                            ModC_TokenIndexList).Cap > 0,
     //            ("Failed to allocate"), 
     //            MODC_RET_ERROR_S());
     
@@ -395,8 +392,8 @@ static inline ModC_Result_Void ModC_Statement_ToString( ModC_Statement* this,
 {
     #undef ModC_ResultName_State
     #define ModC_ResultName_State ModC_Result_Void
-    #undef ModC_TaggedUnionName_State
-    #define ModC_TaggedUnionName_State ModC_StatementTokensUnion
+    #undef TaggedUnionNameState
+    #define TaggedUnionNameState ModC_StatementTokensUnion
     
     if(!inOutString || !tokenList)
         return MODC_RESULT_VALUE_S(0);
@@ -408,14 +405,13 @@ static inline ModC_Result_Void ModC_Statement_ToString( ModC_Statement* this,
     ModC_String_AddRange(inOutString, statementTypeStr.Data, statementTypeStr.Length);
     ModC_String_AppendLiteral(inOutString, " - ");
     
-    static_assert((int)MODC_TAG_TYPE_S(Count) == 3, "");
+    static_assert((int)TU_TYPE_S(Count) == 3, "");
     switch(this->Tokens.Type)
     {
-        case MODC_TAG_TYPE_S(ModC_CompoundStatement):
+        case TU_TYPE_S(ModC_CompoundStatement):
         {
-            ModC_CompoundStatement* compoundStatement = 
-                &this->Tokens.MODC_TAG_DATA_S(ModC_CompoundStatement);
-            
+            ModC_CompoundStatement* compoundStatement = &this   ->Tokens
+                                                                .TU_DATA_S(ModC_CompoundStatement);
             ModC_String_AppendFormat(   inOutString, 
                                         "ModC_CompoundStatement: %" PRIu32 " - %" PRIu32 " "
                                         "(Implicit: %s), (Children: ", 
@@ -443,11 +439,9 @@ static inline ModC_Result_Void ModC_Statement_ToString( ModC_Statement* this,
             ModC_String_AddValue(inOutString, ')');
             break;
         }
-        case MODC_TAG_TYPE_S(ModC_TokenIndexList):
+        case TU_TYPE_S(ModC_TokenIndexList):
         {
-            ModC_TokenIndexList* tokenIndexList = 
-                &this->Tokens.MODC_TAG_DATA_S(ModC_TokenIndexList);
-            
+            ModC_TokenIndexList* tokenIndexList = &this->Tokens.TU_DATA_S(ModC_TokenIndexList);
             ModC_String_AppendFormat(inOutString, "ModC_TokenIndexList: (Indices: ");
             if(tokenIndexList->Length >= 2)
             {
@@ -473,11 +467,9 @@ static inline ModC_Result_Void ModC_Statement_ToString( ModC_Statement* this,
             ModC_String_AppendLiteral(inOutString, "\"");
             break;
         }
-        case MODC_TAG_TYPE_S(ModC_TokenIndexRange):
+        case TU_TYPE_S(ModC_TokenIndexRange):
         {
-            ModC_TokenIndexRange* tokenIndexRange = 
-                &this->Tokens.MODC_TAG_DATA_S(ModC_TokenIndexRange);
-            
+            ModC_TokenIndexRange* tokenIndexRange = &this->Tokens.TU_DATA_S(ModC_TokenIndexRange);
             ModC_String_AppendFormat(   inOutString, 
                                         "ModC_TokenIndexRange: %" PRIu32 " - %" PRIu32 ", \"",
                                         tokenIndexRange->StartIndex,
@@ -502,26 +494,26 @@ static inline ModC_Result_Void ModC_Statement_ToString( ModC_Statement* this,
 #if 0
     void ModC_Statement_Free(ModC_Statement* this)
     {
-        #undef ModC_TaggedUnionName_State
-        #define ModC_TaggedUnionName_State ModC_StatementTokensUnion
+        #undef TaggedUnionNameState
+        #define TaggedUnionNameState ModC_StatementTokensUnion
         
         if(!this)
             return;
         
         //No children, just free the token list
-        if(this->Tokens.Type == MODC_TAG_TYPE_S(TokenIndexList))
+        if(this->Tokens.Type == TU_TYPE_S(TokenIndexList))
         {
-            ModC_Uint32List_Free(&this->Tokens.MODC_TAG_DATA_S(TokenIndexList));
+            ModC_Uint32List_Free(&this->Tokens.TU_DATA_S(TokenIndexList));
             *this = (ModC_Statement){0};
             return;
         }
         
         //Get to the deepest child
         ModC_Statement* currentStatement = this;
-        while(currentStatement->Tokens.Type == MODC_TAG_TYPE_S(ModC_ChildStatements))
+        while(currentStatement->Tokens.Type == TU_TYPE_S(ModC_ChildStatements))
         {
             ModC_ChildStatements* currentChildren =
-                &currentStatement->Tokens.MODC_TAG_DATA_S(ModC_ChildStatements);
+                &currentStatement->Tokens.TU_DATA_S(ModC_ChildStatements);
             
             if(currentChildren->Statements->Length == 0)
                 break;
@@ -539,11 +531,11 @@ static inline ModC_Result_Void ModC_AddStatementToParent(   uint32_t statementIn
 {
     #undef ModC_ResultName_State
     #define ModC_ResultName_State ModC_Result_Void
-    #undef ModC_TaggedUnionName_State
-    #define ModC_TaggedUnionName_State ModC_StatementTokensUnion
+    #undef TaggedUnionNameState
+    #define TaggedUnionNameState ModC_StatementTokensUnion
     
     MODC_CHECK( statementList->Data[currentParentIndex].Tokens.Type ==
-                MODC_TAG_TYPE_S(ModC_CompoundStatement),
+                TU_TYPE_S(ModC_CompoundStatement),
                 ("Expecting parent to be type compound, found type index %d instead",
                 (int)statementList->Data[currentParentIndex].Tokens.Type),
                 MODC_RET_ERROR_S());
@@ -551,7 +543,7 @@ static inline ModC_Result_Void ModC_AddStatementToParent(   uint32_t statementIn
     ModC_StatementIndexList* parentStatementList =
         &statementList  ->Data[currentParentIndex]
                         .Tokens
-                        .MODC_TAG_DATA_S(ModC_CompoundStatement)
+                        .TU_DATA_S(ModC_CompoundStatement)
                         .ChildStatements;
     ModC_Uint32List_AddValue(parentStatementList, statementIndex);
     
@@ -567,10 +559,10 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
 {
     #undef ModC_ResultName_State
     #define ModC_ResultName_State ModC_Result_Void
-    #undef ModC_TaggedUnionName_State
-    #define ModC_TaggedUnionName_State ModC_StatementTokensUnion
+    #undef TaggedUnionNameState
+    #define TaggedUnionNameState ModC_StatementTokensUnion
     
-    MODC_CHECK( statement->Tokens.Type != MODC_TAG_TYPE_S(ModC_CompoundStatement),
+    MODC_CHECK( statement->Tokens.Type != TU_TYPE_S(ModC_CompoundStatement),
                 ("Unexpected statement union type"),
                 MODC_RET_ERROR_S());
         
@@ -650,12 +642,10 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
                             *MODC_RESULT_TRY(tokenPtrResult, MODC_DEFER_BREAK(0, MODC_RET_ERROR_S()));
                         
                         //Modify current token to concatenated operator string
-                        if(currentToken->TokenText.Type == MODC_TAG_TYPE(   ModC_StringUnion, 
-                                                                            ModC_String))
+                        if(currentToken->TokenText.Type == TU_TYPE(ModC_StringUnion, ModC_String))
                         {
                             ModC_String* tokenStr = 
-                                &minLookBackToken->TokenText.MODC_TAG_DATA( ModC_StringUnion, 
-                                                                            ModC_String);
+                                &minLookBackToken->TokenText.TU_DATA( ModC_StringUnion, ModC_String);
                             ModC_String_AddRange(   tokenStr, 
                                                     &tempMergedOperator.Data[1], 
                                                     tempMergedOperator.Length - 1);
@@ -666,9 +656,9 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
                                 ModC_String_FromData(   tokensAllcoator, 
                                                         tempMergedOperator.Data, 
                                                         tempMergedOperator.Length);
-                            minLookBackToken->TokenText = MODC_TAG_INIT(ModC_StringUnion, 
-                                                                        ModC_String, 
-                                                                        tokenStr);
+                            minLookBackToken->TokenText = TU_INIT(  ModC_StringUnion, 
+                                                                    ModC_String, 
+                                                                    tokenStr);
                         }
                         
                         ModC_Result_Uint32 uint32Result = 
@@ -729,10 +719,10 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
         //with the new token list for this statement
         if(skipped)
         {
-            statement->Tokens = 
-                MODC_TAG_INIT_S(ModC_TokenIndexList, 
-                                ModC_Uint32List_Create(statementsArena, tokenIndices.Length));
-            ModC_Uint32List_AddRange(   &statement->Tokens.MODC_TAG_DATA_S(ModC_TokenIndexList),
+            statement->Tokens = TU_INIT_S(  ModC_TokenIndexList, 
+                                            ModC_Uint32List_Create( statementsArena, 
+                                                                    tokenIndices.Length));
+            ModC_Uint32List_AddRange(   &statement->Tokens.TU_DATA_S(ModC_TokenIndexList),
                                         tokenIndices.Data,
                                         tokenIndices.Length);
         }
@@ -749,8 +739,8 @@ static inline ModC_Result_Uint32 ModC_Statement_Next(   const ModC_Statement* st
 {
     #undef ModC_ResultName_State
     #define ModC_ResultName_State ModC_Result_Uint32
-    #undef ModC_TaggedUnionName_State
-    #define ModC_TaggedUnionName_State ModC_StatementTokensUnion
+    #undef TaggedUnionNameState
+    #define TaggedUnionNameState ModC_StatementTokensUnion
     
     MODC_CHECK(statement != NULL, (""), MODC_RET_ERROR_S());
     MODC_CHECK(statements != NULL, (""), MODC_RET_ERROR_S());
@@ -767,14 +757,14 @@ static inline ModC_Result_Uint32 ModC_Statement_Next(   const ModC_Statement* st
                         ("Root must be compound statement"), 
                         MODC_RET_ERROR_S());
             
-            if(statement->Tokens.MODC_TAG_DATA_S(ModC_CompoundStatement).ChildStatements.Length == 0)
+            if(statement->Tokens.TU_DATA_S(ModC_CompoundStatement).ChildStatements.Length == 0)
             {
                 *isEnd = true;
                 return MODC_RESULT_VALUE_S(0);
             }
             
             return MODC_RESULT_VALUE_S(statement->Tokens
-                                                .MODC_TAG_DATA_S(ModC_CompoundStatement)
+                                                .TU_DATA_S(ModC_CompoundStatement)
                                                 .ChildStatements
                                                 .Data[0]);
         }
@@ -782,10 +772,10 @@ static inline ModC_Result_Uint32 ModC_Statement_Next(   const ModC_Statement* st
         //If compound and we are not going up, go to first child if any
         if( statement->StatementType == ModC_StatementType_Compound &&
             prevStatement->ParentIndex != statement->Index &&
-            statement->Tokens.MODC_TAG_DATA_S(ModC_CompoundStatement).ChildStatements.Length != 0)
+            statement->Tokens.TU_DATA_S(ModC_CompoundStatement).ChildStatements.Length != 0)
         {
             return MODC_RESULT_VALUE_S(statement->Tokens
-                                                .MODC_TAG_DATA_S(ModC_CompoundStatement)
+                                                .TU_DATA_S(ModC_CompoundStatement)
                                                 .ChildStatements
                                                 .Data[0]);
         }
@@ -796,7 +786,7 @@ static inline ModC_Result_Uint32 ModC_Statement_Next(   const ModC_Statement* st
                     MODC_RET_ERROR_S());
         
         const ModC_CompoundStatement* parentCompound = 
-            &parentStatement->Tokens.MODC_TAG_DATA_S(ModC_CompoundStatement);
+            &parentStatement->Tokens.TU_DATA_S(ModC_CompoundStatement);
         
         uint32_t childIndex = ModC_Uint32List_Find( &parentCompound->ChildStatements, 
                                                     &statement->Index);
@@ -829,8 +819,8 @@ static inline ModC_Result_Uint32 ModC_EndCurrentStatement(  bool countCurrentTok
 {
     #undef ModC_ResultName_State
     #define ModC_ResultName_State ModC_Result_Uint32
-    #undef ModC_TaggedUnionName_State
-    #define ModC_TaggedUnionName_State ModC_StatementTokensUnion
+    #undef TaggedUnionNameState
+    #define TaggedUnionNameState ModC_StatementTokensUnion
     
     bool allWhiteSpaceOrNewline = true;
     uint32_t endIndex = countCurrentToken ? i + 1 : i;
@@ -855,11 +845,11 @@ static inline ModC_Result_Uint32 ModC_EndCurrentStatement(  bool countCurrentTok
                                                                             statementList,
                                                                             currentParentIndex);
     ModC_Statement* prevStatementPtr = *MODC_RESULT_TRY(statementPtrResult, MODC_RET_ERROR_S());
-    MODC_CHECK( prevStatementPtr->Tokens.Type == MODC_TAG_TYPE_S(ModC_TokenIndexRange),
+    MODC_CHECK( prevStatementPtr->Tokens.Type == TU_TYPE_S(ModC_TokenIndexRange),
                 (""),
                 MODC_RET_ERROR_S());
     
-    ModC_TokenIndexRange* indexRange = &prevStatementPtr->Tokens.MODC_TAG_DATA_S(ModC_TokenIndexRange);
+    ModC_TokenIndexRange* indexRange = &prevStatementPtr->Tokens.TU_DATA_S(ModC_TokenIndexRange);
     
     indexRange->StartIndex = *startTokenIndex;
     indexRange->EndIndex = countCurrentToken ? i + 1 : i;
@@ -911,8 +901,8 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
 {
     #undef ModC_ResultName_State
     #define ModC_ResultName_State ModC_Result_StatementList
-    #undef ModC_TaggedUnionName_State
-    #define ModC_TaggedUnionName_State ModC_StatementTokensUnion
+    #undef TaggedUnionNameState
+    #define TaggedUnionNameState ModC_StatementTokensUnion
     
     MODC_CHECK(tokens != NULL, (""), MODC_RET_ERROR_S());
     MODC_CHECK(outStatementsArena != NULL, (""), MODC_RET_ERROR_S());
@@ -1036,7 +1026,7 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                                                                     32);
                 ModC_Statement* newStatement = *MODC_RESULT_TRY(statementPtrResult, MODC_RET_ERROR_S());
                 CHECK_AND_VISUALIZE_ERROR(  newStatement->Tokens.Type == 
-                                            MODC_TAG_TYPE_S(ModC_CompoundStatement),
+                                            TU_TYPE_S(ModC_CompoundStatement),
                                             "Unexpected type");
                 ModC_Result_Void voidResult = ModC_AddStatementToParent(statementList.Length - 1,
                                                                         currentParentIndex,
@@ -1044,7 +1034,7 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                 (void)MODC_RESULT_TRY(voidResult, MODC_RET_ERROR_S());
                 
                 ModC_CompoundStatement* compoundData = 
-                    &newStatement->Tokens.MODC_TAG_DATA_S(ModC_CompoundStatement);
+                    &newStatement->Tokens.TU_DATA_S(ModC_CompoundStatement);
                 compoundData->StartTokenIndex = i;
                 startTokenIndex = i + 1;
                 currentParentIndex = statementList.Length - 1;
@@ -1066,11 +1056,11 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                 END_CURRENT_STATEMENT(false);
                 ModC_Statement* parentStatement = &statementList.Data[currentParentIndex];
                 CHECK_AND_VISUALIZE_ERROR(  parentStatement->Tokens.Type == 
-                                            MODC_TAG_TYPE_S(ModC_CompoundStatement), 
+                                            TU_TYPE_S(ModC_CompoundStatement), 
                                             "Unexpected type");
                 
                 ModC_CompoundStatement* parentCompound = 
-                    &parentStatement->Tokens.MODC_TAG_DATA_S(ModC_CompoundStatement);
+                    &parentStatement->Tokens.TU_DATA_S(ModC_CompoundStatement);
                 CHECK_AND_VISUALIZE_ERROR(  !parentCompound->Implicit,
                                             "Expected non implicit for parent when block end");
                 parentCompound->EndTokenIndex = i;

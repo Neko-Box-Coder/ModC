@@ -54,8 +54,8 @@ ModC_Result_Void Main(int argc, char* argv[])
     (void)&TestResult2;
     #undef ModC_ResultName_State
     #define ModC_ResultName_State ModC_Result_Void
-    #undef ModC_TaggedUnionName_State
-    #define ModC_TaggedUnionName_State ModC_StatementTokensUnion
+    #undef TaggedUnionNameState
+    #define TaggedUnionNameState ModC_StatementTokensUnion
     
     FILE* modcFile = NULL;
     ModC_Allocator mainArena;
