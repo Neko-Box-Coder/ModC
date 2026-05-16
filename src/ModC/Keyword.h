@@ -5,7 +5,7 @@
 
 #include <stdbool.h>
 
-static inline bool ModC_IsInvokableKeyword(const ConstStringView tokenText)
+static inline bool IsInvokableKeyword(const ConstStringView tokenText)
 {
     return  ConstStringView_IsEqualLiteral(&tokenText, "if") ||
             ConstStringView_IsEqualLiteral(&tokenText, "while") ||

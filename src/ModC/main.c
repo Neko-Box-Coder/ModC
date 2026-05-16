@@ -55,7 +55,7 @@ ModC_Result_Void Main(int argc, char* argv[])
     #undef ResultNameState
     #define ResultNameState ModC_Result_Void
     #undef TaggedUnionNameState
-    #define TaggedUnionNameState ModC_StatementTokensUnion
+    #define TaggedUnionNameState StatementTokensUnion
     
     FILE* modcFile = NULL;
     Allocator mainArena;
@@ -119,13 +119,11 @@ ModC_Result_Void Main(int argc, char* argv[])
                     (int)typeStr.Length, typeStr.Data);
         }
         
-        ModC_Result_StatementList statementListResult = 
-            ModC_CreateStatements(  tokenList, 
-                                    sourceView, 
-                                    Allocator_Share(&mainArena), 
-                                    &statementListArena);
-        ModC_StatementList* statementList = RESULT_TRY( statementListResult, 
-                                                        DEFER_BREAK(0, RET_ERROR_S()));
+        Result_StatementList statementListResult = CreateStatements(tokenList, 
+                                                                    sourceView, 
+                                                                    Allocator_Share(&mainArena), 
+                                                                    &statementListArena);
+        StatementList* statementList = RESULT_TRY(statementListResult, DEFER_BREAK(0, RET_ERROR_S()));
         DEFER(0, Allocator_Destroy(&statementListArena));
         
         ModC_Result_Void voidResult = 
@@ -142,11 +140,7 @@ ModC_Result_Void Main(int argc, char* argv[])
         printString = String_Create(Allocator_Share(&mainArena), 64);
         for(int i = 0; i < statementList->Length; ++i)
         {
-            voidResult = ModC_Statement_ToString(   &statementList->Data[i],
-                                                    tokenList,
-                                                    &printString,
-                                                    false);
-            
+            voidResult = Statement_ToString(&statementList->Data[i], tokenList, &printString, false);
             (void)RESULT_TRY(voidResult, DEFER_BREAK(0, RET_ERROR_S()));
             printf("statementList[%i]: " "%.*s\n", i, (int)printString.Length, printString.Data);
         }

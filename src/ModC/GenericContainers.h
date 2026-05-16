@@ -18,7 +18,7 @@ DEFINE_RESULT_STRUCT(ModC_Result_Bool, uint8_t)
 typedef char Void;
 DEFINE_RESULT_STRUCT(ModC_Result_Void, Void)
 
-#define LIST_NAME ModC_Uint32List
+#define LIST_NAME Uint32List
 #define VALUE_TYPE uint32_t
 #include "ModC/List.h"
 
