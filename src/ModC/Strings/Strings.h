@@ -2,9 +2,9 @@
 #define MODC_STRINGS_STRINGS_H
 
 /* Docs
-Creates ModC_String using List.h and ModC_StringView/ModC_ConstStringView using View.h
+Creates String using List.h and StringView/ConstStringView using View.h
 
-Also creates a tagged union ModC_StringUnion which is an union of all of the types above using 
+Also creates a tagged union StringUnion which is an union of all of the types above using 
 TaggedUnion.h
 
 Other than that, this also contains various helper functions. Just read the code to see what they are
@@ -12,13 +12,13 @@ Other than that, this also contains various helper functions. Just read the code
 
 #include "ModC/Allocator.h"
 
-#define LIST_NAME ModC_String
+#define LIST_NAME String
 #define VALUE_TYPE char
 #include "ModC/List.h"
 
 
-#define VIEW_NAME ModC_StringView
-#define CONST_VIEW_NAME ModC_ConstStringView
+#define VIEW_NAME StringView
+#define CONST_VIEW_NAME ConstStringView
 #define VALUE_TYPE char
 #include "ModC/View.h"
 
@@ -27,109 +27,90 @@ Other than that, this also contains various helper functions. Just read the code
 #include <stdio.h>
 #include <string.h>
 
-#define TU_NAME ModC_StringUnion
-#define VALUE_TYPES ModC_String,ModC_StringView,ModC_ConstStringView
+#define TU_NAME StringUnion
+#define VALUE_TYPES String,StringView,ConstStringView
 #include "ModC/TaggedUnion.h"
 
-#define ModC_StringUnion_ViewFromLiteral(cstr) \
-    TU_INIT(ModC_StringUnion, ModC_ConstStringView, ModC_ConstStringView_FromLiteral(cstr))
+#define StringUnion_ViewFromLiteral(cstr) \
+    TU_INIT(StringUnion, ConstStringView, ConstStringView_FromLiteral(cstr))
 
-#define ModC_StringUnion_StringFromLiteral(allocator, cstr) \
-    TU_INIT(ModC_StringUnion, ModC_String, ModC_String_FromLiteral(allocator, cstr))
+#define StringUnion_StringFromLiteral(allocator, cstr) \
+    TU_INIT(StringUnion, String, String_FromLiteral(allocator, cstr))
 
-static inline ModC_ConstStringView ModC_StringUnion_GetConstView(const ModC_StringUnion* this);
+static inline ConstStringView StringUnion_GetConstView(const StringUnion* this);
 
-#define ModC_String_AppendLiteral(stringObj, cstr) \
-    ModC_String_AddRange((stringObj), cstr, sizeof(cstr) - 1)
+#define String_AppendLiteral(stringObj, cstr) String_AddRange((stringObj), cstr, sizeof(cstr) - 1)
 
-static inline ModC_String ModC_String_FromData( Allocator allocator, 
-                                                const char* data, 
-                                                uint64_t length);
+static inline String String_FromData(Allocator allocator, const char* data, uint64_t length);
 
-#define ModC_String_FromLiteral(allocator, cstr) \
-    ModC_String_FromData(allocator, cstr, sizeof(cstr) - 1)
+#define String_FromLiteral(allocator, cstr) String_FromData(allocator, cstr, sizeof(cstr) - 1)
     
-static inline ModC_String ModC_String_FromFormat(   Allocator allocator, 
-                                                    const char* format, 
-                                                    ...);
-static inline ModC_String* ModC_String_AppendFormat(ModC_String* this, const char* format, ...);
+static inline String String_FromFormat(Allocator allocator, const char* format, ...);
+static inline String* String_AppendFormat(String* this, const char* format, ...);
 
-static inline ModC_String ModC_String_FromVFormat(  Allocator allocator, 
-                                                    const char* format, 
-                                                    va_list args);
-static inline ModC_String* ModC_String_AppendVFormat(   ModC_String* this, 
-                                                        const char* format, 
-                                                        va_list args);
+static inline String String_FromVFormat(Allocator allocator, const char* format, va_list args);
+static inline String* String_AppendVFormat(String* this, const char* format, va_list args);
 
-#define ModC_String_IsEqualLiteral(this, cstr) \
+#define String_IsEqualLiteral(this, cstr) \
     ((this)->Length == sizeof(cstr) - 1 && memcmp((this)->Data, cstr, sizeof(cstr) - 1) == 0)
 
-#define ModC_StringView_IsEqualLiteral(this, cstr) ModC_String_IsEqualLiteral(this, cstr)
-#define ModC_ConstStringView_IsEqualLiteral(this, cstr) ModC_String_IsEqualLiteral(this, cstr)
+#define StringView_IsEqualLiteral(this, cstr) String_IsEqualLiteral(this, cstr)
+#define ConstStringView_IsEqualLiteral(this, cstr) String_IsEqualLiteral(this, cstr)
 
-#define ModC_ConstStringView_FromLiteral(cstr) ModC_ConstStringView_Create(cstr, sizeof(cstr) - 1)
+#define ConstStringView_FromLiteral(cstr) ConstStringView_Create(cstr, sizeof(cstr) - 1)
 
-#define ModC_StringLikeEqual(strA, strB) \
+#define StringLikeEqual(strA, strB) \
     ((strA).Length == (strB).Length && memcmp((strA).Data, (strB).Data, (strA).Length) == 0)
 
 
 //=======================================================================================
 //Implementations
 //=======================================================================================
-static inline ModC_ConstStringView ModC_StringUnion_GetConstView(const ModC_StringUnion* this)
+static inline ConstStringView StringUnion_GetConstView(const StringUnion* this)
 {
     #undef TaggedUnionNameState
-    #define TaggedUnionNameState ModC_StringUnion
+    #define TaggedUnionNameState StringUnion
     if(!this)
-        return (ModC_ConstStringView){0};
+        return (ConstStringView){0};
     
-    return  this->Type == TU_TYPE_S(ModC_String) ?
-            ModC_ConstStringView_Create(this->TU_DATA_S(ModC_String).Data,
-                                        this->TU_DATA_S(ModC_String).Length) :
-            this->TU_DATA_S(ModC_ConstStringView);
+    return  this->Type == TU_TYPE_S(String) ?
+            ConstStringView_Create(this->TU_DATA_S(String).Data, this->TU_DATA_S(String).Length) :
+            this->TU_DATA_S(ConstStringView);
 }
 
-static inline ModC_String ModC_String_FromData( Allocator allocator, 
-                                                const char* data, 
-                                                uint64_t length)
+static inline String String_FromData(Allocator allocator, const char* data, uint64_t length)
 {
-    ModC_String retStr = ModC_String_Create(allocator, length);
-    ModC_String_AddRange(&retStr, data, length);
+    String retStr = String_Create(allocator, length);
+    String_AddRange(&retStr, data, length);
     return retStr;
 }
 
-static inline ModC_String ModC_String_FromFormat(   Allocator allocator, 
-                                                    const char* format, 
-                                                    ...)
+static inline String String_FromFormat(Allocator allocator, const char* format, ...)
 {
     va_list args1;
     va_start(args1, format);
-    ModC_String retStr = ModC_String_FromVFormat(allocator, format, args1);
+    String retStr = String_FromVFormat(allocator, format, args1);
     va_end(args1);
     return retStr;
 }
 
-static inline ModC_String* ModC_String_AppendFormat(ModC_String* this, const char* format, ...)
+static inline String* String_AppendFormat(String* this, const char* format, ...)
 {
     va_list args1;
     va_start(args1, format);
-    ModC_String_AppendVFormat(this, format, args1);
+    String_AppendVFormat(this, format, args1);
     va_end(args1);
     return this;
 }
 
-static inline ModC_String ModC_String_FromVFormat(  Allocator allocator, 
-                                                    const char* format, 
-                                                    va_list args)
+static inline String String_FromVFormat(Allocator allocator, const char* format, va_list args)
 {
-    ModC_String retStr = ModC_String_Create(allocator, 0);
-    ModC_String_AppendVFormat(&retStr, format, args);
+    String retStr = String_Create(allocator, 0);
+    String_AppendVFormat(&retStr, format, args);
     return retStr;
 }
 
-static inline ModC_String* ModC_String_AppendVFormat(   ModC_String* this, 
-                                                        const char* format, 
-                                                        va_list args)
+static inline String* String_AppendVFormat(String* this, const char* format, va_list args)
 {
     if(!this)
         return this;
@@ -142,12 +123,12 @@ static inline ModC_String* ModC_String_AppendVFormat(   ModC_String* this,
         goto exitPoint;
     
     uint32_t oldLen = this->Length;
-    ModC_String_Resize(this, this->Length + writeLen + 1);
+    String_Resize(this, this->Length + writeLen + 1);
     if(!this->Data || this->Length == oldLen)
         goto exitPoint;
     
     writeLen = vsnprintf(this->Data + oldLen, writeLen + 1, format, args2);
-    ModC_String_Resize(this, this->Length - 1);
+    String_Resize(this, this->Length - 1);
     
     exitPoint:;
     va_end(args2);

@@ -14,14 +14,14 @@
 #include "uthash.h"
 typedef struct ModC_TypeEntry
 {
-    ModC_String Type;
+    String Type;
     UT_hash_handle hh;
 } ModC_TypeEntry;
 
 #define RETURN_VISUALIZED_ERROR(tokenPtr, source, spanLine, fmtMsg, ...) \
         do \
         { \
-            ModC_String visualizeStr = ModC_Token_VisualizeLocation(tokenPtr, \
+            String visualizeStr = ModC_Token_VisualizeLocation(tokenPtr, \
                                                                     CreateHeapAllocator(), \
                                                                     spanLine, \
                                                                     source); \
@@ -35,7 +35,7 @@ typedef struct ModC_TypeEntry
 
 static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   ModC_Statement* statement,
                                                                     const ModC_TokenList* tokens,
-                                                                    const ModC_ConstStringView source,
+                                                                    const ConstStringView source,
                                                                     Allocator statementsArena,
                                                                     Allocator scratchAllocator,
                                                                     bool inTypeDecl,
@@ -61,13 +61,13 @@ static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   ModC_Stateme
     ModC_Result_ConstStringView constStringViewResult =
         ModC_StatementTokensUnion_GetTokenTextViewAt(&statement->Tokens, tokens, 0);
     
-    ModC_ConstStringView firstTokenTextView = *RESULT_TRY(constStringViewResult, RET_ERROR_S());
-    if(ModC_ConstStringView_IsEqualLiteral(&firstTokenTextView, "struct"))
+    ConstStringView firstTokenTextView = *RESULT_TRY(constStringViewResult, RET_ERROR_S());
+    if(ConstStringView_IsEqualLiteral(&firstTokenTextView, "struct"))
     {
         statement->StatementType = ModC_StatementType_TypeDeclaration;
         statement->Info = TU_INIT_S(ModC_TypeDeclarationInfo, { .Type = ModC_Type_Struct });
     }
-    else if(ModC_ConstStringView_IsEqualLiteral(&firstTokenTextView, "enum"))
+    else if(ConstStringView_IsEqualLiteral(&firstTokenTextView, "enum"))
     {
         statement->StatementType = ModC_StatementType_TypeDeclaration;
         statement->Info = TU_INIT_S(ModC_TypeDeclarationInfo, { .Type = ModC_Type_Enum });
@@ -90,14 +90,14 @@ static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   ModC_Stateme
     constStringViewResult = ModC_StatementTokensUnion_GetTokenTextViewAt(   &statement->Tokens, 
                                                                             tokens, 
                                                                             1);
-    ModC_ConstStringView typeNameTextView = *RESULT_TRY(constStringViewResult, RET_ERROR_S());
+    ConstStringView typeNameTextView = *RESULT_TRY(constStringViewResult, RET_ERROR_S());
     {
         ModC_TypeDeclarationInfo* typeDeclInfo = &statement->Info.TU_DATA_S(ModC_TypeDeclarationInfo);
-        typeDeclInfo->TypeName = ModC_String_FromData(  statementsArena, 
-                                                        typeNameTextView.Data, 
-                                                        typeNameTextView.Length);
-        typeNameTextView = ModC_ConstStringView_Create( typeDeclInfo->TypeName.Data, 
-                                                        typeDeclInfo->TypeName.Length);
+        typeDeclInfo->TypeName = String_FromData(   statementsArena, 
+                                                    typeNameTextView.Data, 
+                                                    typeNameTextView.Length);
+        typeNameTextView = ConstStringView_Create(  typeDeclInfo->TypeName.Data, 
+                                                    typeDeclInfo->TypeName.Length);
     }
     ModC_TypeEntry* foundEntry = NULL;
     HASH_FIND(hh, *rootTypeHashSet, typeNameTextView.Data, typeNameTextView.Length, foundEntry);
@@ -120,9 +120,7 @@ static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   ModC_Stateme
     
     ModC_TypeEntry* entry = Allocator_Malloc(&scratchAllocator, sizeof(ModC_TypeEntry));
     CHECK(entry, (""), RET_ERROR_S());
-    entry->Type = ModC_String_FromData( scratchAllocator, 
-                                        typeNameTextView.Data, 
-                                        typeNameTextView.Length);
+    entry->Type = String_FromData(scratchAllocator, typeNameTextView.Data, typeNameTextView.Length);
     if(inFuncImpl)
         HASH_ADD_KEYPTR(hh, *funcTypeHashSet, entry->Type.Data, entry->Type.Length, entry);
     else
@@ -196,8 +194,8 @@ static inline ModC_Result_Void ModC_TryClassifyAsCompilerDirective( ModC_Stateme
     ModC_Result_ConstStringView constStringViewResult =
         ModC_StatementTokensUnion_GetTokenTextViewAt(&statement->Tokens, tokens, 0);
     
-    ModC_ConstStringView firstTokenTextView = *RESULT_TRY(constStringViewResult, RET_ERROR_S());
-    if(ModC_ConstStringView_IsEqualLiteral(&firstTokenTextView, "#"))
+    ConstStringView firstTokenTextView = *RESULT_TRY(constStringViewResult, RET_ERROR_S());
+    if(ConstStringView_IsEqualLiteral(&firstTokenTextView, "#"))
         statement->StatementType = ModC_StatementType_CompilerDirective;
     
     return RESULT_VALUE_S(0);
@@ -206,7 +204,7 @@ static inline ModC_Result_Void ModC_TryClassifyAsCompilerDirective( ModC_Stateme
 static inline ModC_Result_Void 
 ModC_TryClassifyAsVariableDeclareAssignment(ModC_Statement* statement,
                                             const ModC_TokenList* tokens,
-                                            const ModC_ConstStringView source,
+                                            const ConstStringView source,
                                             bool inTypeDecl,
                                             bool inFuncImpl,
                                             ModC_TypeEntry** rootTypeHashSet,
@@ -259,7 +257,7 @@ ModC_TryClassifyAsVariableDeclareAssignment(ModC_Statement* statement,
     }
     
     bool typeExist = false;
-    ModC_ConstStringView typeTokenText = ModC_Token_TokenTextView(typeToken);
+    ConstStringView typeTokenText = ModC_Token_TokenTextView(typeToken);
     if(inFuncImpl)
     {
         ModC_TypeEntry* foundEntry = NULL;
@@ -287,7 +285,7 @@ ModC_TryClassifyAsVariableDeclareAssignment(ModC_Statement* statement,
     ModC_Result_Uint32 uint32Result = 
         ModC_StatementTokensUnion_ContainsTokenText(&statement->Tokens, 
                                                     tokens, 
-                                                    ModC_ConstStringView_FromLiteral("="));
+                                                    ConstStringView_FromLiteral("="));
     uint32_t foundIndex = *RESULT_TRY(uint32Result, RET_ERROR_S());
     
     //Check if there's any equal sign, if there is, maybe it is 
@@ -334,7 +332,7 @@ ModC_TryClassifyAsVariableDeclareAssignment(ModC_Statement* statement,
 static inline ModC_Result_Void 
 ModC_TryClassifyAsFunctionDeclaration(  ModC_Statement* statement,
                                         const ModC_TokenList* tokens,
-                                        const ModC_ConstStringView source,
+                                        const ConstStringView source,
                                         bool inTypeDecl,
                                         bool inFuncImpl,
                                         ModC_TypeEntry** rootTypeHashSet)
@@ -398,7 +396,7 @@ ModC_TryClassifyAsFunctionDeclaration(  ModC_Statement* statement,
             *outPtr = curToken;
     }
     
-    ModC_ConstStringView typeTokenText = ModC_Token_TokenTextView(typeToken);
+    ConstStringView typeTokenText = ModC_Token_TokenTextView(typeToken);
     {
         ModC_TypeEntry* foundEntry = NULL;
         HASH_FIND(hh, *rootTypeHashSet, typeTokenText.Data, typeTokenText.Length, foundEntry);
@@ -458,9 +456,9 @@ static inline ModC_Result_Void ModC_TryClassifyAsReturn(ModC_Statement* statemen
     ModC_Result_ConstStringView viewResult =
         ModC_StatementTokensUnion_GetTokenTextViewAt(&statement->Tokens, tokens, 0);
     
-    ModC_ConstStringView firstTokenView = *RESULT_TRY(viewResult, RET_ERROR_S());
+    ConstStringView firstTokenView = *RESULT_TRY(viewResult, RET_ERROR_S());
     
-    if(!ModC_ConstStringView_IsEqualLiteral(&firstTokenView, "return"))
+    if(!ConstStringView_IsEqualLiteral(&firstTokenView, "return"))
         return RESULT_VALUE_S(0);
     
     statement->StatementType = ModC_StatementType_ReturnStatement;
@@ -498,14 +496,14 @@ static inline ModC_Result_Void ModC_TryClassifyKeywordInvokable(ModC_Statement* 
     ModC_Result_ConstStringView viewResult =
         ModC_StatementTokensUnion_GetTokenTextViewAt(&statement->Tokens, tokens, 0);
     
-    ModC_ConstStringView firstTokenView = *RESULT_TRY(viewResult, RET_ERROR_S());
-    if(ModC_ConstStringView_IsEqualLiteral(&firstTokenView, "if"))
+    ConstStringView firstTokenView = *RESULT_TRY(viewResult, RET_ERROR_S());
+    if(ConstStringView_IsEqualLiteral(&firstTokenView, "if"))
         statement->StatementType = ModC_StatementType_IfStatement;
-    else if(ModC_ConstStringView_IsEqualLiteral(&firstTokenView, "for"))
+    else if(ConstStringView_IsEqualLiteral(&firstTokenView, "for"))
         statement->StatementType = ModC_StatementType_ForStatement;
-    else if(ModC_ConstStringView_IsEqualLiteral(&firstTokenView, "while"))
+    else if(ConstStringView_IsEqualLiteral(&firstTokenView, "while"))
         statement->StatementType = ModC_StatementType_WhileStatement;
-    else if(ModC_ConstStringView_IsEqualLiteral(&firstTokenView, "switch"))
+    else if(ConstStringView_IsEqualLiteral(&firstTokenView, "switch"))
         statement->StatementType = ModC_StatementType_SwitchStatement;
     
     return RESULT_VALUE_S(0);
@@ -531,8 +529,8 @@ static inline ModC_Result_Void ModC_TryClassifyAsElse(  ModC_Statement* statemen
     ModC_Result_ConstStringView viewResult = 
         ModC_StatementTokensUnion_GetTokenTextViewAt(&statement->Tokens, tokens, 0);
     
-    ModC_ConstStringView tokenView = *RESULT_TRY(viewResult, RET_ERROR_S());
-    if(ModC_ConstStringView_IsEqualLiteral(&tokenView, "else"))
+    ConstStringView tokenView = *RESULT_TRY(viewResult, RET_ERROR_S());
+    if(ConstStringView_IsEqualLiteral(&tokenView, "else"))
         statement->StatementType = ModC_StatementType_ElseStatement;
     
     return RESULT_VALUE_S(0);
@@ -572,7 +570,7 @@ static inline ModC_Result_Void ModC_TryClassifyAssignment(  ModC_Statement* stat
     ModC_Result_Uint32 uint32Result = 
         ModC_StatementTokensUnion_ContainsTokenText(&statement->Tokens, 
                                                     tokens, 
-                                                    ModC_ConstStringView_FromLiteral("="));
+                                                    ConstStringView_FromLiteral("="));
     uint32_t foundIndex = *RESULT_TRY(uint32Result, RET_ERROR_S());
     if(foundIndex == tokenCount)
         return RESULT_VALUE_S(0);
@@ -605,8 +603,8 @@ static inline ModC_Result_Void ModC_TryClassifyCase(ModC_Statement* statement,
         if(token->TokenType != ModC_TokenType_Operator)
             return RESULT_VALUE_S(0);
     
-        ModC_ConstStringView tokenText = ModC_Token_TokenTextView(token);
-        if(!ModC_ConstStringView_IsEqualLiteral(&tokenText, ":"))
+        ConstStringView tokenText = ModC_Token_TokenTextView(token);
+        if(!ConstStringView_IsEqualLiteral(&tokenText, ":"))
             return RESULT_VALUE_S(0);
     }
     
@@ -623,8 +621,8 @@ static inline ModC_Result_Void ModC_TryClassifyCase(ModC_Statement* statement,
         if(token->TokenType != ModC_TokenType_Identifier)
             return RESULT_VALUE_S(0);
     
-        ModC_ConstStringView tokenText = ModC_Token_TokenTextView(token);
-        if(!ModC_ConstStringView_IsEqualLiteral(&tokenText, "case"))
+        ConstStringView tokenText = ModC_Token_TokenTextView(token);
+        if(!ConstStringView_IsEqualLiteral(&tokenText, "case"))
             return RESULT_VALUE_S(0);
     }
     
@@ -637,7 +635,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
                                                                 Allocator tokensAllcoator,
                                                                 Allocator statementsArena,
                                                                 ModC_TokenList* tokens,
-                                                                const ModC_ConstStringView source,
+                                                                const ConstStringView source,
                                                                 Allocator scratchAllocator)
 {
     #undef ResultNameState
@@ -691,9 +689,9 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( ModC_StatementLi
     {
         //printf("i: %d\n", i);
         ModC_TypeEntry* defaultTypeEntry = Allocator_Malloc(&scratchAllocator, sizeof(ModC_TypeEntry));
-        defaultTypeEntry->Type = ModC_String_FromData(  scratchAllocator, 
-                                                        defaultTypes[i], 
-                                                        strlen(defaultTypes[i]));
+        defaultTypeEntry->Type = String_FromData(   scratchAllocator, 
+                                                    defaultTypes[i], 
+                                                    strlen(defaultTypes[i]));
         HASH_ADD_KEYPTR(hh, 
                         rootTypeHashSet, 
                         defaultTypeEntry->Type.Data, 

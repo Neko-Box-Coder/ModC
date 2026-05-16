@@ -59,7 +59,7 @@ typedef enum ModC_CharTokenType
 typedef struct ModC_Token
 {
     ModC_TokenType TokenType;
-    ModC_StringUnion TokenText;
+    StringUnion TokenText;
     int LineIndex;
     int ColumnIndex;
     int SourceIndex;
@@ -76,27 +76,27 @@ DEFINE_RESULT_STRUCT(ModC_Result_TokenList, ModC_TokenList)
 DEFINE_RESULT_STRUCT(ModC_Result_Token, ModC_Token)
 DEFINE_RESULT_STRUCT(ModC_Result_TokenPtr, ModC_Token*)
 
-static inline ModC_ConstStringView ModC_Token_TokenTextView(const ModC_Token* this)
+static inline ConstStringView ModC_Token_TokenTextView(const ModC_Token* this)
 {
     #undef TaggedUnionNameState
-    #define TaggedUnionNameState ModC_StringUnion
+    #define TaggedUnionNameState StringUnion
     
     if(!this)
-        return ModC_ConstStringView_Create(NULL, 0);
+        return ConstStringView_Create(NULL, 0);
     
-    return ModC_StringUnion_GetConstView(&this->TokenText);
+    return StringUnion_GetConstView(&this->TokenText);
 }
 
-static inline ModC_String ModC_Token_VisualizeLocation( const ModC_Token* this, 
-                                                        Allocator allocator, 
-                                                        bool spanWholeLine,
-                                                        const ModC_ConstStringView source)
+static inline String ModC_Token_VisualizeLocation(  const ModC_Token* this, 
+                                                    Allocator allocator, 
+                                                    bool spanWholeLine,
+                                                    const ConstStringView source)
 {
     if(!this || source.Length <= this->SourceIndex)
     {
-        return ModC_String_FromLiteral( allocator, 
-                                        "INTERNAL FAILURE: !this || source.Length <= "
-                                        "this->SourceIndex");
+        return String_FromLiteral(  allocator, 
+                                    "INTERNAL FAILURE: !this || source.Length <= "
+                                    "this->SourceIndex");
     }
     
     int sourceIndex =   source.Data[this->SourceIndex] == '\n' ? 
@@ -120,29 +120,29 @@ static inline ModC_String ModC_Token_VisualizeLocation( const ModC_Token* this,
     }
     
     if(sourceIndex < 0)
-        return ModC_String_FromFormat(allocator, "Line %d", this->LineIndex + 1);
+        return String_FromFormat(allocator, "Line %d", this->LineIndex + 1);
     
     if(!spanWholeLine)
     {
-        return ModC_String_FromFormat(  allocator, 
-                                        "%5d | %.*s\n      | %*s", 
-                                        this->LineIndex + 1, 
-                                        charBefore + charAfter, 
-                                        &source.Data[sourceIndex - charBefore],
-                                        charBefore + 1,
-                                        "^");
+        return String_FromFormat(   allocator, 
+                                    "%5d | %.*s\n      | %*s", 
+                                    this->LineIndex + 1, 
+                                    charBefore + charAfter, 
+                                    &source.Data[sourceIndex - charBefore],
+                                    charBefore + 1,
+                                    "^");
     }
     else
     {
-        ModC_String retStr = ModC_String_FromFormat(allocator, 
-                                                    "%5d | %.*s\n      | %*s", 
-                                                    this->LineIndex + 1, 
-                                                    charBefore + charAfter, 
-                                                    &source.Data[sourceIndex - charBefore],
-                                                    charBefore + 1,
-                                                    "^");
+        String retStr = String_FromFormat(  allocator, 
+                                            "%5d | %.*s\n      | %*s", 
+                                            this->LineIndex + 1, 
+                                            charBefore + charAfter, 
+                                            &source.Data[sourceIndex - charBefore],
+                                            charBefore + 1,
+                                            "^");
         for(int i = 0; i < charAfter - 1; ++i)
-            ModC_String_AddValue(&retStr, '~');
+            String_AddValue(&retStr, '~');
         return retStr;
     }
 }
@@ -151,26 +151,26 @@ static inline void ModC_Token_Free(ModC_Token* this)
 {
     if(!this)
         return;
-    if(this->TokenText.Type != TU_TYPE_S(ModC_String))
+    if(this->TokenText.Type != TU_TYPE_S(String))
     {
         *this = (ModC_Token){0};
         return;
     }
     
-    ModC_String_Free(&this->TokenText.TU_DATA_S(ModC_String));
+    String_Free(&this->TokenText.TU_DATA_S(String));
 }
 
-static inline ModC_Token ModC_Token_FromString(ModC_TokenType type, ModC_String str)
+static inline ModC_Token ModC_Token_FromString(ModC_TokenType type, String str)
 {
-    return (ModC_Token){ .TokenType = type, .TokenText = TU_INIT_S(ModC_String, str) };
+    return (ModC_Token){ .TokenType = type, .TokenText = TU_INIT_S(String, str) };
 }
 
-static inline ModC_Token ModC_Token_FromView(ModC_TokenType type, ModC_ConstStringView view)
+static inline ModC_Token ModC_Token_FromView(ModC_TokenType type, ConstStringView view)
 {
     return  (ModC_Token)
             { 
                 .TokenType = type, 
-                .TokenText = TU_INIT_S(ModC_ConstStringView, view)
+                .TokenText = TU_INIT_S(ConstStringView, view)
             };
 }
 
@@ -182,58 +182,58 @@ static inline bool ModC_Token_IsSkippable(const ModC_Token* this)
             this->TokenType == ModC_TokenType_Comment;
 }
 
-static inline ModC_ConstStringView ModC_TokenType_ToCStr(ModC_TokenType type)
+static inline ConstStringView ModC_TokenType_ToCStr(ModC_TokenType type)
 {
     static_assert((int)ModC_TokenType_Count == 19, "");
     switch(type)
     {
         case ModC_TokenType_Type:
-            return ModC_ConstStringView_FromLiteral("ModC_TokenType_Type");
+            return ConstStringView_FromLiteral("ModC_TokenType_Type");
         case ModC_TokenType_Keyword:
-            return ModC_ConstStringView_FromLiteral("ModC_TokenType_Keyword");
+            return ConstStringView_FromLiteral("ModC_TokenType_Keyword");
         case ModC_TokenType_Identifier:
-            return ModC_ConstStringView_FromLiteral("ModC_TokenType_Identifier");
+            return ConstStringView_FromLiteral("ModC_TokenType_Identifier");
         case ModC_TokenType_Operator:
-            return ModC_ConstStringView_FromLiteral("ModC_TokenType_Operator");
+            return ConstStringView_FromLiteral("ModC_TokenType_Operator");
         case ModC_TokenType_BlockStart:
-            return ModC_ConstStringView_FromLiteral("ModC_TokenType_BlockStart");
+            return ConstStringView_FromLiteral("ModC_TokenType_BlockStart");
         case ModC_TokenType_BlockEnd:
-            return ModC_ConstStringView_FromLiteral("ModC_TokenType_BlockEnd");
+            return ConstStringView_FromLiteral("ModC_TokenType_BlockEnd");
         case ModC_TokenType_InvokeStart:
-            return ModC_ConstStringView_FromLiteral("ModC_TokenType_InvokeStart");
+            return ConstStringView_FromLiteral("ModC_TokenType_InvokeStart");
         case ModC_TokenType_InvokeEnd:
-            return ModC_ConstStringView_FromLiteral("ModC_TokenType_InvokeEnd");
+            return ConstStringView_FromLiteral("ModC_TokenType_InvokeEnd");
         case ModC_TokenType_Semicolon:
-            return ModC_ConstStringView_FromLiteral("ModC_TokenType_Semicolon");
+            return ConstStringView_FromLiteral("ModC_TokenType_Semicolon");
         case ModC_TokenType_StringLiteral:
-            return ModC_ConstStringView_FromLiteral("ModC_TokenType_StringLiteral");
+            return ConstStringView_FromLiteral("ModC_TokenType_StringLiteral");
         case ModC_TokenType_CharLiteral:
-            return ModC_ConstStringView_FromLiteral("ModC_TokenType_CharLiteral");
+            return ConstStringView_FromLiteral("ModC_TokenType_CharLiteral");
         case ModC_TokenType_IntLiteral:
-            return ModC_ConstStringView_FromLiteral("ModC_TokenType_IntLiteral");
+            return ConstStringView_FromLiteral("ModC_TokenType_IntLiteral");
         case ModC_TokenType_FloatLiteral:
-            return ModC_ConstStringView_FromLiteral("ModC_TokenType_FloatLiteral");
+            return ConstStringView_FromLiteral("ModC_TokenType_FloatLiteral");
         case ModC_TokenType_DoubleLiteral:
-            return ModC_ConstStringView_FromLiteral("ModC_TokenType_DoubleLiteral");
+            return ConstStringView_FromLiteral("ModC_TokenType_DoubleLiteral");
         case ModC_TokenType_BoolLiteral:
-            return ModC_ConstStringView_FromLiteral("ModC_TokenType_BoolLiteral");
+            return ConstStringView_FromLiteral("ModC_TokenType_BoolLiteral");
         case ModC_TokenType_Space:
-            return ModC_ConstStringView_FromLiteral("ModC_TokenType_Space");
+            return ConstStringView_FromLiteral("ModC_TokenType_Space");
         case ModC_TokenType_Newline:
-            return ModC_ConstStringView_FromLiteral("ModC_TokenType_Newline");
+            return ConstStringView_FromLiteral("ModC_TokenType_Newline");
         case ModC_TokenType_Comment:
-            return ModC_ConstStringView_FromLiteral("ModC_TokenType_Comment");
+            return ConstStringView_FromLiteral("ModC_TokenType_Comment");
         case ModC_TokenType_Undef:
-            return ModC_ConstStringView_FromLiteral("ModC_TokenType_Undef");
+            return ConstStringView_FromLiteral("ModC_TokenType_Undef");
         case ModC_TokenType_Count:
-            return ModC_ConstStringView_FromLiteral("ModC_TokenType_Count");
+            return ConstStringView_FromLiteral("ModC_TokenType_Count");
         default:
-            return (ModC_ConstStringView){0};
+            return (ConstStringView){0};
     }
 }
 
 static inline ModC_Result_Void ModC_Token_AppendChar(   ModC_Token* this, 
-                                                        const ModC_ConstStringView source, 
+                                                        const ConstStringView source, 
                                                         char c,
                                                         Allocator allocator,
                                                         bool forceString)
@@ -243,35 +243,32 @@ static inline ModC_Result_Void ModC_Token_AppendChar(   ModC_Token* this,
     
     CHECK(this != NULL, (""), RET_ERROR_S());
     
-    if(this->TokenText.Type == TU_TYPE_S(ModC_String))
+    if(this->TokenText.Type == TU_TYPE_S(String))
     {
-        ModC_String_AddValue(&this->TokenText.TU_DATA_S(ModC_String), c);
+        String_AddValue(&this->TokenText.TU_DATA_S(String), c);
         return RESULT_VALUE_S(0);
     }
     
-    ModC_ConstStringView* tokenView = &this->TokenText.TU_DATA_S(ModC_ConstStringView);
+    ConstStringView* tokenView = &this->TokenText.TU_DATA_S(ConstStringView);
     CHECK(  source.Data <= tokenView->Data, 
             ("source: %p, token: %p", source.Data, tokenView->Data),
             RET_ERROR_S());
     
-    CHECK
-    (
-        source.Data + source.Length >= tokenView->Data + tokenView->Length, 
-        ("source end: %p, token end: %p", 
-        source.Data + source.Length, 
-        tokenView->Data + tokenView->Length),
-        RET_ERROR_S()
-    );
+    CHECK(  source.Data + source.Length >= tokenView->Data + tokenView->Length, 
+            ("source end: %p, token end: %p", 
+            source.Data + source.Length, 
+            tokenView->Data + tokenView->Length),
+            RET_ERROR_S());
     
     if(tokenView->Data[tokenView->Length] != c)
         forceString = true;
     
     if(forceString)
     {
-        ModC_String tokenStr = ModC_String_Create(allocator, tokenView->Length + 1);
-        ModC_String_AddRange(&tokenStr, tokenView->Data, tokenView->Length);
-        ModC_String_AddValue(&tokenStr, c);
-        this->TokenText.TU_DATA_S(ModC_String) = tokenStr;
+        String tokenStr = String_Create(allocator, tokenView->Length + 1);
+        String_AddRange(&tokenStr, tokenView->Data, tokenView->Length);
+        String_AddValue(&tokenStr, c);
+        this->TokenText.TU_DATA_S(String) = tokenStr;
         return RESULT_VALUE_S(0);
     }
     
@@ -333,7 +330,7 @@ static inline ModC_CharTokenType ModC_CharTokenType_FromChar(char c)
 }
 
 
-static inline bool IsLastCharEscaped(ModC_ConstStringView view)
+static inline bool IsLastCharEscaped(ConstStringView view)
 {
     if(view.Length <= 1)    //You can't escape nothing or escape a single character itself
         return false;
@@ -363,7 +360,7 @@ static inline ModC_Result_Bool ModC_Token_IsCharPossible(   const ModC_Token* th
     CHECK(this != NULL, (""), RET_ERROR_S());
     
     static_assert((int)ModC_TokenType_Count == 19, "");
-    ModC_ConstStringView tokenStringView = ModC_Token_TokenTextView(this);
+    ConstStringView tokenStringView = ModC_Token_TokenTextView(this);
     CHECK(tokenStringView.Length > 0, (""), RET_ERROR_S());
     
     switch((ModC_CharTokenType)this->TokenType)
@@ -419,7 +416,7 @@ static inline ModC_Result_Bool ModC_Token_IsCharPossible(   const ModC_Token* th
 
 
 //Returns list of tokens that are types in `ModC_CharTokenType` or `ModC_TokenType_Comment`
-static inline ModC_Result_TokenList ModC_Tokenization(  const ModC_ConstStringView fileContent, 
+static inline ModC_Result_TokenList ModC_Tokenization(  const ConstStringView fileContent, 
                                                         Allocator allocator)
 {
     #undef ResultNameState
@@ -436,7 +433,7 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ModC_ConstStringVi
     {
         ModC_Token currentToken = 
             ModC_Token_FromView((ModC_TokenType)ModC_CharTokenType_FromChar(fileContent.Data[0]), 
-                                ModC_ConstStringView_Create(&fileContent.Data[0], 1));
+                                ConstStringView_Create(&fileContent.Data[0], 1));
         DEFER(0, ModC_TokenList_Free(&tokenList));
         
         if(fileContent.Length == 1)
@@ -470,7 +467,7 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ModC_ConstStringVi
                     /* Create new token */ \
                     currentToken = \
                         ModC_Token_FromView((ModC_TokenType)charTokenType, \
-                                            ModC_ConstStringView_Create(&fileContent.Data[i], 1)); \
+                                            ConstStringView_Create(&fileContent.Data[i], 1)); \
                     currentToken.LineIndex = currentLineIndex; \
                     currentToken.ColumnIndex = currentColumnIndex; \
                     currentToken.SourceIndex = i; \
@@ -534,7 +531,7 @@ static inline ModC_Result_TokenList ModC_Tokenization(  const ModC_ConstStringVi
                 //Block comment
                 else
                 {
-                    ModC_ConstStringView tokenView = ModC_Token_TokenTextView(&currentToken);
+                    ConstStringView tokenView = ModC_Token_TokenTextView(&currentToken);
                     if( tokenView.Length >= 4 && 
                         tokenView.Data[tokenView.Length - 2] == '*' &&
                         tokenView.Data[tokenView.Length - 1] == '/')

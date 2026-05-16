@@ -27,13 +27,13 @@ Define `ResultNameState` to use `_S` macro variants
 
 #### Functions:
 
-`static inline ModC_ConstStringView ModC_GetFileName(const ModC_ConstStringView path);`
+`static inline ConstStringView ModC_GetFileName(const ConstStringView path);`
 
 ```c
 typedef struct Trace
 {
-    ModC_StringView File;
-    ModC_StringView Function;
+    StringView File;
+    StringView Function;
     int32_t Line;
 } Trace;
 static inline void TraceCreate(const char* file, const char* function, int line, Trace* outTrace);
@@ -44,7 +44,7 @@ typedef struct Error
 {
     Trace Traces[MAX_TRACES];
     uint8_t TracesSize;
-    ModC_String ErrorMsg;
+    String ErrorMsg;
     int32_t ErrorCode;
 } Error;
 ```
@@ -66,24 +66,24 @@ Macro:
     `allocated` is `true` if `msg` can be freed with `RESULT_FREE_RESOURCE`
 ```c
 ResultName ERROR_MSG_EC_ALLOC(  ResultName,
-                                ModC_StringUnion msg,
+                                StringUnion msg,
                                 Allocator allocator,
                                 int32_t errorCode);
-ResultName ERROR_MSG_EC(ResultName, ModC_StringUnion msg,int32_t errorCode);
+ResultName ERROR_MSG_EC(ResultName, StringUnion msg,int32_t errorCode);
 
-ResultName ERROR_MSG_EC_ALLOC_S(ModC_StringUnion msg,
+ResultName ERROR_MSG_EC_ALLOC_S(StringUnion msg,
                                 Allocator allocator,
                                 int32_t errorCode);
-ResultName ERROR_MSG_EC_S(ModC_StringUnion msg, int32_t errorCode);
+ResultName ERROR_MSG_EC_S(StringUnion msg, int32_t errorCode);
 ```
 
 Macro:
 ```c
-ResultName ERROR_MSG_ALLOC(ResultName, ModC_StringUnion msg, Allocator allocator);
-ResultName ERROR_MSG(ResultName, ModC_StringUnion msg);
+ResultName ERROR_MSG_ALLOC(ResultName, StringUnion msg, Allocator allocator);
+ResultName ERROR_MSG(ResultName, StringUnion msg);
 
-ResultName ERROR_MSG_ALLOC_S(ModC_StringUnion msg, Allocator allocator);
-ResultName ERROR_MSG_S(ModC_StringUnion msg);
+ResultName ERROR_MSG_ALLOC_S(StringUnion msg, Allocator allocator);
+ResultName ERROR_MSG_S(StringUnion msg);
 ```
 
 Macro:
@@ -131,14 +131,11 @@ Macro:
 
 Macro:
 ```c
-ModC_String RESULT_TO_STRING_ALLOC(ResultName, 
-                                        ResultName resultVal, 
-                                        Allocator allocator);
-ModC_String RESULT_TO_STRING(ResultName, ResultName resultVal);
+String RESULT_TO_STRING_ALLOC(ResultName, ResultName resultVal, Allocator allocator);
+String RESULT_TO_STRING(ResultName, ResultName resultVal);
 
-ModC_String RESULT_TO_STRING_ALLOC_S(  ResultName resultVal, 
-                                            Allocator allocator);
-ModC_String RESULT_TO_STRING_S(ResultName resultVal);
+String RESULT_TO_STRING_ALLOC_S(ResultName resultVal, Allocator allocator);
+String RESULT_TO_STRING_S(ResultName resultVal);
 ```
 
 
@@ -173,12 +170,12 @@ CHECK_EC(expr, errorCode, (formatAppend), failedAction);
 
 typedef struct Trace
 {
-    ModC_StringView File;
-    ModC_StringView Function;
+    StringView File;
+    StringView Function;
     int32_t Line;
 } Trace;
 
-static inline ModC_ConstStringView ModC_GetFileName(const ModC_ConstStringView path)
+static inline ConstStringView ModC_GetFileName(const ConstStringView path)
 {
     int lastSlash = 0;
     int curr = 0;
@@ -190,7 +187,7 @@ static inline ModC_ConstStringView ModC_GetFileName(const ModC_ConstStringView p
         ++curr;
     }
     
-    return ModC_ConstStringView_Slice(&path, lastSlash, path.Length);
+    return ConstStringView_Slice(&path, lastSlash, path.Length);
 }
 
 static inline void TraceCreate(const char* file, const char* function, int line, Trace* outTrace)
@@ -198,13 +195,13 @@ static inline void TraceCreate(const char* file, const char* function, int line,
     if(!outTrace)
         return;
     
-    ModC_ConstStringView constFileView = CHAIN( ModC_ConstStringView_Create, (file, strlen(file)),
+    ConstStringView constFileView = CHAIN( ConstStringView_Create, (file, strlen(file)),
                                                 ModC_GetFileName, ());
-    ModC_ConstStringView constFuncView = ModC_ConstStringView_Create(function, strlen(function));
+    ConstStringView constFuncView = ConstStringView_Create(function, strlen(function));
     *outTrace = (Trace)
                 {
-                    .File = ModC_ConstStringView_Unconst(&constFileView),
-                    .Function = ModC_ConstStringView_Unconst(&constFuncView),
+                    .File = ConstStringView_Unconst(&constFileView),
+                    .Function = ConstStringView_Unconst(&constFuncView),
                     .Line = line
                 };
 }
@@ -216,7 +213,7 @@ typedef struct Error
 {
     Trace Traces[MAX_TRACES];
     Allocator Allocator;
-    ModC_String ErrorMsg;
+    String ErrorMsg;
     uint8_t TracesSize;
     int32_t ErrorCode;
 } Error;
@@ -255,36 +252,36 @@ static Error* GlobalRetError = NULL;
         return (valueType){0}; \
     } \
     \
-    static inline ModC_String \
+    static inline String \
     MPT_CONCAT(ModC_DefResultName, _ToString)( const ModC_DefResultName result, \
                                             Allocator allocator) \
     { \
         if(!result.HasError) \
-            return (ModC_String){0}; \
+            return (String){0}; \
         \
         Error* errorPtr = result.ValueOrError.Error; \
-        ModC_String outputString = ModC_String_Create(allocator, 512); \
+        String outputString = String_Create(allocator, 512); \
         \
         /* TODO: snprintf the whole thing? */ \
-        ModC_String_AppendFormat(&outputString, "Error:\n  %.*s", MODC_LENGTH_DATA(errorPtr->ErrorMsg)); \
+        String_AppendFormat(&outputString, "Error:\n  %.*s", MODC_LENGTH_DATA(errorPtr->ErrorMsg)); \
         if(errorPtr->ErrorCode != 0) \
-            ModC_String_AppendFormat(&outputString, "\nError Code: %d", errorPtr->ErrorCode); \
+            String_AppendFormat(&outputString, "\nError Code: %d", errorPtr->ErrorCode); \
         \
-        ModC_String_AppendLiteral(&outputString, "\n\nStack trace:"); \
+        String_AppendLiteral(&outputString, "\n\nStack trace:"); \
         for(int i = 0; i < errorPtr->TracesSize; ++i) \
         { \
             /* Trace */ \
-            ModC_String_AppendFormat(   &outputString, \
-                                        "\n  at %.*s:%d in %.*s()", \
-                                        MODC_LENGTH_DATA(errorPtr->Traces[i].File), \
-                                        errorPtr->Traces[i].Line, \
-                                        MODC_LENGTH_DATA(errorPtr->Traces[i].Function)); \
+            String_AppendFormat(&outputString, \
+                                "\n  at %.*s:%d in %.*s()", \
+                                MODC_LENGTH_DATA(errorPtr->Traces[i].File), \
+                                errorPtr->Traces[i].Line, \
+                                MODC_LENGTH_DATA(errorPtr->Traces[i].Function)); \
         } \
         return outputString; \
     }
     
 static inline Error* 
-ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion msg,
+ModC_Error_InternCreateErrorMsgEc(  StringUnion msg,
                                     const char* file,
                                     const char* func,
                                     int32_t line,
@@ -300,13 +297,13 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion msg,
         
         //Error.ErrorMsg
         {
-            if(msg.Type == TU_TYPE(ModC_StringUnion, ModC_String))
-                modcErrorPtr->ErrorMsg = msg.TU_DATA(ModC_StringUnion, ModC_String);
+            if(msg.Type == TU_TYPE(StringUnion, String))
+                modcErrorPtr->ErrorMsg = msg.TU_DATA(StringUnion, String);
             else
             {
-                modcErrorPtr->ErrorMsg = ModC_String_Create(allocator, 256);
-                ModC_ConstStringView* msgView = &msg.TU_DATA(ModC_StringUnion, ModC_ConstStringView);
-                ModC_String_AddRange(&modcErrorPtr->ErrorMsg, msgView->Data, msgView->Length);
+                modcErrorPtr->ErrorMsg = String_Create(allocator, 256);
+                ConstStringView* msgView = &msg.TU_DATA(StringUnion, ConstStringView);
+                String_AddRange(&modcErrorPtr->ErrorMsg, msgView->Data, msgView->Length);
             }
         }
         modcErrorPtr->ErrorCode = errorCode;
@@ -400,9 +397,7 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion msg,
 #define RESULT_ERROR_S(errorPtr) RESULT_ERROR(ResultNameState, errorPtr)
 
 #define INTERN_MODC_STR_VIEW_FROM_STR_FMT(allocator, strfmts) \
-    TU_INIT(ModC_StringUnion, \
-            ModC_String, \
-            ModC_String_FromFormat(allocator, MPT_REMOVE_PARENTHESIS(strfmts)))
+    TU_INIT(StringUnion, String, String_FromFormat(allocator, MPT_REMOVE_PARENTHESIS(strfmts)))
 
 #define INTERN_ERROR_STR_FMT_ALLOC_4(ResultName, allocator, strfmts, errorCode) \
     MPT_DELAYED_CONCAT2(ResultName, _CreateError) \
@@ -435,7 +430,7 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion msg,
 #define INTERN_ERROR_CSTR_ALLOC_4(ResultName, allocator, cstr, errorCode) \
     MPT_DELAYED_CONCAT2(ResultName, _CreateError) \
     ( \
-        ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion_ViewFromLiteral(cstr), \
+        ModC_Error_InternCreateErrorMsgEc(  StringUnion_ViewFromLiteral(cstr), \
                                             __FILE__, \
                                             __func__, \
                                             __LINE__, \
@@ -476,7 +471,7 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion msg,
             *(resultPtr) = (ResultName){0}; \
             break; \
         } \
-        ModC_String_Free(&(resultPtr)->ValueOrError.Error->ErrorMsg); \
+        String_Free(&(resultPtr)->ValueOrError.Error->ErrorMsg); \
         Allocator errorAllocator = (resultPtr)->ValueOrError.Error->Allocator; \
         Allocator_Free(&errorAllocator, (resultPtr)->ValueOrError.Error); \
         Allocator_Destroy(&errorAllocator); \
@@ -503,16 +498,16 @@ ModC_Error_InternCreateErrorMsgEc(  ModC_StringUnion msg,
     { \
         if(!(expr)) \
         { \
-            ModC_ConstStringView exprView = \
-                ModC_ConstStringView_FromLiteral("Expression \"" #expr "\" has failed. "); \
-            ModC_StringUnion assertView = TU_INIT(ModC_StringUnion, ModC_ConstStringView, exprView); \
+            ConstStringView exprView = \
+                ConstStringView_FromLiteral("Expression \"" #expr "\" has failed. "); \
+            StringUnion assertView = TU_INIT(StringUnion, ConstStringView, exprView); \
             GlobalError = ModC_Error_InternCreateErrorMsgEc(assertView, \
                                                             __FILE__, \
                                                             __func__, \
                                                             __LINE__, \
                                                             (errorCode), \
                                                             (allocator)); \
-            ModC_String_AppendFormat(   &GlobalError->ErrorMsg, \
+            String_AppendFormat(   &GlobalError->ErrorMsg, \
                                         MPT_REMOVE_PARENTHESIS(formatAppend)); \
             __VA_ARGS__; \
         } \

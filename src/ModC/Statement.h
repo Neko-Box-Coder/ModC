@@ -68,7 +68,7 @@ typedef struct ModC_TypeDeclarationInfo
         ModC_Type_Enum
     } Type;
     
-    ModC_String TypeName;   //TODO: Use token index instead
+    String TypeName;   //TODO: Use token index instead
 } ModC_TypeDeclarationInfo;
 
 typedef struct ModC_VariableDeclareAssignInfo
@@ -118,7 +118,7 @@ struct ModC_Statement
 #include "ModC/List.h"
 
 DEFINE_RESULT_STRUCT(ModC_ResultStatementPtr, ModC_Statement*)
-DEFINE_RESULT_STRUCT(ModC_Result_ConstStringView, ModC_ConstStringView)
+DEFINE_RESULT_STRUCT(ModC_Result_ConstStringView, ConstStringView)
 DEFINE_RESULT_STRUCT(ModC_Result_StatementList, ModC_StatementList)
 
 #include "static_assert.h/assert.h"
@@ -255,7 +255,7 @@ ModC_StatementTokensUnion_GetTokenTextViewAt(   const ModC_StatementTokensUnion*
 static inline ModC_Result_Uint32
 ModC_StatementTokensUnion_ContainsTokenText(const ModC_StatementTokensUnion* statementUnion, 
                                             const ModC_TokenList* tokens,
-                                            ModC_ConstStringView checkText)
+                                            ConstStringView checkText)
 {
     #undef ResultNameState
     #define ResultNameState ModC_Result_Uint32
@@ -266,22 +266,22 @@ ModC_StatementTokensUnion_ContainsTokenText(const ModC_StatementTokensUnion* sta
         ModC_Result_ConstStringView constStringViewResult =
             ModC_StatementTokensUnion_GetTokenTextViewAt(statementUnion, tokens, i);
         
-        ModC_ConstStringView tokenStringView = *RESULT_TRY(constStringViewResult, RET_ERROR_S());
-        if(ModC_StringLikeEqual(tokenStringView, checkText))
+        ConstStringView tokenStringView = *RESULT_TRY(constStringViewResult, RET_ERROR_S());
+        if(StringLikeEqual(tokenStringView, checkText))
             return RESULT_VALUE_S(i);
     }
     
     return RESULT_VALUE_S(tokensCount);
 }
 
-static inline ModC_ConstStringView ModC_StatementType_ToConstStringView(ModC_StatementType type)
+static inline ConstStringView ModC_StatementType_ToConstStringView(ModC_StatementType type)
 {
     static_assert((int)ModC_StatementType_Count == 18, "");
     switch(type)
     {
         #define RET_TO_STR(enumVal) \
             case enumVal: \
-                return ModC_ConstStringView_FromLiteral(#enumVal)
+                return ConstStringView_FromLiteral(#enumVal)
         
         RET_TO_STR(ModC_StatementType_Invalid);
         RET_TO_STR(ModC_StatementType_Unknown);
@@ -305,7 +305,7 @@ static inline ModC_ConstStringView ModC_StatementType_ToConstStringView(ModC_Sta
         
         #undef RET_TO_STR
     }
-    return (ModC_ConstStringView){0};
+    return (ConstStringView){0};
 }
 
 
@@ -384,7 +384,7 @@ static inline ModC_ResultStatementPtr ModC_Statement_CreatePlain(   Allocator al
 
 static inline ModC_Result_Void ModC_Statement_ToString( ModC_Statement* this, 
                                                         ModC_TokenList* tokenList,
-                                                        ModC_String* inOutString, 
+                                                        String* inOutString, 
                                                         bool append)
 {
     #undef ResultNameState
@@ -396,11 +396,11 @@ static inline ModC_Result_Void ModC_Statement_ToString( ModC_Statement* this,
         return RESULT_VALUE_S(0);
     
     if(!append)
-        ModC_String_Resize(inOutString, 0);
+        String_Resize(inOutString, 0);
     
-    ModC_ConstStringView statementTypeStr = ModC_StatementType_ToConstStringView(this->StatementType);
-    ModC_String_AddRange(inOutString, statementTypeStr.Data, statementTypeStr.Length);
-    ModC_String_AppendLiteral(inOutString, " - ");
+    ConstStringView statementTypeStr = ModC_StatementType_ToConstStringView(this->StatementType);
+    String_AddRange(inOutString, statementTypeStr.Data, statementTypeStr.Length);
+    String_AppendLiteral(inOutString, " - ");
     
     static_assert((int)TU_TYPE_S(Count) == 3, "");
     switch(this->Tokens.Type)
@@ -409,76 +409,76 @@ static inline ModC_Result_Void ModC_Statement_ToString( ModC_Statement* this,
         {
             ModC_CompoundStatement* compoundStatement = &this   ->Tokens
                                                                 .TU_DATA_S(ModC_CompoundStatement);
-            ModC_String_AppendFormat(   inOutString, 
-                                        "ModC_CompoundStatement: %" PRIu32 " - %" PRIu32 " "
-                                        "(Implicit: %s), (Children: ", 
-                                        compoundStatement->StartTokenIndex,
-                                        compoundStatement->EndTokenIndex,
-                                        (compoundStatement->Implicit ? "true" : "false"));
+            String_AppendFormat(inOutString, 
+                                "ModC_CompoundStatement: %" PRIu32 " - %" PRIu32 " "
+                                "(Implicit: %s), (Children: ", 
+                                compoundStatement->StartTokenIndex,
+                                compoundStatement->EndTokenIndex,
+                                (compoundStatement->Implicit ? "true" : "false"));
             
             if(compoundStatement->ChildStatements.Length >= 2)
             {
                 for(int j = 0; j < compoundStatement->ChildStatements.Length - 1; ++j)
                 {
-                    ModC_String_AppendFormat(   inOutString, 
-                                                "%" PRIu32 ", ", 
-                                                compoundStatement->ChildStatements.Data[j]);
+                    String_AppendFormat(inOutString, 
+                                        "%" PRIu32 ", ", 
+                                        compoundStatement->ChildStatements.Data[j]);
                 }
             }
             
             if(compoundStatement->ChildStatements.Length > 0)
             {
                 uint32_t lastIndex = compoundStatement->ChildStatements.Length - 1;
-                ModC_String_AppendFormat(   inOutString, 
-                                            "%" PRIu32, 
-                                            compoundStatement->ChildStatements.Data[lastIndex]);
+                String_AppendFormat(inOutString, 
+                                    "%" PRIu32, 
+                                    compoundStatement->ChildStatements.Data[lastIndex]);
             }
-            ModC_String_AddValue(inOutString, ')');
+            String_AddValue(inOutString, ')');
             break;
         }
         case TU_TYPE_S(ModC_TokenIndexList):
         {
             ModC_TokenIndexList* tokenIndexList = &this->Tokens.TU_DATA_S(ModC_TokenIndexList);
-            ModC_String_AppendFormat(inOutString, "ModC_TokenIndexList: (Indices: ");
+            String_AppendFormat(inOutString, "ModC_TokenIndexList: (Indices: ");
             if(tokenIndexList->Length >= 2)
             {
                 for(int j = 0; j < tokenIndexList->Length - 1; ++j)
-                    ModC_String_AppendFormat(inOutString, "%" PRIu32 ", ", tokenIndexList->Data[j]);
+                    String_AppendFormat(inOutString, "%" PRIu32 ", ", tokenIndexList->Data[j]);
             }
             
             if(tokenIndexList->Length > 0)
             {
-                ModC_String_AppendFormat(   inOutString, 
-                                            "%" PRIu32, 
-                                            tokenIndexList->Data[tokenIndexList->Length - 1]);
+                String_AppendFormat(inOutString, 
+                                    "%" PRIu32, 
+                                    tokenIndexList->Data[tokenIndexList->Length - 1]);
             }
             
-            ModC_String_AppendFormat(inOutString, "), \"");
+            String_AppendFormat(inOutString, "), \"");
             for(int j = 0; j < tokenIndexList->Length; ++j)
             {
-                ModC_ConstStringView tokenText = 
+                ConstStringView tokenText = 
                     ModC_Token_TokenTextView(&tokenList->Data[tokenIndexList->Data[j]]);
                 CHECK(tokenText.Length > 0, ("Invalid token text"), RET_ERROR_S());
-                ModC_String_AppendFormat(inOutString, "%.*s ", (int)tokenText.Length, tokenText.Data);
+                String_AppendFormat(inOutString, "%.*s ", (int)tokenText.Length, tokenText.Data);
             }
-            ModC_String_AppendLiteral(inOutString, "\"");
+            String_AppendLiteral(inOutString, "\"");
             break;
         }
         case TU_TYPE_S(ModC_TokenIndexRange):
         {
             ModC_TokenIndexRange* tokenIndexRange = &this->Tokens.TU_DATA_S(ModC_TokenIndexRange);
-            ModC_String_AppendFormat(   inOutString, 
-                                        "ModC_TokenIndexRange: %" PRIu32 " - %" PRIu32 ", \"",
-                                        tokenIndexRange->StartIndex,
-                                        tokenIndexRange->EndIndex);
+            String_AppendFormat(inOutString, 
+                                "ModC_TokenIndexRange: %" PRIu32 " - %" PRIu32 ", \"",
+                                tokenIndexRange->StartIndex,
+                                tokenIndexRange->EndIndex);
             
             for(int j = tokenIndexRange->StartIndex; j < tokenIndexRange->EndIndex; ++j)
             {
-                ModC_ConstStringView tokenText = ModC_Token_TokenTextView(&tokenList->Data[j]);
+                ConstStringView tokenText = ModC_Token_TokenTextView(&tokenList->Data[j]);
                 CHECK(tokenText.Length > 0, ("Invalid token text"), RET_ERROR_S());
-                ModC_String_AppendFormat(inOutString, "%.*s ", (int)tokenText.Length, tokenText.Data);
+                String_AppendFormat(inOutString, "%.*s ", (int)tokenText.Length, tokenText.Data);
             }
-            ModC_String_AppendLiteral(inOutString, "\"");
+            String_AppendLiteral(inOutString, "\"");
             break;
         }
         default:
@@ -564,7 +564,7 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
             RET_ERROR_S());
         
     ModC_TokenIndexList tokenIndices;
-    ModC_String tempMergedOperator;
+    String tempMergedOperator;
     
     DEFER_SCOPE_START(0)
     {
@@ -572,8 +572,8 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
         tokenIndices = ModC_Uint32List_Create(scratchAllocator, tokensCount);
         DEFER(0, ModC_Uint32List_Free(&tokenIndices));
         
-        tempMergedOperator = ModC_String_Create(scratchAllocator, 3);
-        DEFER(0, ModC_String_Free(&tempMergedOperator));
+        tempMergedOperator = String_Create(scratchAllocator, 3);
+        DEFER(0, String_Free(&tempMergedOperator));
         
         uint32_t minLookBack = 0;
         bool skipped = false;
@@ -601,7 +601,7 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
                 {
                     CHECK(minLookBack < i, (""), DEFER_BREAK(0, RET_ERROR_S()));
                     
-                    ModC_String_Resize(&tempMergedOperator, 0);
+                    String_Resize(&tempMergedOperator, 0);
                     for(uint32_t j = minLookBack; j <= i; ++j)
                     {
                         tokenPtrResult = ModC_StatementTokensUnion_GetTokenAt(  &statement->Tokens, 
@@ -614,18 +614,18 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
                                 (""), 
                                 DEFER_BREAK(0, RET_ERROR_S()));
                         
-                        ModC_ConstStringView opChar = ModC_Token_TokenTextView(lookBackToken);
+                        ConstStringView opChar = ModC_Token_TokenTextView(lookBackToken);
                         CHECK(  opChar.Length == 1, 
                                 ("Unexpected operator text length: %"PRIu32, 
                                 opChar.Length),
                                 DEFER_BREAK(0, RET_ERROR_S()));
                         
-                        ModC_String_AddValue(&tempMergedOperator, opChar.Data[0]);
+                        String_AddValue(&tempMergedOperator, opChar.Data[0]);
                     }
                     
                     //If the merged tokens are valid, modify the first (continuous) token to be merged
-                    ModC_ConstStringView mergedView = 
-                        ModC_ConstStringView_Create(tempMergedOperator.Data, 
+                    ConstStringView mergedView = 
+                        ConstStringView_Create(tempMergedOperator.Data, 
                                                     tempMergedOperator.Length);
                     if(ModC_IsValidComplexOperator(mergedView))
                     {
@@ -637,22 +637,21 @@ static inline ModC_Result_Void ModC_Statement_Normalize(ModC_Statement* statemen
                                                                     DEFER_BREAK(0, RET_ERROR_S()));
                         
                         //Modify current token to concatenated operator string
-                        if(currentToken->TokenText.Type == TU_TYPE(ModC_StringUnion, ModC_String))
+                        if(currentToken->TokenText.Type == TU_TYPE(StringUnion, String))
                         {
-                            ModC_String* tokenStr = 
-                                &minLookBackToken->TokenText.TU_DATA( ModC_StringUnion, ModC_String);
-                            ModC_String_AddRange(   tokenStr, 
-                                                    &tempMergedOperator.Data[1], 
-                                                    tempMergedOperator.Length - 1);
+                            String* tokenStr = 
+                                &minLookBackToken->TokenText.TU_DATA( StringUnion, String);
+                            String_AddRange(tokenStr, 
+                                            &tempMergedOperator.Data[1], 
+                                            tempMergedOperator.Length - 1);
                         }
                         else
                         {
-                            ModC_String tokenStr = 
-                                ModC_String_FromData(   tokensAllcoator, 
-                                                        tempMergedOperator.Data, 
-                                                        tempMergedOperator.Length);
-                            minLookBackToken->TokenText = TU_INIT(  ModC_StringUnion, 
-                                                                    ModC_String, 
+                            String tokenStr = String_FromData(  tokensAllcoator, 
+                                                                tempMergedOperator.Data, 
+                                                                tempMergedOperator.Length);
+                            minLookBackToken->TokenText = TU_INIT(  StringUnion, 
+                                                                    String, 
                                                                     tokenStr);
                         }
                         
@@ -887,7 +886,7 @@ static inline ModC_Result_Uint32 ModC_EndCurrentStatement(  bool countCurrentTok
 }
 
 static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_TokenList* tokens, 
-                                                                const ModC_ConstStringView source,
+                                                                const ConstStringView source,
                                                                 Allocator scratchAllocator,
                                                                 Allocator* outStatementsArena)
 {
@@ -929,10 +928,10 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
         { \
             if(!(cond)) \
             { \
-                ModC_String visualizeStr = ModC_Token_VisualizeLocation(&tokens->Data[i], \
-                                                                        CreateHeapAllocator(), \
-                                                                        false, \
-                                                                        source); \
+                String visualizeStr = ModC_Token_VisualizeLocation( &tokens->Data[i], \
+                                                                    CreateHeapAllocator(), \
+                                                                    false, \
+                                                                    source); \
                 \
                 return ERROR_STR_FMT_S((msg "\n%.*s", \
                                         visualizeStr.Length, \
@@ -959,8 +958,8 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
                 ```
                 where it can be mixed in with normal statement
                 */
-                ModC_ConstStringView tokenView = ModC_Token_TokenTextView(&tokens->Data[i]);
-                if(!ModC_ConstStringView_IsEqualLiteral(&tokenView, "else"))
+                ConstStringView tokenView = ModC_Token_TokenTextView(&tokens->Data[i]);
+                if(!ConstStringView_IsEqualLiteral(&tokenView, "else"))
                     break;
                 
                 if(startTokenIndex != i)
@@ -972,8 +971,8 @@ static inline ModC_Result_StatementList ModC_CreateStatements(  const ModC_Token
             case ModC_CharTokenType_Operator:
             {
                 //`case xxx:` count as a statement
-                ModC_ConstStringView tokenView = ModC_Token_TokenTextView(&tokens->Data[i]);
-                if(!ModC_ConstStringView_IsEqualLiteral(&tokenView, ":"))
+                ConstStringView tokenView = ModC_Token_TokenTextView(&tokens->Data[i]);
+                if(!ConstStringView_IsEqualLiteral(&tokenView, ":"))
                     break;
                 
                 END_CURRENT_STATEMENT(true);

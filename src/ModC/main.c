@@ -60,8 +60,8 @@ ModC_Result_Void Main(int argc, char* argv[])
     FILE* modcFile = NULL;
     Allocator mainArena;
     Allocator statementListArena;
-    ModC_String fileContent;
-    ModC_String printString;
+    String fileContent;
+    String printString;
     
     DEFER_SCOPE_START(0)
     {
@@ -71,7 +71,7 @@ ModC_Result_Void Main(int argc, char* argv[])
             DEFER_BREAK(0, return RESULT_VALUE_S(0));
         }
         
-        ModC_StringView filePath = ModC_StringView_Create(argv[1], strlen(argv[1]));
+        StringView filePath = StringView_Create(argv[1], strlen(argv[1]));
         printf("Compiling %s\n", filePath.Data);
         
         modcFile = fopen(filePath.Data, "r");
@@ -94,8 +94,8 @@ ModC_Result_Void Main(int argc, char* argv[])
         mainArena = CreateArenaAllocator(fileSize);
         DEFER(0, Allocator_Destroy(&mainArena));
         
-        fileContent = ModC_String_Create(Allocator_Share(&mainArena), fileSize);
-        ModC_String_Resize(&fileContent, fileSize);
+        fileContent = String_Create(Allocator_Share(&mainArena), fileSize);
+        String_Resize(&fileContent, fileSize);
         CHECK(fileContent.Length == fileSize, "", DEFER_BREAK(0, RET_ERROR_S()));
         
         uint32_t actuallyRead = fread(fileContent.Data, 1, fileSize, modcFile);
@@ -103,8 +103,7 @@ ModC_Result_Void Main(int argc, char* argv[])
                 (" actuallyRead: %"PRIu64", fileSize: %"PRIi64, actuallyRead, fileSize),
                 DEFER_BREAK(0, RET_ERROR_S()));
     
-        ModC_ConstStringView sourceView = ModC_ConstStringView_Create(  fileContent.Data, 
-                                                                        fileContent.Length);
+        ConstStringView sourceView = ConstStringView_Create(fileContent.Data, fileContent.Length);
         ModC_Result_TokenList tokenListResult = ModC_Tokenization(  sourceView, 
                                                                     Allocator_Share(&mainArena));
         ModC_TokenList* tokenList = RESULT_TRY(tokenListResult, DEFER_BREAK(0, RET_ERROR_S()));
@@ -113,8 +112,8 @@ ModC_Result_Void Main(int argc, char* argv[])
         
         for(int i = 0; i < tokenList->Length; ++i)
         {
-            ModC_ConstStringView typeStr = ModC_TokenType_ToCStr(tokenList->Data[i].TokenType);
-            ModC_ConstStringView tokenTextView = ModC_Token_TokenTextView(&tokenList->Data[i]);
+            ConstStringView typeStr = ModC_TokenType_ToCStr(tokenList->Data[i].TokenType);
+            ConstStringView tokenTextView = ModC_Token_TokenTextView(&tokenList->Data[i]);
             printf( "Token: \"%.*s\", Token Type[%i]: %.*s\n", 
                     (int)tokenTextView.Length, tokenTextView.Data,
                     i, 
@@ -141,7 +140,7 @@ ModC_Result_Void Main(int argc, char* argv[])
         (void)RESULT_TRY(voidResult, DEFER_BREAK(0, RET_ERROR_S()));
         
         
-        printString = ModC_String_Create(Allocator_Share(&mainArena), 64);
+        printString = String_Create(Allocator_Share(&mainArena), 64);
         for(int i = 0; i < statementList->Length; ++i)
         {
             voidResult = ModC_Statement_ToString(   &statementList->Data[i],
@@ -171,9 +170,9 @@ int main(int argc, char* argv[])
         if(result.HasError)
         {
             ERROR_APPEND_TRACE(result.ValueOrError.Error);
-            ModC_String resultStr = RESULT_TO_STRING_S(result);
+            String resultStr = RESULT_TO_STRING_S(result);
             printf("%.*s\n", (int)resultStr.Length, resultStr.Data);
-            ModC_String_Free(&resultStr);
+            String_Free(&resultStr);
         }
         RESULT_FREE_RESOURCE_S(&result);
     }
@@ -186,9 +185,9 @@ int main(int argc, char* argv[])
         if(result.HasError)
         {
             ERROR_APPEND_TRACE(result.ValueOrError.Error);
-            ModC_String resultStr = RESULT_TO_STRING_S(result);
+            String resultStr = RESULT_TO_STRING_S(result);
             printf("%.*s\n", (int)resultStr.Length, resultStr.Data);
-            ModC_String_Free(&resultStr);
+            String_Free(&resultStr);
         }
         RESULT_FREE_RESOURCE_S(&result);
     }

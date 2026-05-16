@@ -26,12 +26,4 @@ DEFINE_RESULT_STRUCT(ModC_Result_Void, Void)
 #define VALUE_TYPE bool
 #include "ModC/List.h"
 
-//#define MODC_LIST_NAME ModC_TestString
-//#define MODC_VALUE_TYPE char
-//#include "ModC/List.h"
-
-//#define MODC_TAGGED_UNION_NAME TEST_UNION
-//#define MODC_VALUE_TYPES ModC_String, ModC_StringView
-//#include "ModC/TaggedUnion.h"
-
 #endif

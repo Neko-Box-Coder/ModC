@@ -6,29 +6,29 @@
 #include <stdbool.h>
 
 //https://en.cppreference.com/w/c/language/operator_precedence.html
-static inline bool ModC_IsValidComplexOperator(const ModC_ConstStringView tokenText)
+static inline bool ModC_IsValidComplexOperator(const ConstStringView tokenText)
 {
-    return  ModC_ConstStringView_IsEqualLiteral(&tokenText, "++") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, "--") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, "->") || //TODO: Should we have this?
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, "<<") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, ">>") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, "<=") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, ">=") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, "==") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, "!=") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, "&&") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, "||") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, "+=") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, "-=") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, "*=") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, "/=") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, "%=") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, "<<=") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, ">>=") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, "&=") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, "^=") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, "|=");
+    return  ConstStringView_IsEqualLiteral(&tokenText, "++") ||
+            ConstStringView_IsEqualLiteral(&tokenText, "--") ||
+            ConstStringView_IsEqualLiteral(&tokenText, "->") || //TODO: Should we have this?
+            ConstStringView_IsEqualLiteral(&tokenText, "<<") ||
+            ConstStringView_IsEqualLiteral(&tokenText, ">>") ||
+            ConstStringView_IsEqualLiteral(&tokenText, "<=") ||
+            ConstStringView_IsEqualLiteral(&tokenText, ">=") ||
+            ConstStringView_IsEqualLiteral(&tokenText, "==") ||
+            ConstStringView_IsEqualLiteral(&tokenText, "!=") ||
+            ConstStringView_IsEqualLiteral(&tokenText, "&&") ||
+            ConstStringView_IsEqualLiteral(&tokenText, "||") ||
+            ConstStringView_IsEqualLiteral(&tokenText, "+=") ||
+            ConstStringView_IsEqualLiteral(&tokenText, "-=") ||
+            ConstStringView_IsEqualLiteral(&tokenText, "*=") ||
+            ConstStringView_IsEqualLiteral(&tokenText, "/=") ||
+            ConstStringView_IsEqualLiteral(&tokenText, "%=") ||
+            ConstStringView_IsEqualLiteral(&tokenText, "<<=") ||
+            ConstStringView_IsEqualLiteral(&tokenText, ">>=") ||
+            ConstStringView_IsEqualLiteral(&tokenText, "&=") ||
+            ConstStringView_IsEqualLiteral(&tokenText, "^=") ||
+            ConstStringView_IsEqualLiteral(&tokenText, "|=");
 }
 
 #endif

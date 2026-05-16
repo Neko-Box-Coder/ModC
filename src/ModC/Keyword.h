@@ -5,12 +5,12 @@
 
 #include <stdbool.h>
 
-static inline bool ModC_IsInvokableKeyword(const ModC_ConstStringView tokenText)
+static inline bool ModC_IsInvokableKeyword(const ConstStringView tokenText)
 {
-    return  ModC_ConstStringView_IsEqualLiteral(&tokenText, "if") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, "while") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, "for") ||
-            ModC_ConstStringView_IsEqualLiteral(&tokenText, "switch");
+    return  ConstStringView_IsEqualLiteral(&tokenText, "if") ||
+            ConstStringView_IsEqualLiteral(&tokenText, "while") ||
+            ConstStringView_IsEqualLiteral(&tokenText, "for") ||
+            ConstStringView_IsEqualLiteral(&tokenText, "switch");
 }
 
 #endif
