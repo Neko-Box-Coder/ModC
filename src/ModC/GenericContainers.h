@@ -11,18 +11,18 @@ Define `DEFAULT_ALLOC` to use non `_ALLOC` macro variants
 #include <stdbool.h>
 
 #include "ModC/Result.h"
-DEFINE_RESULT_STRUCT(ModC_Result_Int32, int32_t)
-DEFINE_RESULT_STRUCT(ModC_Result_Uint32, uint32_t)
-DEFINE_RESULT_STRUCT(ModC_Result_Bool, uint8_t)
+DEFINE_RESULT_STRUCT(Result_Int32, int32_t)
+DEFINE_RESULT_STRUCT(Result_Uint32, uint32_t)
+DEFINE_RESULT_STRUCT(Result_Bool, uint8_t)
 
 typedef char Void;
-DEFINE_RESULT_STRUCT(ModC_Result_Void, Void)
+DEFINE_RESULT_STRUCT(Result_Void, Void)
 
 #define LIST_NAME Uint32List
 #define VALUE_TYPE uint32_t
 #include "ModC/List.h"
 
-#define LIST_NAME ModC_BoolList
+#define LIST_NAME BoolList
 #define VALUE_TYPE bool
 #include "ModC/List.h"
 

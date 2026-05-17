@@ -31,10 +31,10 @@ static_assert(sizeof(int) == sizeof(int32_t), "");
     #define DEFAULT_ALLOC() CreateHeapAllocator()
 #endif
 
-static inline ModC_Result_Int32 TestResult(void)
+static inline Result_Int32 TestResult(void)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Int32
+    #define ResultNameState Result_Int32
     
     if(true)
         return ERROR_CSTR_S("Failed to seek file");
@@ -42,18 +42,18 @@ static inline ModC_Result_Int32 TestResult(void)
         return RESULT_VALUE_S(5);
 }
 
-static inline ModC_Result_Int32 TestResult2(void)
+static inline Result_Int32 TestResult2(void)
 {
-    ModC_Result_Int32 intResult = TestResult();
+    Result_Int32 intResult = TestResult();
     int32_t* unwrappedVal = RESULT_TRY(intResult, RET_ERROR_S());
     return RESULT_VALUE_S(*unwrappedVal);
 }
 
-ModC_Result_Void Main(int argc, char* argv[])
+Result_Void Main(int argc, char* argv[])
 {
     (void)&TestResult2;
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Void
+    #define ResultNameState Result_Void
     #undef TaggedUnionNameState
     #define TaggedUnionNameState StatementTokensUnion
     
@@ -104,7 +104,7 @@ ModC_Result_Void Main(int argc, char* argv[])
                 DEFER_BREAK(0, RET_ERROR_S()));
     
         ConstStringView sourceView = ConstStringView_Create(fileContent.Data, fileContent.Length);
-        ModC_Result_TokenList tokenListResult = Tokenization(sourceView, Allocator_Share(&mainArena));
+        Result_TokenList tokenListResult = Tokenization(sourceView, Allocator_Share(&mainArena));
         TokenList* tokenList = RESULT_TRY(tokenListResult, DEFER_BREAK(0, RET_ERROR_S()));
         
         DEFER(0, TokenList_Free(tokenList));
@@ -126,7 +126,7 @@ ModC_Result_Void Main(int argc, char* argv[])
         StatementList* statementList = RESULT_TRY(statementListResult, DEFER_BREAK(0, RET_ERROR_S()));
         DEFER(0, Allocator_Destroy(&statementListArena));
         
-        ModC_Result_Void voidResult = 
+        Result_Void voidResult = 
             ModC_CleanAndClassifyStatements(statementList, 
                                             Allocator_Share(&mainArena),
                                             Allocator_Share(&statementListArena),
@@ -157,9 +157,9 @@ int main(int argc, char* argv[])
     #if 1
     {
         #undef ResultNameState
-        #define ResultNameState ModC_Result_Void
+        #define ResultNameState Result_Void
         
-        ModC_Result_Void result = Main(argc, argv);
+        Result_Void result = Main(argc, argv);
         if(result.HasError)
         {
             ERROR_APPEND_TRACE(result.ValueOrError.Error);
@@ -172,9 +172,9 @@ int main(int argc, char* argv[])
     #else
     {
         #undef ResultNameState
-        #define ResultNameState ModC_Result_Int32
+        #define ResultNameState Result_Int32
         
-        ModC_Result_Int32 result = TestResult2();
+        Result_Int32 result = TestResult2();
         if(result.HasError)
         {
             ERROR_APPEND_TRACE(result.ValueOrError.Error);

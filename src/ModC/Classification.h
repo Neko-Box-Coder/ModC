@@ -33,18 +33,18 @@ typedef struct ModC_TypeEntry
         } \
         while(0)
 
-static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   Statement* statement,
-                                                                    const TokenList* tokens,
-                                                                    const ConstStringView source,
-                                                                    Allocator statementsArena,
-                                                                    Allocator scratchAllocator,
-                                                                    bool inTypeDecl,
-                                                                    bool inFuncImpl,
-                                                                    ModC_TypeEntry** rootTypeHashSet,
-                                                                    ModC_TypeEntry** funcTypeHashSet)
+static inline Result_Void ModC_TryClassifyAsTypeDeclaration(Statement* statement,
+                                                            const TokenList* tokens,
+                                                            const ConstStringView source,
+                                                            Allocator statementsArena,
+                                                            Allocator scratchAllocator,
+                                                            bool inTypeDecl,
+                                                            bool inFuncImpl,
+                                                            ModC_TypeEntry** rootTypeHashSet,
+                                                            ModC_TypeEntry** funcTypeHashSet)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Void
+    #define ResultNameState Result_Void
     #undef TaggedUnionNameState
     #define TaggedUnionNameState StatementInfoUnion
     #undef uthash_malloc
@@ -77,8 +77,9 @@ static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   Statement* s
     
     if(tokenCount == 1)
     {
-        ModC_Result_TokenPtr tokenPtrResult = 
-            StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, 0);
+        Result_TokenPtr tokenPtrResult = StatementTokensUnion_GetTokenAt(   &statement->Tokens, 
+                                                                            tokens, 
+                                                                            0);
         Token* tokenPtr = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
         RETURN_VISUALIZED_ERROR(tokenPtr, 
                                 source, 
@@ -105,8 +106,9 @@ static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   Statement* s
     
     if(foundEntry)
     {
-        ModC_Result_TokenPtr tokenPtrResult = 
-            StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, 1);
+        Result_TokenPtr tokenPtrResult = StatementTokensUnion_GetTokenAt(   &statement->Tokens, 
+                                                                            tokens, 
+                                                                            1);
         Token* tokenPtr = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
         RETURN_VISUALIZED_ERROR(tokenPtr, 
                                 source, 
@@ -127,12 +129,12 @@ static inline ModC_Result_Void ModC_TryClassifyAsTypeDeclaration(   Statement* s
     return RESULT_VALUE_S(0);
 }
 
-static inline ModC_Result_Void ModC_TryClassifyEnumValues(  Statement* statement,
-                                                            const StatementList* statements, 
-                                                            bool inTypeDecl)
+static inline Result_Void ModC_TryClassifyEnumValues(   Statement* statement,
+                                                        const StatementList* statements, 
+                                                        bool inTypeDecl)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Void
+    #define ResultNameState Result_Void
     #undef TaggedUnionNameState
     #define TaggedUnionNameState StatementTokensUnion
     
@@ -168,11 +170,11 @@ static inline ModC_Result_Void ModC_TryClassifyEnumValues(  Statement* statement
 
 
 
-static inline ModC_Result_Void ModC_TryClassifyAsCompilerDirective( Statement* statement,
-                                                                    const TokenList* tokens)
+static inline Result_Void ModC_TryClassifyAsCompilerDirective(  Statement* statement,
+                                                                const TokenList* tokens)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Void
+    #define ResultNameState Result_Void
     
     if(statement->StatementType == StatementType_Compound)
         return RESULT_VALUE_S(0);
@@ -180,7 +182,7 @@ static inline ModC_Result_Void ModC_TryClassifyAsCompilerDirective( Statement* s
     uint32_t tokenCount = StatementTokensUnion_GetTokenCount(&statement->Tokens);
     CHECK(tokenCount > 0, (""), RET_ERROR_S());
     
-    ModC_Result_TokenPtr tokenPtrResult =
+    Result_TokenPtr tokenPtrResult =
         StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, 0);
     
     Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
@@ -198,7 +200,7 @@ static inline ModC_Result_Void ModC_TryClassifyAsCompilerDirective( Statement* s
     return RESULT_VALUE_S(0);
 }
 
-static inline ModC_Result_Void 
+static inline Result_Void 
 ModC_TryClassifyAsVariableDeclareAssignment(Statement* statement,
                                             const TokenList* tokens,
                                             const ConstStringView source,
@@ -208,7 +210,7 @@ ModC_TryClassifyAsVariableDeclareAssignment(Statement* statement,
                                             ModC_TypeEntry** funcTypeHashSet)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Void
+    #define ResultNameState Result_Void
     #undef TaggedUnionNameState
     #define TaggedUnionNameState StatementInfoUnion
     
@@ -220,7 +222,7 @@ ModC_TryClassifyAsVariableDeclareAssignment(Statement* statement,
     
     //Check if last token is semicolon
     {
-        ModC_Result_TokenPtr tokenPtrResult =
+        Result_TokenPtr tokenPtrResult =
             StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, tokenCount - 1);
         
         Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
@@ -238,9 +240,9 @@ ModC_TryClassifyAsVariableDeclareAssignment(Statement* statement,
     //NOTE: Hardcode type to be index 0 and identifier to be index 1 for now
     for(int i = 0; i < 2; ++i)
     {
-        ModC_Result_TokenPtr tokenPtrResult =
-            StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, i);
-        
+        Result_TokenPtr tokenPtrResult = StatementTokensUnion_GetTokenAt(   &statement->Tokens, 
+                                                                            tokens, 
+                                                                            i);
         Token** outPtr = i == 0 ? &typeToken : &identifierToken;
         *outPtr = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
         if((*outPtr)->TokenType != TokenType_Identifier)
@@ -279,7 +281,7 @@ ModC_TryClassifyAsVariableDeclareAssignment(Statement* statement,
                                 typeTokenText.Data);
     }
     
-    ModC_Result_Uint32 uint32Result = 
+    Result_Uint32 uint32Result = 
         StatementTokensUnion_ContainsTokenText( &statement->Tokens, 
                                                 tokens, 
                                                 ConstStringView_FromLiteral("="));
@@ -291,8 +293,9 @@ ModC_TryClassifyAsVariableDeclareAssignment(Statement* statement,
     {
         if(inTypeDecl)
         {
-            ModC_Result_TokenPtr tokenPtrResult =
-                StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, foundIndex);
+            Result_TokenPtr tokenPtrResult = StatementTokensUnion_GetTokenAt(   &statement->Tokens, 
+                                                                                tokens, 
+                                                                                foundIndex);
             Token* tokenPtr = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
             RETURN_VISUALIZED_ERROR(tokenPtr, 
                                     source, 
@@ -326,7 +329,7 @@ ModC_TryClassifyAsVariableDeclareAssignment(Statement* statement,
     return RESULT_VALUE_S(0);
 }
 
-static inline ModC_Result_Void 
+static inline Result_Void 
 ModC_TryClassifyAsFunctionDeclaration(  Statement* statement,
                                         const TokenList* tokens,
                                         const ConstStringView source,
@@ -335,7 +338,7 @@ ModC_TryClassifyAsFunctionDeclaration(  Statement* statement,
                                         ModC_TypeEntry** rootTypeHashSet)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Void
+    #define ResultNameState Result_Void
     #undef TaggedUnionNameState
     #define TaggedUnionNameState StatementInfoUnion
     
@@ -347,9 +350,9 @@ ModC_TryClassifyAsFunctionDeclaration(  Statement* statement,
     
     //Check if last token is end paresthesia
     {
-        ModC_Result_TokenPtr tokenPtrResult =
-            StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, tokenCount - 1);
-        
+        Result_TokenPtr tokenPtrResult = StatementTokensUnion_GetTokenAt(   &statement->Tokens, 
+                                                                            tokens, 
+                                                                            tokenCount - 1);
         Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
         if(token->TokenType != TokenType_InvokeEnd)
             return RESULT_VALUE_S(0);
@@ -366,9 +369,9 @@ ModC_TryClassifyAsFunctionDeclaration(  Statement* statement,
     //NOTE: Hardcode type to be index 0 and identifier to be index 1 for now
     for(int i = 0; i < 4; ++i)
     {
-        ModC_Result_TokenPtr tokenPtrResult =
-            StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, i);
-        
+        Result_TokenPtr tokenPtrResult = StatementTokensUnion_GetTokenAt(   &statement->Tokens, 
+                                                                            tokens, 
+                                                                            i);
         Token* curToken = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
         Token** outPtr = NULL;
         
@@ -422,13 +425,13 @@ ModC_TryClassifyAsFunctionDeclaration(  Statement* statement,
 }
 
 
-static inline ModC_Result_Void ModC_TryClassifyAsReturn(Statement* statement,
-                                                        const TokenList* tokens,
-                                                        bool inTypeDecl,
-                                                        bool inFuncImpl)
+static inline Result_Void ModC_TryClassifyAsReturn( Statement* statement,
+                                                    const TokenList* tokens,
+                                                    bool inTypeDecl,
+                                                    bool inFuncImpl)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Void
+    #define ResultNameState Result_Void
     
     if(statement->StatementType == StatementType_Compound || inTypeDecl || !inFuncImpl)
         return RESULT_VALUE_S(0);
@@ -438,9 +441,9 @@ static inline ModC_Result_Void ModC_TryClassifyAsReturn(Statement* statement,
     
     //Check if last token is semicolon
     {
-        ModC_Result_TokenPtr tokenPtrResult =
-            StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, tokenCount - 1);
-        
+        Result_TokenPtr tokenPtrResult = StatementTokensUnion_GetTokenAt(   &statement->Tokens, 
+                                                                            tokens, 
+                                                                            tokenCount - 1);
         Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
         if(token->TokenType != TokenType_Semicolon)
             return RESULT_VALUE_S(0);
@@ -450,11 +453,10 @@ static inline ModC_Result_Void ModC_TryClassifyAsReturn(Statement* statement,
     if(tokenCount < 3)
         return RESULT_VALUE_S(0);
     
-    Result_ConstStringView viewResult =
-        StatementTokensUnion_GetTokenTextViewAt(&statement->Tokens, tokens, 0);
-    
+    Result_ConstStringView viewResult = StatementTokensUnion_GetTokenTextViewAt(&statement->Tokens, 
+                                                                                tokens, 
+                                                                                0);
     ConstStringView firstTokenView = *RESULT_TRY(viewResult, RET_ERROR_S());
-    
     if(!ConstStringView_IsEqualLiteral(&firstTokenView, "return"))
         return RESULT_VALUE_S(0);
     
@@ -462,13 +464,13 @@ static inline ModC_Result_Void ModC_TryClassifyAsReturn(Statement* statement,
     return RESULT_VALUE_S(0);
 }
 
-static inline ModC_Result_Void ModC_TryClassifyKeywordInvokable(Statement* statement,
-                                                                const TokenList* tokens,
-                                                                bool inTypeDecl,
-                                                                bool inFuncImpl)
+static inline Result_Void ModC_TryClassifyKeywordInvokable( Statement* statement,
+                                                            const TokenList* tokens,
+                                                            bool inTypeDecl,
+                                                            bool inFuncImpl)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Void
+    #define ResultNameState Result_Void
     
     if(statement->StatementType == StatementType_Compound || inTypeDecl || !inFuncImpl)
         return RESULT_VALUE_S(0);
@@ -478,7 +480,7 @@ static inline ModC_Result_Void ModC_TryClassifyKeywordInvokable(Statement* state
     
     //Check if last token is end parenthesis
     {
-        ModC_Result_TokenPtr tokenPtrResult =
+        Result_TokenPtr tokenPtrResult =
             StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, tokenCount - 1);
         
         Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
@@ -506,13 +508,13 @@ static inline ModC_Result_Void ModC_TryClassifyKeywordInvokable(Statement* state
     return RESULT_VALUE_S(0);
 }
 
-static inline ModC_Result_Void ModC_TryClassifyAsElse(  Statement* statement,
-                                                        const TokenList* tokens,
-                                                        bool inTypeDecl,
-                                                        bool inFuncImpl)
+static inline Result_Void ModC_TryClassifyAsElse(   Statement* statement,
+                                                    const TokenList* tokens,
+                                                    bool inTypeDecl,
+                                                    bool inFuncImpl)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Void
+    #define ResultNameState Result_Void
     
     if(statement->StatementType == StatementType_Compound || inTypeDecl || !inFuncImpl)
         return RESULT_VALUE_S(0);
@@ -534,13 +536,13 @@ static inline ModC_Result_Void ModC_TryClassifyAsElse(  Statement* statement,
 }
 
 //NOTE: ModC_TryClassifyAsVariableDeclareAssignment should be called before this
-static inline ModC_Result_Void ModC_TryClassifyAssignment(  Statement* statement,
-                                                            const TokenList* tokens,
-                                                            bool inTypeDecl,
-                                                            bool inFuncImpl)
+static inline Result_Void ModC_TryClassifyAssignment(   Statement* statement,
+                                                        const TokenList* tokens,
+                                                        bool inTypeDecl,
+                                                        bool inFuncImpl)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Void
+    #define ResultNameState Result_Void
     #undef TaggedUnionNameState
     #define TaggedUnionNameState StatementInfoUnion
     
@@ -552,9 +554,9 @@ static inline ModC_Result_Void ModC_TryClassifyAssignment(  Statement* statement
     
     //Check if last token is semicolon
     {
-        ModC_Result_TokenPtr tokenPtrResult =
-            StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, tokenCount - 1);
-        
+        Result_TokenPtr tokenPtrResult = StatementTokensUnion_GetTokenAt(   &statement->Tokens, 
+                                                                            tokens, 
+                                                                            tokenCount - 1);
         Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
         if(token->TokenType != TokenType_Semicolon)
             return RESULT_VALUE_S(0);
@@ -564,10 +566,10 @@ static inline ModC_Result_Void ModC_TryClassifyAssignment(  Statement* statement
     if(tokenCount < 4)
         return RESULT_VALUE_S(0);
     
-    ModC_Result_Uint32 uint32Result = 
-        StatementTokensUnion_ContainsTokenText(&statement->Tokens, 
-                                                    tokens, 
-                                                    ConstStringView_FromLiteral("="));
+    Result_Uint32 uint32Result = 
+        StatementTokensUnion_ContainsTokenText( &statement->Tokens, 
+                                                tokens, 
+                                                ConstStringView_FromLiteral("="));
     uint32_t foundIndex = *RESULT_TRY(uint32Result, RET_ERROR_S());
     if(foundIndex == tokenCount)
         return RESULT_VALUE_S(0);
@@ -577,13 +579,13 @@ static inline ModC_Result_Void ModC_TryClassifyAssignment(  Statement* statement
     return RESULT_VALUE_S(0);
 }
 
-static inline ModC_Result_Void ModC_TryClassifyCase(Statement* statement,
-                                                    const TokenList* tokens,
-                                                    bool inTypeDecl,
-                                                    bool inFuncImpl)
+static inline Result_Void ModC_TryClassifyCase( Statement* statement,
+                                                const TokenList* tokens,
+                                                bool inTypeDecl,
+                                                bool inFuncImpl)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Void
+    #define ResultNameState Result_Void
     
     if(statement->StatementType == StatementType_Compound || inTypeDecl || !inFuncImpl)
         return RESULT_VALUE_S(0);
@@ -593,9 +595,9 @@ static inline ModC_Result_Void ModC_TryClassifyCase(Statement* statement,
     
     //Check if last token is colon
     {
-        ModC_Result_TokenPtr tokenPtrResult =
-            StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, tokenCount - 1);
-        
+        Result_TokenPtr tokenPtrResult = StatementTokensUnion_GetTokenAt(   &statement->Tokens, 
+                                                                            tokens, 
+                                                                            tokenCount - 1);
         Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
         if(token->TokenType != TokenType_Operator)
             return RESULT_VALUE_S(0);
@@ -611,7 +613,7 @@ static inline ModC_Result_Void ModC_TryClassifyCase(Statement* statement,
     
     //Check if first token is case
     {
-        ModC_Result_TokenPtr tokenPtrResult =
+        Result_TokenPtr tokenPtrResult =
             StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, 0);
         
         Token* token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
@@ -628,15 +630,15 @@ static inline ModC_Result_Void ModC_TryClassifyCase(Statement* statement,
 }
 
 
-static inline ModC_Result_Void ModC_CleanAndClassifyStatements( StatementList* statements, 
-                                                                Allocator tokensAllcoator,
-                                                                Allocator statementsArena,
-                                                                TokenList* tokens,
-                                                                const ConstStringView source,
-                                                                Allocator scratchAllocator)
+static inline Result_Void ModC_CleanAndClassifyStatements(  StatementList* statements, 
+                                                            Allocator tokensAllcoator,
+                                                            Allocator statementsArena,
+                                                            TokenList* tokens,
+                                                            const ConstStringView source,
+                                                            Allocator scratchAllocator)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Void
+    #define ResultNameState Result_Void
     #undef TaggedUnionNameState
     #define TaggedUnionNameState StatementTokensUnion
     
@@ -713,10 +715,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( StatementList* s
         {
             bool isEnd = false;
             Statement* statement = &statements->Data[currentStatementIndex];
-            ModC_Result_Uint32 uint32Result = Statement_Next(   statement, 
-                                                                prevStatement, 
-                                                                statements, 
-                                                                &isEnd);
+            Result_Uint32 uint32Result = Statement_Next(statement, prevStatement, statements, &isEnd);
             currentStatementIndex = *RESULT_TRY(uint32Result, RET_ERROR_S());
             if(isEnd)
                 break;
@@ -750,11 +749,11 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( StatementList* s
                     ("Unexpected statement type"),
                     RET_ERROR_S());
             
-            ModC_Result_Void voidResult = Statement_Normalize(  statement,
-                                                                tokensAllcoator,
-                                                                statementsArena,
-                                                                tokens,
-                                                                scratchAllocator);
+            Result_Void voidResult = Statement_Normalize(   statement,
+                                                            tokensAllcoator,
+                                                            statementsArena,
+                                                            tokens,
+                                                            scratchAllocator);
             (void)RESULT_TRY(voidResult, DEFER_BREAK(0, RET_ERROR_S()));
             
             uint32_t tokenCount = StatementTokensUnion_GetTokenCount(&statement->Tokens);
@@ -874,7 +873,7 @@ static inline ModC_Result_Void ModC_CleanAndClassifyStatements( StatementList* s
             #define REPORT_FAILURE() \
                 do \
                 { \
-                    ModC_Result_TokenPtr tokenPtrResult = \
+                    Result_TokenPtr tokenPtrResult = \
                         StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, 0); \
                     Token* tokenPtr = *RESULT_TRY(tokenPtrResult, DEFER_BREAK(0, RET_ERROR_S())); \
                     RETURN_VISUALIZED_ERROR(tokenPtr, source, true, "%s", "Can't classify expression"); \

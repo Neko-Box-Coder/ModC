@@ -152,13 +152,13 @@ static inline uint32_t StatementTokensUnion_GetTokenCount(const StatementTokensU
     }
 }
 
-static inline ModC_Result_Uint32
+static inline Result_Uint32
 StatementTokensUnion_GetTokenIndexAt(   const StatementTokensUnion* statementUnion, 
                                         const TokenList* tokens,
                                         uint32_t indexInStatement)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Uint32
+    #define ResultNameState Result_Uint32
     #undef TaggedUnionNameState
     #define TaggedUnionNameState StatementTokensUnion
     
@@ -213,17 +213,17 @@ StatementTokensUnion_GetTokenIndexAt(   const StatementTokensUnion* statementUni
     return RESULT_VALUE_S(tokenIndex);
 }
 
-static inline ModC_Result_TokenPtr 
+static inline Result_TokenPtr 
 StatementTokensUnion_GetTokenAt(const StatementTokensUnion* statementUnion, 
                                 const TokenList* tokens,
                                 uint32_t indexInStatement)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_TokenPtr
+    #define ResultNameState Result_TokenPtr
     
-    ModC_Result_Uint32 uint32Result = StatementTokensUnion_GetTokenIndexAt( statementUnion, 
-                                                                            tokens, 
-                                                                            indexInStatement);
+    Result_Uint32 uint32Result = StatementTokensUnion_GetTokenIndexAt(  statementUnion, 
+                                                                        tokens, 
+                                                                        indexInStatement);
     uint32_t tokenIndex = *RESULT_TRY(uint32Result, RET_ERROR_S());
     return RESULT_VALUE_S(&tokens->Data[tokenIndex]);
 }
@@ -238,9 +238,9 @@ StatementTokensUnion_GetTokenTextViewAt(const StatementTokensUnion* statementUni
     
     Token* token = NULL;
     {
-        ModC_Result_TokenPtr tokenPtrResult = StatementTokensUnion_GetTokenAt(  statementUnion, 
-                                                                                tokens, 
-                                                                                indexInStatement);
+        Result_TokenPtr tokenPtrResult = StatementTokensUnion_GetTokenAt(   statementUnion, 
+                                                                            tokens, 
+                                                                            indexInStatement);
         token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
     }
     
@@ -248,13 +248,13 @@ StatementTokensUnion_GetTokenTextViewAt(const StatementTokensUnion* statementUni
 }
 
 
-static inline ModC_Result_Uint32
+static inline Result_Uint32
 StatementTokensUnion_ContainsTokenText( const StatementTokensUnion* statementUnion, 
                                         const TokenList* tokens,
                                         ConstStringView checkText)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Uint32
+    #define ResultNameState Result_Uint32
     
     uint32_t tokensCount = StatementTokensUnion_GetTokenCount(statementUnion);
     for(uint32_t i = 0; i < tokensCount; ++i)
@@ -376,13 +376,13 @@ static inline ResultStatementPtr Statement_CreatePlain( Allocator allocator,
     return RESULT_VALUE_S(retStatementPtr);
 }
 
-static inline ModC_Result_Void Statement_ToString(  Statement* this, 
-                                                    TokenList* tokenList,
-                                                    String* inOutString, 
-                                                    bool append)
+static inline Result_Void Statement_ToString(   Statement* this, 
+                                                TokenList* tokenList,
+                                                String* inOutString, 
+                                                bool append)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Void
+    #define ResultNameState Result_Void
     #undef TaggedUnionNameState
     #define TaggedUnionNameState StatementTokensUnion
     
@@ -515,12 +515,12 @@ static inline ModC_Result_Void Statement_ToString(  Statement* this,
     }
 #endif
 
-static inline ModC_Result_Void AddStatementToParent(uint32_t statementIndex, 
-                                                    uint32_t currentParentIndex,
-                                                    StatementList* statementList)
+static inline Result_Void AddStatementToParent( uint32_t statementIndex, 
+                                                uint32_t currentParentIndex,
+                                                StatementList* statementList)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Void
+    #define ResultNameState Result_Void
     #undef TaggedUnionNameState
     #define TaggedUnionNameState StatementTokensUnion
     
@@ -540,14 +540,14 @@ static inline ModC_Result_Void AddStatementToParent(uint32_t statementIndex,
 }
 
 //Normalizes the statements by removing spaces, comments and newlines and merge operators if possible
-static inline ModC_Result_Void Statement_Normalize( Statement* statement,
-                                                    Allocator tokensAllcoator,
-                                                    Allocator statementsArena,
-                                                    TokenList* tokens,
-                                                    Allocator scratchAllocator)
+static inline Result_Void Statement_Normalize(  Statement* statement,
+                                                Allocator tokensAllcoator,
+                                                Allocator statementsArena,
+                                                TokenList* tokens,
+                                                Allocator scratchAllocator)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Void
+    #define ResultNameState Result_Void
     #undef TaggedUnionNameState
     #define TaggedUnionNameState StatementTokensUnion
     
@@ -571,10 +571,10 @@ static inline ModC_Result_Void Statement_Normalize( Statement* statement,
         bool skipped = false;
         for(uint32_t i = 0; i < tokensCount; ++i)
         {
-            ModC_Result_TokenPtr tokenPtrResult = 
-                StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, i);
+            Result_TokenPtr tokenPtrResult = StatementTokensUnion_GetTokenAt(   &statement->Tokens, 
+                                                                                tokens, 
+                                                                                i);
             Token* currentToken = *RESULT_TRY(tokenPtrResult, DEFER_BREAK(0, RET_ERROR_S()));
-            
             if(currentToken->TokenType == TokenType_Operator)
             {
                 bool operatorNext = false;
@@ -647,10 +647,10 @@ static inline ModC_Result_Void Statement_Normalize( Statement* statement,
                                                                     tokenStr);
                         }
                         
-                        ModC_Result_Uint32 uint32Result = 
-                            StatementTokensUnion_GetTokenIndexAt(  &statement->Tokens,
-                                                                        tokens,
-                                                                        minLookBack);
+                        Result_Uint32 uint32Result = 
+                            StatementTokensUnion_GetTokenIndexAt(   &statement->Tokens,
+                                                                    tokens,
+                                                                    minLookBack);
                         uint32_t minLookBackTokenIndex = *RESULT_TRY(   uint32Result, 
                                                                         DEFER_BREAK(0, RET_ERROR_S()));
                         
@@ -663,7 +663,7 @@ static inline ModC_Result_Void Statement_Normalize( Statement* statement,
                         {
                             tokenPtrResult = 
                                 StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, j);
-                            ModC_Result_Uint32 uint32Result = 
+                            Result_Uint32 uint32Result = 
                                 StatementTokensUnion_GetTokenIndexAt(&statement->Tokens, tokens, j);
                             uint32_t lookBackTokenIndex = *RESULT_TRY(  uint32Result, 
                                                                         DEFER_BREAK(0, RET_ERROR_S()));
@@ -673,7 +673,7 @@ static inline ModC_Result_Void Statement_Normalize( Statement* statement,
                 } //if(!operatorNext && minLookBack != i)
                 else if(!operatorNext)
                 {
-                    ModC_Result_Uint32 uint32Result = 
+                    Result_Uint32 uint32Result = 
                         StatementTokensUnion_GetTokenIndexAt(&statement->Tokens, tokens, i);
                     uint32_t currentTokenIndex = *RESULT_TRY(   uint32Result, 
                                                                 DEFER_BREAK(0, RET_ERROR_S()));
@@ -691,7 +691,7 @@ static inline ModC_Result_Void Statement_Normalize( Statement* statement,
             else
             {
                 minLookBack = i + 1;
-                ModC_Result_Uint32 uint32Result = 
+                Result_Uint32 uint32Result = 
                     StatementTokensUnion_GetTokenIndexAt(&statement->Tokens, tokens, i);
                 uint32_t currentTokenIndex = *RESULT_TRY(   uint32Result, 
                                                             DEFER_BREAK(0, RET_ERROR_S()));
@@ -715,13 +715,13 @@ static inline ModC_Result_Void Statement_Normalize( Statement* statement,
     return RESULT_VALUE_S(0);
 }
 
-static inline ModC_Result_Uint32 Statement_Next(const Statement* statement, 
-                                                const Statement* prevStatement, 
-                                                const StatementList* statements,
-                                                bool* isEnd)
+static inline Result_Uint32 Statement_Next( const Statement* statement, 
+                                            const Statement* prevStatement, 
+                                            const StatementList* statements,
+                                            bool* isEnd)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Uint32
+    #define ResultNameState Result_Uint32
     #undef TaggedUnionNameState
     #define TaggedUnionNameState StatementTokensUnion
     
@@ -791,16 +791,16 @@ static inline ModC_Result_Uint32 Statement_Next(const Statement* statement,
     }
 }
 
-static inline ModC_Result_Uint32 EndCurrentStatement(   bool countCurrentToken, 
-                                                        uint32_t i, 
-                                                        uint32_t currentParentIndex,
-                                                        Allocator sharedArena,
-                                                        const TokenList* tokens,
-                                                        uint32_t* startTokenIndex,
-                                                        StatementList* statementList)
+static inline Result_Uint32 EndCurrentStatement(bool countCurrentToken, 
+                                                uint32_t i, 
+                                                uint32_t currentParentIndex,
+                                                Allocator sharedArena,
+                                                const TokenList* tokens,
+                                                uint32_t* startTokenIndex,
+                                                StatementList* statementList)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Uint32
+    #define ResultNameState Result_Uint32
     #undef TaggedUnionNameState
     #define TaggedUnionNameState StatementTokensUnion
     
@@ -865,9 +865,9 @@ static inline ModC_Result_Uint32 EndCurrentStatement(   bool countCurrentToken,
     
     *startTokenIndex = countCurrentToken ? ++i : i;
     
-    ModC_Result_Void voidResult = AddStatementToParent( statementList->Length - 1, 
-                                                        currentParentIndex, 
-                                                        statementList);
+    Result_Void voidResult = AddStatementToParent(  statementList->Length - 1, 
+                                                    currentParentIndex, 
+                                                    statementList);
 
     (void)RESULT_TRY(voidResult, RET_ERROR_S());
     return RESULT_VALUE_S(i);
@@ -900,13 +900,13 @@ static inline Result_StatementList CreateStatements(const TokenList* tokens,
     #define END_CURRENT_STATEMENT(countCurrentToken) \
         do \
         { \
-            ModC_Result_Uint32 uint32Result = EndCurrentStatement(  countCurrentToken, \
-                                                                    i, \
-                                                                    currentParentIndex, \
-                                                                    sharedArena, \
-                                                                    tokens, \
-                                                                    &startTokenIndex, \
-                                                                    &statementList); \
+            Result_Uint32 uint32Result = EndCurrentStatement(   countCurrentToken, \
+                                                                i, \
+                                                                currentParentIndex, \
+                                                                sharedArena, \
+                                                                tokens, \
+                                                                &startTokenIndex, \
+                                                                &statementList); \
             i = *RESULT_TRY(uint32Result, RET_ERROR_S()); \
         } \
         while(false)
@@ -916,10 +916,10 @@ static inline Result_StatementList CreateStatements(const TokenList* tokens,
         { \
             if(!(cond)) \
             { \
-                String visualizeStr = Token_VisualizeLocation( &tokens->Data[i], \
-                                                                    CreateHeapAllocator(), \
-                                                                    false, \
-                                                                    source); \
+                String visualizeStr = Token_VisualizeLocation(  &tokens->Data[i], \
+                                                                CreateHeapAllocator(), \
+                                                                false, \
+                                                                source); \
                 \
                 return ERROR_STR_FMT_S((msg "\n%.*s", \
                                         visualizeStr.Length, \
@@ -930,7 +930,7 @@ static inline Result_StatementList CreateStatements(const TokenList* tokens,
     
     uint32_t startTokenIndex = 0;
     uint32_t currentParentIndex = 0;
-    ModC_BoolList blockStartComplex = ModC_BoolList_Create(scratchAllocator, 16);
+    BoolList blockStartComplex = BoolList_Create(scratchAllocator, 16);
     for(uint32_t i = 0; i < tokens->Length; ++i)
     {
         static_assert(TokenType_Count == 19, "");
@@ -988,14 +988,14 @@ static inline Result_StatementList CreateStatements(const TokenList* tokens,
                     if( tokens->Data[lastTokenIndex].TokenType != TokenType_Identifier &&
                         tokens->Data[lastTokenIndex].TokenType != TokenType_InvokeEnd)
                     {
-                        ModC_BoolList_AddValue(&blockStartComplex, false);
+                        BoolList_AddValue(&blockStartComplex, false);
                         break;
                     }
                     
                     END_CURRENT_STATEMENT(false);
                 }
                 
-                ModC_BoolList_AddValue(&blockStartComplex, true);
+                BoolList_AddValue(&blockStartComplex, true);
                 
                 //Create compound as parent
                 statementPtrResult = Statement_CreateCompound(  sharedArena, 
@@ -1007,9 +1007,9 @@ static inline Result_StatementList CreateStatements(const TokenList* tokens,
                 CHECK_AND_VISUALIZE_ERROR(  newStatement->Tokens.Type == 
                                             TU_TYPE_S(CompoundStatement),
                                             "Unexpected type");
-                ModC_Result_Void voidResult = AddStatementToParent( statementList.Length - 1,
-                                                                    currentParentIndex,
-                                                                    &statementList);
+                Result_Void voidResult = AddStatementToParent(  statementList.Length - 1,
+                                                                currentParentIndex,
+                                                                &statementList);
                 (void)RESULT_TRY(voidResult, RET_ERROR_S());
                 CompoundStatement* compoundData = &newStatement->Tokens.TU_DATA_S(CompoundStatement);
                 compoundData->StartTokenIndex = i;
@@ -1024,10 +1024,10 @@ static inline Result_StatementList CreateStatements(const TokenList* tokens,
                 
                 if(!blockStartComplex.Data[blockStartComplex.Length - 1])
                 {
-                    ModC_BoolList_Resize(&blockStartComplex, blockStartComplex.Length - 1);
+                    BoolList_Resize(&blockStartComplex, blockStartComplex.Length - 1);
                     break;
                 }
-                ModC_BoolList_Resize(&blockStartComplex, blockStartComplex.Length - 1);
+                BoolList_Resize(&blockStartComplex, blockStartComplex.Length - 1);
                 
                 //Finish compound parent
                 END_CURRENT_STATEMENT(false);

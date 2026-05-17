@@ -72,9 +72,9 @@ static inline void Token_Free(Token* this);
 #define VALUE_FREE(ptr) Token_Free(ptr)
 #include "ModC/List.h"
 
-DEFINE_RESULT_STRUCT(ModC_Result_TokenList, TokenList)
-DEFINE_RESULT_STRUCT(ModC_Result_Token, Token)
-DEFINE_RESULT_STRUCT(ModC_Result_TokenPtr, Token*)
+DEFINE_RESULT_STRUCT(Result_TokenList, TokenList)
+DEFINE_RESULT_STRUCT(Result_Token, Token)
+DEFINE_RESULT_STRUCT(Result_TokenPtr, Token*)
 
 static inline ConstStringView Token_TokenTextView(const Token* this)
 {
@@ -232,14 +232,14 @@ static inline ConstStringView TokenType_ToCStr(TokenType type)
     }
 }
 
-static inline ModC_Result_Void Token_AppendChar(Token* this, 
-                                                const ConstStringView source, 
-                                                char c,
-                                                Allocator allocator,
-                                                bool forceString)
+static inline Result_Void Token_AppendChar( Token* this, 
+                                            const ConstStringView source, 
+                                            char c,
+                                            Allocator allocator,
+                                            bool forceString)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Void
+    #define ResultNameState Result_Void
     
     CHECK(this != NULL, (""), RET_ERROR_S());
     
@@ -350,10 +350,10 @@ static inline bool IsLastCharEscaped(ConstStringView view)
 }
 
 
-static inline ModC_Result_Bool Token_IsCharPossible(const Token* this, char c, CharTokenType cType)
+static inline Result_Bool Token_IsCharPossible(const Token* this, char c, CharTokenType cType)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_Bool
+    #define ResultNameState Result_Bool
     
     CHECK(this != NULL, (""), RET_ERROR_S());
     
@@ -414,11 +414,10 @@ static inline ModC_Result_Bool Token_IsCharPossible(const Token* this, char c, C
 
 
 //Returns list of tokens that are types in `CharTokenType` or `TokenType_Comment`
-static inline ModC_Result_TokenList Tokenization(   const ConstStringView fileContent, 
-                                                    Allocator allocator)
+static inline Result_TokenList Tokenization(const ConstStringView fileContent, Allocator allocator)
 {
     #undef ResultNameState
-    #define ResultNameState ModC_Result_TokenList
+    #define ResultNameState Result_TokenList
     
     if(fileContent.Length == 0)
         return RESULT_VALUE_S( (TokenList){0} );
@@ -449,11 +448,11 @@ static inline ModC_Result_TokenList Tokenization(   const ConstStringView fileCo
             #define APPEND_CHAR_TO_TOKEN() \
                 do \
                 { \
-                    ModC_Result_Void voidResult = Token_AppendChar( &currentToken, \
-                                                                    fileContent, \
-                                                                    fileContent.Data[i], \
-                                                                    allocator, \
-                                                                    false); \
+                    Result_Void voidResult = Token_AppendChar(  &currentToken, \
+                                                                fileContent, \
+                                                                fileContent.Data[i], \
+                                                                allocator, \
+                                                                false); \
                     (void)RESULT_TRY(voidResult, DEFER_BREAK(0, RET_ERROR_S())); \
                 } while(0)
             
@@ -542,9 +541,9 @@ static inline ModC_Result_TokenList Tokenization(   const ConstStringView fileCo
             
             if(!inComment)
             {
-                ModC_Result_Bool boolResult = Token_IsCharPossible( &currentToken, 
-                                                                    fileContent.Data[i], 
-                                                                    charTokenType);
+                Result_Bool boolResult = Token_IsCharPossible(  &currentToken, 
+                                                                fileContent.Data[i], 
+                                                                charTokenType);
                 bool possible = *RESULT_TRY(boolResult, DEFER_BREAK(0, RET_ERROR_S()));
                 if(!possible)
                 {
