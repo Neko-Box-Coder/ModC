@@ -126,150 +126,6 @@ DEFINE_RESULT_STRUCT(Result_StatementList, StatementList)
 #include <stdbool.h>
 #include <stdint.h>
 
-//TODO: Use statement to get token count instead
-static inline uint32_t StatementTokensUnion_GetTokenCount(const StatementTokensUnion* statementUnion)
-{
-    #undef TaggedUnionNameState
-    #define TaggedUnionNameState StatementTokensUnion
-    
-    if(!statementUnion)
-        return 0;
-    
-    switch(statementUnion->Type)
-    {
-        case TU_TYPE_S(CompoundStatement):
-            return 2;
-        case TU_TYPE_S(TokenIndexList):
-            return statementUnion->TU_DATA_S(TokenIndexList).Length;
-        case TU_TYPE_S(TokenIndexRange):
-        {
-            const TokenIndexRange* range = 
-                &statementUnion->TU_DATA_S(TokenIndexRange);
-            return range->EndIndex - range->StartIndex;
-        }
-        default:
-            return 0;
-    }
-}
-
-static inline Result_Uint32
-StatementTokensUnion_GetTokenIndexAt(   const StatementTokensUnion* statementUnion, 
-                                        const TokenList* tokens,
-                                        uint32_t indexInStatement)
-{
-    #undef ResultNameState
-    #define ResultNameState Result_Uint32
-    #undef TaggedUnionNameState
-    #define TaggedUnionNameState StatementTokensUnion
-    
-    CHECK(statementUnion != NULL, (""), RET_ERROR_S());
-    CHECK(tokens != NULL, (""), RET_ERROR_S());
-    
-    uint32_t tokenIndex = 0;
-    switch(statementUnion->Type)
-    {
-        case TU_TYPE_S(CompoundStatement):
-        {
-            //NOTE: Shouldn't use this function for compound statement..., but whatever
-            const CompoundStatement* compound = &statementUnion->TU_DATA_S(CompoundStatement);
-            if(indexInStatement == 0)
-                tokenIndex = compound->StartTokenIndex;
-            else if(indexInStatement == 1)
-                tokenIndex = compound->EndTokenIndex;
-            else
-                return ERROR_STR_FMT_S("Invalid index for accessing %"PRIu32, indexInStatement);
-            break;
-        }
-        case TU_TYPE_S(TokenIndexList):
-        {
-            const TokenIndexList* tokenIndexList = &statementUnion->TU_DATA_S(TokenIndexList);
-            CHECK(tokenIndexList->Length > 0, ("Empty statement"), RET_ERROR_S());
-            CHECK(  indexInStatement < tokenIndexList->Length, 
-                    ("Invalid index for accessing, index: %"PRIu32", length: %"PRIu64, 
-                    indexInStatement, tokenIndexList->Length),
-                    RET_ERROR_S());
-            tokenIndex = tokenIndexList->Data[indexInStatement];
-            break;
-        }
-        case TU_TYPE_S(TokenIndexRange):
-        {
-            const TokenIndexRange* range = &statementUnion->TU_DATA_S(TokenIndexRange);
-            CHECK(range->EndIndex > range->StartIndex, ("Empty statement"), RET_ERROR_S());
-            CHECK(  indexInStatement < range->EndIndex - range->StartIndex, 
-                    ("Invalid index for accessing, index: %"PRIu32", length: %"PRIu32,
-                    indexInStatement, range->EndIndex - range->StartIndex),
-                    RET_ERROR_S());
-            tokenIndex = range->StartIndex + indexInStatement;
-            break;
-        }
-        default:
-            return ERROR_CSTR_S("Unexpected statement union type");
-    }
-    
-    CHECK(  tokenIndex < tokens->Length, 
-            ("Token index access out of bound, tokenIndex %"PRIu32", tokens->Length: %"PRIu64,
-            tokenIndex, tokens->Length),
-            RET_ERROR_S());
-    return RESULT_VALUE_S(tokenIndex);
-}
-
-static inline Result_TokenPtr 
-StatementTokensUnion_GetTokenAt(const StatementTokensUnion* statementUnion, 
-                                const TokenList* tokens,
-                                uint32_t indexInStatement)
-{
-    #undef ResultNameState
-    #define ResultNameState Result_TokenPtr
-    
-    Result_Uint32 uint32Result = StatementTokensUnion_GetTokenIndexAt(  statementUnion, 
-                                                                        tokens, 
-                                                                        indexInStatement);
-    uint32_t tokenIndex = *RESULT_TRY(uint32Result, RET_ERROR_S());
-    return RESULT_VALUE_S(&tokens->Data[tokenIndex]);
-}
-
-static inline Result_ConstStringView 
-StatementTokensUnion_GetTokenTextViewAt(const StatementTokensUnion* statementUnion, 
-                                        const TokenList* tokens,
-                                        uint32_t indexInStatement)
-{
-    #undef ResultNameState
-    #define ResultNameState Result_ConstStringView 
-    
-    Token* token = NULL;
-    {
-        Result_TokenPtr tokenPtrResult = StatementTokensUnion_GetTokenAt(   statementUnion, 
-                                                                            tokens, 
-                                                                            indexInStatement);
-        token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
-    }
-    
-    return RESULT_VALUE_S(Token_TokenTextView(token));
-}
-
-
-static inline Result_Uint32
-StatementTokensUnion_ContainsTokenText( const StatementTokensUnion* statementUnion, 
-                                        const TokenList* tokens,
-                                        ConstStringView checkText)
-{
-    #undef ResultNameState
-    #define ResultNameState Result_Uint32
-    
-    uint32_t tokensCount = StatementTokensUnion_GetTokenCount(statementUnion);
-    for(uint32_t i = 0; i < tokensCount; ++i)
-    {
-        Result_ConstStringView constStringViewResult =
-            StatementTokensUnion_GetTokenTextViewAt(statementUnion, tokens, i);
-        
-        ConstStringView tokenStringView = *RESULT_TRY(constStringViewResult, RET_ERROR_S());
-        if(StringLikeEqual(tokenStringView, checkText))
-            return RESULT_VALUE_S(i);
-    }
-    
-    return RESULT_VALUE_S(tokensCount);
-}
-
 static inline ConstStringView StatementType_ToConstStringView(StatementType type)
 {
     static_assert((int)StatementType_Count == 18, "");
@@ -481,6 +337,141 @@ static inline Result_Void Statement_ToString(   Statement* this,
     return RESULT_VALUE_S(0);
 }
 
+
+static inline uint32_t Statement_GetTokenCount(const Statement* this)
+{
+    #undef TaggedUnionNameState
+    #define TaggedUnionNameState StatementTokensUnion
+    
+    if(!this)
+        return 0;
+    
+    switch(this->Tokens.Type)
+    {
+        case TU_TYPE_S(CompoundStatement):
+            return 2;
+        case TU_TYPE_S(TokenIndexList):
+            return this->Tokens.TU_DATA_S(TokenIndexList).Length;
+        case TU_TYPE_S(TokenIndexRange):
+        {
+            const TokenIndexRange* range = &this->Tokens.TU_DATA_S(TokenIndexRange);
+            return range->EndIndex - range->StartIndex;
+        }
+        default:
+            return 0;
+    }
+}
+
+static inline Result_Uint32 Statement_GetTokenIndexAt(  const Statement* this, 
+                                                        const TokenList* tokens,
+                                                        uint32_t indexInStatement)
+{
+    #undef ResultNameState
+    #define ResultNameState Result_Uint32
+    #undef TaggedUnionNameState
+    #define TaggedUnionNameState StatementTokensUnion
+    
+    CHECK(this != NULL, (""), RET_ERROR_S());
+    CHECK(tokens != NULL, (""), RET_ERROR_S());
+    
+    uint32_t tokenIndex = 0;
+    switch(this->Tokens.Type)
+    {
+        case TU_TYPE_S(CompoundStatement):
+        {
+            //NOTE: Shouldn't use this function for compound statement..., but whatever
+            const CompoundStatement* compound = &this->Tokens.TU_DATA_S(CompoundStatement);
+            if(indexInStatement == 0)
+                tokenIndex = compound->StartTokenIndex;
+            else if(indexInStatement == 1)
+                tokenIndex = compound->EndTokenIndex;
+            else
+                return ERROR_STR_FMT_S("Invalid index for accessing %"PRIu32, indexInStatement);
+            break;
+        }
+        case TU_TYPE_S(TokenIndexList):
+        {
+            const TokenIndexList* tokenIndexList = &this->Tokens.TU_DATA_S(TokenIndexList);
+            CHECK(tokenIndexList->Length > 0, ("Empty statement"), RET_ERROR_S());
+            CHECK(  indexInStatement < tokenIndexList->Length, 
+                    ("Invalid index for accessing, index: %"PRIu32", length: %"PRIu64, 
+                    indexInStatement, tokenIndexList->Length),
+                    RET_ERROR_S());
+            tokenIndex = tokenIndexList->Data[indexInStatement];
+            break;
+        }
+        case TU_TYPE_S(TokenIndexRange):
+        {
+            const TokenIndexRange* range = &this->Tokens.TU_DATA_S(TokenIndexRange);
+            CHECK(range->EndIndex > range->StartIndex, ("Empty statement"), RET_ERROR_S());
+            CHECK(  indexInStatement < range->EndIndex - range->StartIndex, 
+                    ("Invalid index for accessing, index: %"PRIu32", length: %"PRIu32,
+                    indexInStatement, range->EndIndex - range->StartIndex),
+                    RET_ERROR_S());
+            tokenIndex = range->StartIndex + indexInStatement;
+            break;
+        }
+        default:
+            return ERROR_CSTR_S("Unexpected statement union type");
+    }
+    
+    CHECK(  tokenIndex < tokens->Length, 
+            ("Token index access out of bound, tokenIndex %"PRIu32", tokens->Length: %"PRIu64,
+            tokenIndex, tokens->Length),
+            RET_ERROR_S());
+    return RESULT_VALUE_S(tokenIndex);
+}
+
+static inline Result_TokenPtr Statement_GetTokenAt( const Statement* this, 
+                                                    const TokenList* tokens,
+                                                    uint32_t indexInStatement)
+{
+    #undef ResultNameState
+    #define ResultNameState Result_TokenPtr
+    
+    Result_Uint32 uint32Result = Statement_GetTokenIndexAt(this, tokens, indexInStatement);
+    uint32_t tokenIndex = *RESULT_TRY(uint32Result, RET_ERROR_S());
+    return RESULT_VALUE_S(&tokens->Data[tokenIndex]);
+}
+
+static inline Result_ConstStringView Statement_GetTokenTextViewAt(  const Statement* this, 
+                                                                    const TokenList* tokens,
+                                                                    uint32_t indexInStatement)
+{
+    #undef ResultNameState
+    #define ResultNameState Result_ConstStringView 
+    
+    Token* token = NULL;
+    Result_TokenPtr tokenPtrResult = Statement_GetTokenAt(this, tokens, indexInStatement);
+    token = *RESULT_TRY(tokenPtrResult, RET_ERROR_S());
+    return RESULT_VALUE_S(Token_TokenTextView(token));
+}
+
+
+static inline Result_Uint32 Statement_ContainsTokenText(const Statement* this, 
+                                                        const TokenList* tokens,
+                                                        ConstStringView checkText)
+{
+    #undef ResultNameState
+    #define ResultNameState Result_Uint32
+    
+    uint32_t tokensCount = Statement_GetTokenCount(this);
+    for(uint32_t i = 0; i < tokensCount; ++i)
+    {
+        Result_ConstStringView constStringViewResult = Statement_GetTokenTextViewAt(this, 
+                                                                                    tokens, 
+                                                                                    i);
+        ConstStringView tokenStringView = *RESULT_TRY(constStringViewResult, RET_ERROR_S());
+        if(StringLikeEqual(tokenStringView, checkText))
+            return RESULT_VALUE_S(i);
+    }
+    
+    return RESULT_VALUE_S(tokensCount);
+}
+
+
+
+
 #if 0
     void Statement_Free(Statement* this)
     {
@@ -560,7 +551,7 @@ static inline Result_Void Statement_Normalize(  Statement* statement,
     
     DEFER_SCOPE_START(0)
     {
-        uint32_t tokensCount = StatementTokensUnion_GetTokenCount(&statement->Tokens);
+        uint32_t tokensCount = Statement_GetTokenCount(statement);
         tokenIndices = Uint32List_Create(scratchAllocator, tokensCount);
         DEFER(0, Uint32List_Free(&tokenIndices));
         
@@ -571,18 +562,14 @@ static inline Result_Void Statement_Normalize(  Statement* statement,
         bool skipped = false;
         for(uint32_t i = 0; i < tokensCount; ++i)
         {
-            Result_TokenPtr tokenPtrResult = StatementTokensUnion_GetTokenAt(   &statement->Tokens, 
-                                                                                tokens, 
-                                                                                i);
+            Result_TokenPtr tokenPtrResult = Statement_GetTokenAt(statement, tokens, i);
             Token* currentToken = *RESULT_TRY(tokenPtrResult, DEFER_BREAK(0, RET_ERROR_S()));
             if(currentToken->TokenType == TokenType_Operator)
             {
                 bool operatorNext = false;
                 if(i != tokensCount - 1)
                 {
-                    tokenPtrResult = StatementTokensUnion_GetTokenAt(   &statement->Tokens, 
-                                                                        tokens, 
-                                                                        i + 1);
+                    tokenPtrResult = Statement_GetTokenAt(statement, tokens, i + 1);
                     Token* nextToken = *RESULT_TRY(tokenPtrResult, DEFER_BREAK(0, RET_ERROR_S()));
                     operatorNext = nextToken->TokenType == TokenType_Operator;
                 }
@@ -596,13 +583,10 @@ static inline Result_Void Statement_Normalize(  Statement* statement,
                     String_Resize(&tempMergedOperator, 0);
                     for(uint32_t j = minLookBack; j <= i; ++j)
                     {
-                        tokenPtrResult = StatementTokensUnion_GetTokenAt(  &statement->Tokens, 
-                                                                                tokens, 
-                                                                                j);
-                        Token* lookBackToken = *RESULT_TRY(tokenPtrResult, 
-                                                                DEFER_BREAK(0, RET_ERROR_S()));
-                        
-                        CHECK( lookBackToken->TokenType == TokenType_Operator, 
+                        tokenPtrResult = Statement_GetTokenAt(statement, tokens, j);
+                        Token* lookBackToken = *RESULT_TRY( tokenPtrResult, 
+                                                            DEFER_BREAK(0, RET_ERROR_S()));
+                        CHECK(  lookBackToken->TokenType == TokenType_Operator, 
                                 (""), 
                                 DEFER_BREAK(0, RET_ERROR_S()));
                         
@@ -622,17 +606,15 @@ static inline Result_Void Statement_Normalize(  Statement* statement,
                     if(ModC_IsValidComplexOperator(mergedView))
                     {
                         skipped = true;
-                        tokenPtrResult = StatementTokensUnion_GetTokenAt(  &statement->Tokens, 
-                                                                                tokens, 
-                                                                                minLookBack);
+                        tokenPtrResult = Statement_GetTokenAt(statement, tokens, minLookBack);
                         Token* minLookBackToken = *RESULT_TRY(  tokenPtrResult, 
                                                                 DEFER_BREAK(0, RET_ERROR_S()));
                         
                         //Modify current token to concatenated operator string
                         if(currentToken->TokenText.Type == TU_TYPE(StringUnion, String))
                         {
-                            String* tokenStr = 
-                                &minLookBackToken->TokenText.TU_DATA( StringUnion, String);
+                            String* tokenStr = &minLookBackToken->TokenText.TU_DATA(StringUnion, 
+                                                                                    String);
                             String_AddRange(tokenStr, 
                                             &tempMergedOperator.Data[1], 
                                             tempMergedOperator.Length - 1);
@@ -647,10 +629,9 @@ static inline Result_Void Statement_Normalize(  Statement* statement,
                                                                     tokenStr);
                         }
                         
-                        Result_Uint32 uint32Result = 
-                            StatementTokensUnion_GetTokenIndexAt(   &statement->Tokens,
-                                                                    tokens,
-                                                                    minLookBack);
+                        Result_Uint32 uint32Result = Statement_GetTokenIndexAt( statement, 
+                                                                                tokens,
+                                                                                minLookBack);
                         uint32_t minLookBackTokenIndex = *RESULT_TRY(   uint32Result, 
                                                                         DEFER_BREAK(0, RET_ERROR_S()));
                         
@@ -661,10 +642,10 @@ static inline Result_Void Statement_Normalize(  Statement* statement,
                     {
                         for(uint32_t j = minLookBack; j <= i; ++j)
                         {
-                            tokenPtrResult = 
-                                StatementTokensUnion_GetTokenAt(&statement->Tokens, tokens, j);
-                            Result_Uint32 uint32Result = 
-                                StatementTokensUnion_GetTokenIndexAt(&statement->Tokens, tokens, j);
+                            tokenPtrResult = Statement_GetTokenAt(statement, tokens, j);
+                            Result_Uint32 uint32Result = Statement_GetTokenIndexAt( statement, 
+                                                                                    tokens, 
+                                                                                    j);
                             uint32_t lookBackTokenIndex = *RESULT_TRY(  uint32Result, 
                                                                         DEFER_BREAK(0, RET_ERROR_S()));
                             Uint32List_AddValue(&tokenIndices, lookBackTokenIndex);
@@ -673,8 +654,7 @@ static inline Result_Void Statement_Normalize(  Statement* statement,
                 } //if(!operatorNext && minLookBack != i)
                 else if(!operatorNext)
                 {
-                    Result_Uint32 uint32Result = 
-                        StatementTokensUnion_GetTokenIndexAt(&statement->Tokens, tokens, i);
+                    Result_Uint32 uint32Result = Statement_GetTokenIndexAt(statement, tokens, i);
                     uint32_t currentTokenIndex = *RESULT_TRY(   uint32Result, 
                                                                 DEFER_BREAK(0, RET_ERROR_S()));
                     Uint32List_AddValue(&tokenIndices, currentTokenIndex);
@@ -691,8 +671,7 @@ static inline Result_Void Statement_Normalize(  Statement* statement,
             else
             {
                 minLookBack = i + 1;
-                Result_Uint32 uint32Result = 
-                    StatementTokensUnion_GetTokenIndexAt(&statement->Tokens, tokens, i);
+                Result_Uint32 uint32Result = Statement_GetTokenIndexAt(statement, tokens, i);
                 uint32_t currentTokenIndex = *RESULT_TRY(   uint32Result, 
                                                             DEFER_BREAK(0, RET_ERROR_S()));
                 Uint32List_AddValue(&tokenIndices, currentTokenIndex);

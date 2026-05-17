@@ -127,13 +127,13 @@ Result_Void Main(int argc, char* argv[])
         DEFER(0, Allocator_Destroy(&statementListArena));
         
         Result_Void voidResult = 
-            ModC_CleanAndClassifyStatements(statementList, 
-                                            Allocator_Share(&mainArena),
-                                            Allocator_Share(&statementListArena),
-                                            tokenList,
-                                            sourceView,
-                                            //TODO: Use scratch arena.
-                                            Allocator_Share(&mainArena));
+            CleanAndClassifyStatements( statementList, 
+                                        Allocator_Share(&mainArena),
+                                        Allocator_Share(&statementListArena),
+                                        tokenList,
+                                        sourceView,
+                                        //TODO: Use scratch arena.
+                                        Allocator_Share(&mainArena));
         (void)RESULT_TRY(voidResult, DEFER_BREAK(0, RET_ERROR_S()));
         
         
